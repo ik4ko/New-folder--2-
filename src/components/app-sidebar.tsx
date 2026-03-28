@@ -118,9 +118,11 @@ export function AppSidebar() {
         </div>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton tooltip="Settings" className="rounded-xl h-9">
-              <Settings className="w-4 h-4" />
-              <span className="text-xs">Agency Settings</span>
+            <SidebarMenuButton asChild isActive={pathname === '/settings'} tooltip="Settings" className="rounded-xl h-9">
+              <Link href="/settings">
+                <Settings className="w-4 h-4" />
+                <span className="text-xs">Agency Settings</span>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>

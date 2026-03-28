@@ -62,17 +62,29 @@ export interface GHLSettings {
   syncFrequency: 'hourly' | 'daily' | 'manual';
 }
 
+export interface AgencyProfile {
+  name: string;
+  licenseNumber: string;
+  email: string;
+  phone: string;
+  isSolo: boolean;
+  logoUrl?: string;
+  primaryColor?: string;
+}
+
 interface AppState {
   members: MemberRecord[];
   isSynced: boolean;
   isGHLConnected: boolean;
   ghlSettings: GHLSettings;
+  agencyProfile: AgencyProfile;
   addMember: (member: Partial<MemberRecord>) => void;
   updateMember: (id: string, updates: Partial<MemberRecord>) => void;
   setMembers: (members: MemberRecord[]) => void;
   triggerSync: () => void;
   toggleGHL: () => void;
   updateGHLSettings: (updates: Partial<GHLSettings>) => void;
+  updateAgencyProfile: (updates: Partial<AgencyProfile>) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -97,6 +109,13 @@ export const useAppStore = create<AppState>((set) => ({
     stageId: 'ST_CHURN_ALERT',
     riskTag: 'churn-risk-detected',
     syncFrequency: 'daily',
+  },
+  agencyProfile: {
+    name: 'MediStay Demo Agency',
+    licenseNumber: 'NPN-12345678',
+    email: 'admin@medistay-demo.com',
+    phone: '415-555-0100',
+    isSolo: true,
   },
   addMember: (memberData) => set((state) => {
     const newMember: MemberRecord = {
@@ -153,6 +172,9 @@ export const useAppStore = create<AppState>((set) => ({
   toggleGHL: () => set((state) => ({ isGHLConnected: !state.isGHLConnected })),
   updateGHLSettings: (updates) => set((state) => ({
     ghlSettings: { ...state.ghlSettings, ...updates }
+  })),
+  updateAgencyProfile: (updates) => set((state) => ({
+    agencyProfile: { ...state.agencyProfile, ...updates }
   })),
 }));
 
