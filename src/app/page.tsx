@@ -1,4 +1,3 @@
-
 "use client"
 
 import { CollectionSidebar } from "@/components/collection-sidebar"
@@ -43,7 +42,7 @@ export default function Dashboard() {
     <div className="flex h-full w-full bg-background">
       <CollectionSidebar />
       
-      <div className="flex-1 overflow-y-auto p-8 space-y-8 bg-[#F7F4F0]/30 dark:bg-background">
+      <div className="flex-1 overflow-y-auto p-8 space-y-8 bg-background">
         <div className="flex items-end justify-between">
           <div>
             <h1 className="text-3xl font-black tracking-tight text-foreground">Retention Command Center</h1>
@@ -236,7 +235,7 @@ export default function Dashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="p-4 rounded-2xl bg-white/80 dark:bg-card/80 border border-primary/10 text-[11px] leading-relaxed text-muted-foreground font-medium shadow-sm">
+                <div className="p-4 rounded-2xl bg-card border border-primary/10 text-[11px] leading-relaxed text-muted-foreground font-medium shadow-sm">
                   <span className="font-black text-primary uppercase text-[10px] block mb-1">Module 5: AEP SHIELD</span> 
                   September pre-emptive loyalty campaign is ready. Predicted disenrollment spike in ZIP 94103.
                 </div>

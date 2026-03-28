@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useParams } from "next/navigation"
@@ -36,7 +35,7 @@ export default function MemberDetailPage() {
       <CollectionSidebar />
       
       <div className="flex-1 flex flex-col h-full overflow-hidden">
-        <header className="h-16 border-b border-border px-8 flex items-center justify-between bg-white/80 dark:bg-card/80 backdrop-blur-md sticky top-0 z-10">
+        <header className="h-16 border-b border-border px-8 flex items-center justify-between bg-card/80 backdrop-blur-md sticky top-0 z-10">
           <div className="flex items-center gap-4">
             <h1 className="text-xl font-bold text-foreground">{member.fullName}</h1>
             <Badge variant={member.status === 'churn-risk' ? 'destructive' : 'secondary'} className="rounded-full uppercase text-[10px] px-3 py-0.5">

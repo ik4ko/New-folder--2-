@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState, useEffect } from "react"
@@ -63,7 +62,7 @@ export function InsightsPanel({ member }: InsightsPanelProps) {
   );
 
   return (
-    <aside className="w-80 border-l border-border bg-background p-6 hidden lg:flex flex-col gap-6 overflow-y-auto">
+    <aside className="w-80 border-l border-border bg-card p-6 hidden lg:flex flex-col gap-6 overflow-y-auto">
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           <div className="p-1.5 bg-primary/10 rounded-lg">
@@ -175,7 +174,7 @@ export function InsightsPanel({ member }: InsightsPanelProps) {
           </div>
 
           <div className="pt-4 mt-auto">
-             <Button variant="outline" className="w-full rounded-2xl border-primary text-primary bg-white/50 hover:bg-primary/5 text-[11px] font-bold h-11 group">
+             <Button variant="outline" className="w-full rounded-2xl border-primary text-primary bg-card/50 hover:bg-primary/5 text-[11px] font-bold h-11 group">
                 <Handshake className="w-4 h-4 mr-2 text-primary group-hover:animate-pulse" />
                 Enroll in LIS / Medicaid
              </Button>
