@@ -111,7 +111,7 @@ export default function GHLIntegrationPage() {
                             value={isGHLConnected ? "••••••••••••••••••••••••" : ""}
                           />
                         </div>
-                        <p className="text-[10px] text-muted-foreground px-1">Found in GHL Settings > Business Profile > API Key</p>
+                        <p className="text-[10px] text-muted-foreground px-1">Found in GHL Settings &gt; Business Profile &gt; API Key</p>
                       </div>
 
                       <div className="grid gap-3">
