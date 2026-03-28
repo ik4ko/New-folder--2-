@@ -17,6 +17,7 @@ export interface MemberRecord {
   retentionScore: number; // 0-100
   updatedAt: number;
   agentId: string;
+  notes?: string;
 }
 
 interface AppState {
@@ -63,6 +64,7 @@ export const useAppStore = create<AppState>((set) => ({
 }));
 
 export const initializeStore = () => {
+  if (typeof window === 'undefined') return;
   const saved = localStorage.getItem('medistay_members');
   if (saved) {
     useAppStore.getState().setMembers(JSON.parse(saved));
@@ -78,13 +80,14 @@ export const initializeStore = () => {
         healthConditions: ['Diabetes', 'Hypertension'], 
         medicareMedicaidStatus: 'Medicare', 
         enrollmentDate: '2024-01-10',
-        lastReviewDate: '2024-01-15', 
+        lastReviewDate: '2023-01-15', 
         status: 'churn-risk', 
         ssbciStatus: 'pending-fax',
         poaStatus: 'unprotected',
         retentionScore: 42,
         updatedAt: Date.now(), 
-        agentId: 'agent-123' 
+        agentId: 'agent-123',
+        notes: "Member hasn't been contacted in 12 months. CMS shows potential switch to Humana."
       },
       { 
         id: '2', 
@@ -101,6 +104,24 @@ export const initializeStore = () => {
         ssbciStatus: 'not-needed',
         poaStatus: 'shielded',
         retentionScore: 94,
+        updatedAt: Date.now(), 
+        agentId: 'agent-123' 
+      },
+      { 
+        id: '3', 
+        fullName: 'Maria Rodriguez', 
+        medicareId: '3BT5-LM1-WQ88',
+        age: 65, 
+        carrier: 'Humana',
+        planName: 'Humana Gold Plus (HMO)',
+        healthConditions: ['Respiratory Issue'], 
+        medicareMedicaidStatus: 'None', 
+        enrollmentDate: '2024-02-15',
+        lastReviewDate: '2024-02-15', 
+        status: 'active', 
+        ssbciStatus: 'pending-fax',
+        poaStatus: 'pending-invite',
+        retentionScore: 88,
         updatedAt: Date.now(), 
         agentId: 'agent-123' 
       }
