@@ -1,3 +1,4 @@
+
 "use client"
 
 import { CollectionSidebar } from "@/components/collection-sidebar"
@@ -25,21 +26,21 @@ export default function Dashboard() {
     : 0
 
   return (
-    <div className="flex h-full w-full bg-slate-50/50">
+    <div className="flex h-full w-full bg-background">
       <CollectionSidebar />
       
       <div className="flex-1 overflow-y-auto p-8 space-y-8">
         <div className="flex items-end justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight text-slate-900">Retention Command Center</h1>
-            <p className="text-slate-500 mt-1">Autonomous Medicare Monitoring & Member Protection</p>
+            <h1 className="text-3xl font-bold tracking-tight text-foreground">Retention Command Center</h1>
+            <p className="text-muted-foreground mt-1">Autonomous Medicare Monitoring & Member Protection</p>
           </div>
           <div className="flex gap-3">
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 text-green-700 border border-green-200 rounded-full text-xs font-semibold">
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-green-500/10 text-green-600 border border-green-500/20 rounded-full text-xs font-semibold">
               <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
               CMS MARx: Active
             </div>
-            <div className="flex items-center gap-2 px-3 py-1.5 bg-blue-50 text-blue-700 border border-blue-200 rounded-full text-xs font-semibold">
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-primary/10 text-primary border border-primary/20 rounded-full text-xs font-semibold">
               <Zap className="w-3 h-3" />
               GHL Sync: Enabled
             </div>
@@ -47,10 +48,10 @@ export default function Dashboard() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card className="shadow-sm border-slate-200">
+          <Card className="shadow-sm border-border bg-card">
             <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-              <CardTitle className="text-sm font-medium text-slate-500">Book of Business</CardTitle>
-              <Users className="w-4 h-4 text-blue-600" />
+              <CardTitle className="text-sm font-medium text-muted-foreground">Book of Business</CardTitle>
+              <Users className="w-4 h-4 text-primary" />
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold">{totalMembers}</div>
@@ -61,14 +62,14 @@ export default function Dashboard() {
             </CardContent>
           </Card>
           
-          <Card className="shadow-sm border-slate-200">
+          <Card className="shadow-sm border-border bg-card">
             <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-              <CardTitle className="text-sm font-medium text-slate-500">Avg Retention Score</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Avg Retention Score</CardTitle>
               <ShieldCheck className="w-4 h-4 text-green-600" />
             </CardHeader>
             <CardContent className="space-y-3">
               <div className="text-3xl font-bold">{avgRetention}%</div>
-              <Progress value={avgRetention} className="h-1.5 bg-slate-100" />
+              <Progress value={avgRetention} className="h-1.5 bg-muted" />
             </CardContent>
           </Card>
 
@@ -85,16 +86,16 @@ export default function Dashboard() {
             </CardContent>
           </Card>
 
-          <Card className="shadow-sm border-slate-200">
+          <Card className="shadow-sm border-border bg-card">
             <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-              <CardTitle className="text-sm font-medium text-slate-500">Pending SSBCI Faxes</CardTitle>
+              <CardTitle className="text-sm font-medium text-muted-foreground">Pending SSBCI Faxes</CardTitle>
               <Printer className="w-4 h-4 text-orange-500" />
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-bold">
                 {members.filter(m => m.ssbciStatus === 'pending-fax').length}
               </div>
-              <p className="text-xs text-slate-500 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Auto-generation active
               </p>
             </CardContent>
@@ -103,11 +104,11 @@ export default function Dashboard() {
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-6">
-            <Card className="shadow-sm border-slate-200 overflow-hidden">
-              <CardHeader className="bg-slate-50/50 border-b border-slate-100">
+            <Card className="shadow-sm border-border bg-card overflow-hidden">
+              <CardHeader className="bg-muted/30 border-b border-border">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg font-semibold text-slate-900">Active Change Detection</CardTitle>
-                  <Button variant="ghost" size="sm" asChild className="text-blue-600 font-semibold text-xs hover:text-blue-700">
+                  <CardTitle className="text-lg font-semibold text-foreground">Active Change Detection</CardTitle>
+                  <Button variant="ghost" size="sm" asChild className="text-primary font-semibold text-xs hover:text-primary/80">
                     <Link href="/members">View All <ArrowUpRight className="w-3 h-3 ml-1" /></Link>
                   </Button>
                 </div>
@@ -115,24 +116,24 @@ export default function Dashboard() {
               <CardContent className="p-0">
                 <Table>
                   <TableHeader>
-                    <TableRow className="bg-slate-50 hover:bg-slate-50">
-                      <TableHead className="font-semibold text-slate-700">Member</TableHead>
-                      <TableHead className="font-semibold text-slate-700">Current Carrier</TableHead>
-                      <TableHead className="font-semibold text-slate-700">Status</TableHead>
-                      <TableHead className="font-semibold text-slate-700">Protection</TableHead>
-                      <TableHead className="text-right font-semibold text-slate-700">Action</TableHead>
+                    <TableRow className="bg-muted/50 hover:bg-muted/50">
+                      <TableHead className="font-semibold text-muted-foreground">Member</TableHead>
+                      <TableHead className="font-semibold text-muted-foreground">Current Carrier</TableHead>
+                      <TableHead className="font-semibold text-muted-foreground">Status</TableHead>
+                      <TableHead className="font-semibold text-muted-foreground">Protection</TableHead>
+                      <TableHead className="text-right font-semibold text-muted-foreground">Action</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {members.map((member) => (
-                      <TableRow key={member.id} className="hover:bg-blue-50/30 transition-colors">
+                      <TableRow key={member.id} className="hover:bg-primary/5 transition-colors">
                         <TableCell>
                           <div className="flex flex-col">
-                            <span className="font-bold text-slate-900">{member.fullName}</span>
-                            <span className="text-[10px] text-slate-500 font-mono">{member.medicareId}</span>
+                            <span className="font-bold text-foreground">{member.fullName}</span>
+                            <span className="text-[10px] text-muted-foreground font-mono">{member.medicareId}</span>
                           </div>
                         </TableCell>
-                        <TableCell className="text-sm text-slate-600 font-medium">{member.carrier}</TableCell>
+                        <TableCell className="text-sm text-foreground/80 font-medium">{member.carrier}</TableCell>
                         <TableCell>
                           <Badge 
                             variant={member.status === 'churn-risk' ? 'destructive' : 'secondary'} 
@@ -144,11 +145,11 @@ export default function Dashboard() {
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <div className={`w-2 h-2 rounded-full ${member.retentionScore > 80 ? 'bg-green-500' : member.retentionScore > 50 ? 'bg-yellow-500' : 'bg-red-500'}`} />
-                            <span className="text-xs font-bold text-slate-700">{member.retentionScore}%</span>
+                            <span className="text-xs font-bold text-foreground/80">{member.retentionScore}%</span>
                           </div>
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button variant="outline" size="sm" asChild className="h-7 text-[10px] font-bold border-blue-200 text-blue-600 hover:bg-blue-50">
+                          <Button variant="outline" size="sm" asChild className="h-7 text-[10px] font-bold border-primary/20 text-primary hover:bg-primary/5">
                             <Link href={`/members/${member.id}`}>Details</Link>
                           </Button>
                         </TableCell>
@@ -161,45 +162,45 @@ export default function Dashboard() {
           </div>
 
           <div className="space-y-6">
-            <Card className="shadow-sm border-blue-100 bg-white relative overflow-hidden group">
+            <Card className="shadow-sm border-primary/10 bg-card relative overflow-hidden group">
               <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                <Zap className="w-24 h-24 text-blue-600" />
+                <Zap className="w-24 h-24 text-primary" />
               </div>
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-bold text-blue-900 flex items-center gap-2">
-                  <Zap className="w-4 h-4 text-blue-500" />
+                <CardTitle className="text-sm font-bold text-primary flex items-center gap-2">
+                  <Zap className="w-4 h-4 text-primary" />
                   Retention AI Insights
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="p-3 rounded-lg bg-blue-50/50 border border-blue-100 text-[11px] leading-relaxed text-slate-700">
-                  <span className="font-bold text-blue-800">AEP Shield Ready:</span> September pre-emptive campaign is scheduled for {totalMembers} members. High-risk segments identified based on market volatility.
+                <div className="p-3 rounded-lg bg-primary/5 border border-primary/10 text-[11px] leading-relaxed text-muted-foreground">
+                  <span className="font-bold text-primary">AEP Shield Ready:</span> September pre-emptive campaign is scheduled for {totalMembers} members. High-risk segments identified based on market volatility.
                 </div>
-                <div className="p-3 rounded-lg bg-green-50/50 border border-green-100 text-[11px] leading-relaxed text-slate-700">
-                  <span className="font-bold text-green-800">LIS Opportunity:</span> {members.filter(m => m.medicareMedicaidStatus === 'Medicare').length} members likely eligible for Extra Help based on age/location signals.
+                <div className="p-3 rounded-lg bg-green-500/5 border border-green-500/10 text-[11px] leading-relaxed text-muted-foreground">
+                  <span className="font-bold text-green-600">LIS Opportunity:</span> {members.filter(m => m.medicareMedicaidStatus === 'Medicare').length} members likely eligible for Extra Help based on age/location signals.
                 </div>
-                <Button className="w-full text-[10px] h-8 font-bold bg-blue-600 hover:bg-blue-700">
+                <Button className="w-full text-[10px] h-8 font-bold bg-primary hover:bg-primary/90">
                   <PhoneCall className="w-3 h-3 mr-2" /> Run AI Health Checks
                 </Button>
               </CardContent>
             </Card>
 
-            <Card className="shadow-sm border-slate-200">
+            <Card className="shadow-sm border-border bg-card">
               <CardHeader className="pb-2">
-                <CardTitle className="text-sm font-bold text-slate-900">Bot Activity Log</CardTitle>
+                <CardTitle className="text-sm font-bold text-foreground">Bot Activity Log</CardTitle>
               </CardHeader>
               <CardContent className="space-y-3">
                 {[
                   { label: "CMS Snapshot Polled", time: "2h ago", icon: ShieldCheck, color: "text-green-600" },
-                  { label: "SSBCI Fax Auto-Sent", time: "4h ago", icon: Printer, color: "text-blue-600" },
+                  { label: "SSBCI Fax Auto-Sent", time: "4h ago", icon: Printer, color: "text-primary" },
                   { label: "GHL Contact Sync", time: "15m ago", icon: Zap, color: "text-orange-600" }
                 ].map((act, i) => (
-                  <div key={i} className="flex items-center justify-between text-[11px] border-b border-slate-50 pb-2 last:border-0 last:pb-0">
-                    <div className="flex items-center gap-2 text-slate-600">
+                  <div key={i} className="flex items-center justify-between text-[11px] border-b border-border/50 pb-2 last:border-0 last:pb-0">
+                    <div className="flex items-center gap-2 text-muted-foreground">
                       <act.icon className={`w-3 h-3 ${act.color}`} />
                       {act.label}
                     </div>
-                    <span className="font-mono text-slate-400">{act.time}</span>
+                    <span className="font-mono text-muted-foreground/60">{act.time}</span>
                   </div>
                 ))}
               </CardContent>
