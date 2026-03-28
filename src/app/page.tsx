@@ -7,7 +7,11 @@ import { useEffect, useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { CircleAlert, TrendingUp, Users, ShieldCheck, Printer, Zap, PhoneCall, ArrowUpRight, Activity, Calendar, ShieldAlert } from "lucide-react"
+import { 
+  CircleAlert, TrendingUp, Users, ShieldCheck, Printer, 
+  Zap, PhoneCall, ArrowUpRight, Activity, Calendar, 
+  Settings, Palette, Bell, ShieldAlert 
+} from "lucide-react"
 import Link from "next/link"
 import { Progress } from "@/components/ui/progress"
 import { Button } from "@/components/ui/button"
@@ -179,6 +183,37 @@ export default function Dashboard() {
                     ))}
                   </TableBody>
                 </Table>
+              </CardContent>
+            </Card>
+
+            <Card className="shadow-sm border-border bg-card rounded-3xl overflow-hidden">
+              <CardHeader className="bg-muted/30 border-b border-border py-4">
+                <CardTitle className="text-sm font-bold flex items-center gap-2 text-foreground">
+                  <Settings className="w-4 h-4 text-primary" />
+                  System Management
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <Button variant="outline" asChild className="h-20 flex-col gap-2 rounded-2xl border-primary/10 hover:bg-primary/5 hover:border-primary/30 transition-all group">
+                    <Link href="/settings?tab=branding">
+                      <Palette className="w-5 h-5 text-primary group-hover:scale-110 transition-transform" />
+                      <span className="text-[10px] font-black uppercase tracking-widest">Branding</span>
+                    </Link>
+                  </Button>
+                  <Button variant="outline" asChild className="h-20 flex-col gap-2 rounded-2xl border-primary/10 hover:bg-primary/5 hover:border-primary/30 transition-all group">
+                    <Link href="/settings?tab=alerts">
+                      <Bell className="w-5 h-5 text-primary group-hover:scale-110 transition-transform" />
+                      <span className="text-[10px] font-black uppercase tracking-widest">Alerts</span>
+                    </Link>
+                  </Button>
+                  <Button variant="outline" asChild className="h-20 flex-col gap-2 rounded-2xl border-primary/10 hover:bg-primary/5 hover:border-primary/30 transition-all group">
+                    <Link href="/settings?tab=compliance">
+                      <ShieldAlert className="w-5 h-5 text-primary group-hover:scale-110 transition-transform" />
+                      <span className="text-[10px] font-black uppercase tracking-widest">Compliance</span>
+                    </Link>
+                  </Button>
+                </div>
               </CardContent>
             </Card>
           </div>

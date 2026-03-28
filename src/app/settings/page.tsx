@@ -15,13 +15,24 @@ import {
   Briefcase, Fingerprint, Lock
 } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
+import { useSearchParams } from "next/navigation"
+import { useState, useEffect } from "react"
 
 export default function AgencySettingsPage() {
+  const searchParams = useSearchParams()
+  const defaultTab = searchParams.get("tab") || "identity"
+  const [activeTab, setActiveTab] = useState(defaultTab)
+  
   const agencyProfile = useAppStore(s => s.agencyProfile)
   const updateAgencyProfile = useAppStore(s => s.updateAgencyProfile)
 
+  useEffect(() => {
+    const tab = searchParams.get("tab")
+    if (tab) setActiveTab(tab)
+  }, [searchParams])
+
   const handleSave = () => {
-    toast({ title: "Settings Saved", description: "Your agency preferences have been updated locally." })
+    toast({ title: "Settings Saved", description: "Your preferences have been updated and synced locally." })
   }
 
   return (
@@ -36,16 +47,16 @@ export default function AgencySettingsPage() {
               {agencyProfile.isSolo ? "Broker Settings" : "Agency Settings"}
             </h1>
           </div>
-          <Button onClick={handleSave} className="rounded-xl h-10 font-bold bg-primary hover:bg-primary/90 px-6">
+          <Button onClick={handleSave} className="rounded-xl h-10 font-bold bg-primary hover:bg-primary/90 px-6 shadow-lg shadow-primary/20">
             <Save className="w-4 h-4 mr-2" />
             Save Changes
           </Button>
         </header>
 
         <div className="flex-1 overflow-y-auto p-8 max-w-5xl mx-auto w-full space-y-8 bg-[#F7F4F0]/30 dark:bg-background">
-          <Tabs defaultValue="profile" className="w-full">
+          <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
             <TabsList className="bg-white dark:bg-card p-1 rounded-2xl border shadow-sm mb-8">
-              <TabsTrigger value="profile" className="rounded-xl px-6 py-2 text-xs font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <TabsTrigger value="identity" className="rounded-xl px-6 py-2 text-xs font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                 <Building2 className="w-4 h-4 mr-2" />
                 Identity
               </TabsTrigger>
@@ -53,17 +64,17 @@ export default function AgencySettingsPage() {
                 <Palette className="w-4 h-4 mr-2" />
                 Branding
               </TabsTrigger>
-              <TabsTrigger value="notifications" className="rounded-xl px-6 py-2 text-xs font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <TabsTrigger value="alerts" className="rounded-xl px-6 py-2 text-xs font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                 <Bell className="w-4 h-4 mr-2" />
                 Alerts
               </TabsTrigger>
-              <TabsTrigger value="security" className="rounded-xl px-6 py-2 text-xs font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <TabsTrigger value="compliance" className="rounded-xl px-6 py-2 text-xs font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                 <ShieldCheck className="w-4 h-4 mr-2" />
                 Compliance
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="profile" className="space-y-6">
+            <TabsContent value="identity" className="space-y-6 animate-in fade-in duration-300">
               <Card className="rounded-3xl border shadow-sm">
                 <CardHeader>
                   <CardTitle className="text-sm font-bold flex items-center gap-2">
@@ -140,7 +151,7 @@ export default function AgencySettingsPage() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="branding" className="space-y-6">
+            <TabsContent value="branding" className="space-y-6 animate-in fade-in duration-300">
               <Card className="rounded-3xl border shadow-sm">
                 <CardHeader>
                   <CardTitle className="text-sm font-bold flex items-center gap-2">
@@ -174,7 +185,7 @@ export default function AgencySettingsPage() {
                     </div>
                     <div className="space-y-4">
                       <Label className="text-xs font-bold">Agency Logo (High Res)</Label>
-                      <div className="border-2 border-dashed border-muted rounded-2xl p-6 flex flex-col items-center justify-center gap-2 bg-muted/5">
+                      <div className="border-2 border-dashed border-muted rounded-2xl p-6 flex flex-col items-center justify-center gap-2 bg-muted/5 cursor-pointer hover:bg-muted/10 transition-all">
                         <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center text-muted-foreground">
                           <Globe className="w-5 h-5" />
                         </div>
@@ -186,13 +197,16 @@ export default function AgencySettingsPage() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="notifications" className="space-y-6">
+            <TabsContent value="alerts" className="space-y-6 animate-in fade-in duration-300">
               <Card className="rounded-3xl border shadow-sm">
                 <CardHeader>
                   <CardTitle className="text-sm font-bold flex items-center gap-2">
                     <Bell className="w-4 h-4 text-primary" />
                     Global Alert Routing
                   </CardTitle>
+                  <CardDescription className="text-xs">
+                    Configure how and when your team receives automated retention notifications.
+                  </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
                   {[
@@ -213,7 +227,7 @@ export default function AgencySettingsPage() {
               </Card>
             </TabsContent>
 
-            <TabsContent value="security" className="space-y-6">
+            <TabsContent value="compliance" className="space-y-6 animate-in fade-in duration-300">
               <Card className="rounded-3xl border shadow-sm bg-slate-900 text-white overflow-hidden relative group">
                 <div className="absolute top-0 right-0 p-6 opacity-5 group-hover:opacity-10 transition-opacity">
                   <Lock className="w-24 h-24" />
