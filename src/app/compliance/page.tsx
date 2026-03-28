@@ -1,3 +1,4 @@
+
 "use client"
 
 import { CollectionSidebar } from "@/components/collection-sidebar"
@@ -93,7 +94,7 @@ export default function ComplianceVaultPage() {
                         <div className="flex items-center gap-3 mt-0.5">
                           <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-tight">Signed: {member.soaDate || 'Unknown'}</span>
                           <span className="w-1 h-1 rounded-full bg-slate-300" />
-                          <span className="text-[9px] text-muted-foreground font-mono uppercase">{member.medicareId}</span>
+                          <span className="text-[9px] text-muted-foreground font-mono uppercase tracking-tighter">{member.medicareId}</span>
                         </div>
                       </div>
                     </div>

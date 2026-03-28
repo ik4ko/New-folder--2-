@@ -1,3 +1,4 @@
+
 "use client"
 
 import { CollectionSidebar } from "@/components/collection-sidebar"
@@ -113,7 +114,7 @@ export default function FaxCenterPage() {
                       <TableCell className="px-8 py-5">
                         <div className="flex flex-col">
                           <span className="font-bold text-foreground text-sm">{member.fullName}</span>
-                          <span className="text-[9px] text-muted-foreground font-mono uppercase">{member.medicareId}</span>
+                          <span className="text-[9px] text-muted-foreground font-mono uppercase tracking-tighter">{member.medicareId}</span>
                         </div>
                       </TableCell>
                       <TableCell>
