@@ -66,36 +66,46 @@ export function AppSidebar() {
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton tooltip="SSBCI Fax Agent" className="rounded-xl h-10 px-4 transition-all">
-              <Printer className="w-5 h-5" />
-              <span className="font-medium">SSBCI Fax Center</span>
+            <SidebarMenuButton asChild isActive={pathname === '/fax'} tooltip="SSBCI Fax Agent" className="rounded-xl h-10 px-4 transition-all">
+              <Link href="/fax">
+                <Printer className="w-5 h-5" />
+                <span className="font-medium">SSBCI Fax Center</span>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton tooltip="AI Check-in Calls" className="rounded-xl h-10 px-4 transition-all">
-              <PhoneCall className="w-5 h-5" />
-              <span className="font-medium">AI Check-ins</span>
+            <SidebarMenuButton asChild isActive={pathname === '/check-ins'} tooltip="AI Check-in Calls" className="rounded-xl h-10 px-4 transition-all">
+              <Link href="/check-ins">
+                <PhoneCall className="w-5 h-5" />
+                <span className="font-medium">AI Check-ins</span>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
           
           <SidebarSeparator className="my-4 mx-2" />
           
           <SidebarMenuItem>
-            <SidebarMenuButton tooltip="GHL Sync" className={`rounded-xl h-10 px-4 transition-all ${isGHLConnected ? "text-green-600 bg-green-50 dark:bg-green-950/30" : ""}`}>
-              <Link2 className="w-5 h-5" />
-              <span className="font-medium">GHL Integration</span>
+            <SidebarMenuButton asChild isActive={pathname === '/ghl'} tooltip="GHL Sync" className={`rounded-xl h-10 px-4 transition-all ${isGHLConnected ? "text-green-600 bg-green-50 dark:bg-green-950/30" : ""}`}>
+              <Link href="/ghl">
+                <Link2 className="w-5 h-5" />
+                <span className="font-medium">GHL Integration</span>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton tooltip="Compliance" className="rounded-xl h-10 px-4 transition-all">
-              <ShieldCheck className="w-5 h-5" />
-              <span className="font-medium">Compliance Vault</span>
+            <SidebarMenuButton asChild isActive={pathname === '/compliance'} tooltip="Compliance" className="rounded-xl h-10 px-4 transition-all">
+              <Link href="/compliance">
+                <ShieldCheck className="w-5 h-5" />
+                <span className="font-medium">Compliance Vault</span>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton tooltip="AI Assistant" className="rounded-xl h-10 px-4 transition-all bg-primary/10 text-primary hover:bg-primary/20 border border-primary/10">
-              <Sparkles className="w-5 h-5" />
-              <span className="font-bold">Retention AI</span>
+            <SidebarMenuButton asChild isActive={pathname === '/ai'} tooltip="AI Assistant" className="rounded-xl h-10 px-4 transition-all bg-primary/10 text-primary hover:bg-primary/20 border border-primary/10">
+              <Link href="/ai">
+                <Sparkles className="w-5 h-5" />
+                <span className="font-bold">Retention AI</span>
+              </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
