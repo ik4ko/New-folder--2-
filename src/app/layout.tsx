@@ -6,8 +6,8 @@ import { CommandBar } from '@/components/command-bar';
 import { Toaster } from '@/components/ui/toaster';
 
 export const metadata: Metadata = {
-  title: 'Untitled Real Insurance Nightly Enterprise Testing',
-  description: 'Enterprise-grade insurance agent platform',
+  title: 'MediStay | Medicare Retention SaaS',
+  description: 'Enterprise-grade Medicare member retention platform for agencies',
 };
 
 export default function RootLayout({

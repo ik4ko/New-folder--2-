@@ -1,73 +1,111 @@
 import { create } from 'zustand';
 
-export interface ClientRecord {
+export interface MemberRecord {
   id: string;
   fullName: string;
+  medicareId: string;
   age: number;
+  carrier: string;
+  planName: string;
   healthConditions: string[];
   medicareMedicaidStatus: 'None' | 'Medicare' | 'Medicaid' | 'Both';
+  enrollmentDate: string;
   lastReviewDate: string;
-  address?: string;
-  documentNumber?: string;
-  status: 'active' | 'pending' | 'churn-risk';
+  status: 'active' | 'pending' | 'churn-risk' | 'disenrolled';
+  ssbciStatus: 'not-needed' | 'pending-fax' | 'faxed' | 'approved';
+  poaStatus: 'unprotected' | 'pending-invite' | 'shielded';
+  retentionScore: number; // 0-100
   updatedAt: number;
   agentId: string;
 }
 
 interface AppState {
-  clients: ClientRecord[];
+  members: MemberRecord[];
   isSynced: boolean;
-  addClient: (client: Omit<ClientRecord, 'id' | 'updatedAt' | 'agentId'>) => void;
-  updateClient: (id: string, updates: Partial<ClientRecord>) => void;
-  setClients: (clients: ClientRecord[]) => void;
+  isGHLConnected: boolean;
+  addMember: (member: Omit<MemberRecord, 'id' | 'updatedAt' | 'agentId' | 'status' | 'retentionScore'>) => void;
+  updateMember: (id: string, updates: Partial<MemberRecord>) => void;
+  setMembers: (members: MemberRecord[]) => void;
   triggerSync: () => void;
+  toggleGHL: () => void;
 }
 
-// In a real app, this would use Gun.js and Firestore. 
-// We are mocking the LWW (Last-Write-Wins) and P2P sync logic.
 export const useAppStore = create<AppState>((set) => ({
-  clients: [],
+  members: [],
   isSynced: true,
-  addClient: (clientData) => set((state) => {
-    const newClient: ClientRecord = {
-      ...clientData,
+  isGHLConnected: false,
+  addMember: (memberData) => set((state) => {
+    const newMember: MemberRecord = {
+      ...memberData,
       id: Math.random().toString(36).substr(2, 9),
+      status: 'active',
+      retentionScore: 85,
       updatedAt: Date.now(),
       agentId: 'agent-123',
-      status: 'active'
     };
-    const updatedClients = [...state.clients, newClient];
-    localStorage.setItem('insurance_clients', JSON.stringify(updatedClients));
-    return { clients: updatedClients, isSynced: false };
+    const updatedMembers = [...state.members, newMember];
+    localStorage.setItem('medistay_members', JSON.stringify(updatedMembers));
+    return { members: updatedMembers, isSynced: false };
   }),
-  updateClient: (id, updates) => set((state) => {
-    const updatedClients = state.clients.map(c => 
-      c.id === id ? { ...c, ...updates, updatedAt: Date.now() } : c
+  updateMember: (id, updates) => set((state) => {
+    const updatedMembers = state.members.map(m => 
+      m.id === id ? { ...m, ...updates, updatedAt: Date.now() } : m
     );
-    localStorage.setItem('insurance_clients', JSON.stringify(updatedClients));
-    return { clients: updatedClients, isSynced: false };
+    localStorage.setItem('medistay_members', JSON.stringify(updatedMembers));
+    return { members: updatedMembers, isSynced: false };
   }),
-  setClients: (clients) => set({ clients }),
+  setMembers: (members) => set({ members }),
   triggerSync: () => {
     set({ isSynced: false });
-    setTimeout(() => {
-      set({ isSynced: true });
-    }, 2000);
-  }
+    setTimeout(() => set({ isSynced: true }), 1500);
+  },
+  toggleGHL: () => set((state) => ({ isGHLConnected: !state.isGHLConnected }))
 }));
 
-// Initialize from LocalStorage
 export const initializeStore = () => {
-  const saved = localStorage.getItem('insurance_clients');
+  const saved = localStorage.getItem('medistay_members');
   if (saved) {
-    useAppStore.getState().setClients(JSON.parse(saved));
+    useAppStore.getState().setMembers(JSON.parse(saved));
   } else {
-    // Seed data
-    const seed: ClientRecord[] = [
-      { id: '1', fullName: 'John Doe', age: 65, healthConditions: ['Diabetes'], medicareMedicaidStatus: 'Medicare', lastReviewDate: '2023-01-15', status: 'churn-risk', updatedAt: Date.now(), agentId: 'agent-123' },
-      { id: '2', fullName: 'Jane Smith', age: 45, healthConditions: [], medicareMedicaidStatus: 'None', lastReviewDate: '2024-05-20', status: 'active', updatedAt: Date.now(), agentId: 'agent-123' }
+    const seed: MemberRecord[] = [
+      { 
+        id: '1', 
+        fullName: 'Robert Miller', 
+        medicareId: '1EG4-TE5-MK22',
+        age: 68, 
+        carrier: 'Clover Health',
+        planName: 'Clover Health Choice (PPO)',
+        healthConditions: ['Diabetes', 'Hypertension'], 
+        medicareMedicaidStatus: 'Medicare', 
+        enrollmentDate: '2024-01-10',
+        lastReviewDate: '2024-01-15', 
+        status: 'churn-risk', 
+        ssbciStatus: 'pending-fax',
+        poaStatus: 'unprotected',
+        retentionScore: 42,
+        updatedAt: Date.now(), 
+        agentId: 'agent-123' 
+      },
+      { 
+        id: '2', 
+        fullName: 'Alice Johnson', 
+        medicareId: '9KL2-PX1-ZZ09',
+        age: 72, 
+        carrier: 'UnitedHealthcare',
+        planName: 'AARP Medicare Advantage (HMO)',
+        healthConditions: [], 
+        medicareMedicaidStatus: 'Both', 
+        enrollmentDate: '2023-11-20',
+        lastReviewDate: '2024-05-20', 
+        status: 'active', 
+        ssbciStatus: 'not-needed',
+        poaStatus: 'shielded',
+        retentionScore: 94,
+        updatedAt: Date.now(), 
+        agentId: 'agent-123' 
+      }
     ];
-    localStorage.setItem('insurance_clients', JSON.stringify(seed));
-    useAppStore.getState().setClients(seed);
+    localStorage.setItem('medistay_members', JSON.stringify(seed));
+    useAppStore.getState().setMembers(seed);
   }
 };

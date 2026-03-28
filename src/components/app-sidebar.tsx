@@ -9,7 +9,10 @@ import {
   Settings, 
   LogOut,
   Sparkles,
-  Lock
+  Lock,
+  PhoneCall,
+  Printer,
+  Link2
 } from "lucide-react"
 import {
   Sidebar,
@@ -24,19 +27,21 @@ import {
 import { SyncStatus } from "./sync-status"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
+import { useAppStore } from "@/lib/store"
 
 export function AppSidebar() {
   const pathname = usePathname()
+  const isGHLConnected = useAppStore(s => s.isGHLConnected)
 
   return (
     <Sidebar collapsible="icon" className="border-r border-sidebar-border bg-sidebar shadow-xl z-20">
       <SidebarHeader className="h-16 flex items-center justify-center border-b border-sidebar-border">
         <div className="flex items-center gap-3 px-4 w-full">
           <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-primary-foreground font-bold text-xl">
-            U
+            M
           </div>
           <span className="font-headline font-semibold text-primary truncate group-data-[collapsible=icon]:hidden">
-            Untitled Insure
+            MediStay
           </span>
         </div>
       </SidebarHeader>
@@ -47,35 +52,47 @@ export function AppSidebar() {
             <SidebarMenuButton asChild isActive={pathname === '/'} tooltip="Dashboard">
               <Link href="/">
                 <LayoutDashboard className="w-5 h-5" />
-                <span>Dashboard</span>
+                <span>Agency Dashboard</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={pathname.startsWith('/clients')} tooltip="Clients">
-              <Link href="/clients">
+            <SidebarMenuButton asChild isActive={pathname.startsWith('/members')} tooltip="Members">
+              <Link href="/members">
                 <Users className="w-5 h-5" />
-                <span>Client Records</span>
+                <span>Member Roster</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton tooltip="Reports">
-              <FileText className="w-5 h-5" />
-              <span>AI Reports</span>
+            <SidebarMenuButton tooltip="SSBCI Fax Agent">
+              <Printer className="w-5 h-5" />
+              <span>SSBCI Fax Center</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton tooltip="AI Check-in Calls">
+              <PhoneCall className="w-5 h-5" />
+              <span>AI Check-ins</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarSeparator className="my-2" />
           <SidebarMenuItem>
-            <SidebarMenuButton tooltip="Compliance">
-              <ShieldCheck className="w-5 h-5" />
-              <span>Compliance</span>
+            <SidebarMenuButton tooltip="GHL Sync" className={isGHLConnected ? "text-green-600" : ""}>
+              <Link2 className="w-5 h-5" />
+              <span>GHL Integration</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
-            <SidebarMenuButton tooltip="AI Concierge">
+            <SidebarMenuButton tooltip="Compliance">
+              <ShieldCheck className="w-5 h-5" />
+              <span>Compliance Vault</span>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton tooltip="AI Assistant">
               <Sparkles className="w-5 h-5 text-accent" />
-              <span className="text-accent font-semibold">AI Assistant</span>
+              <span className="text-accent font-semibold">Retention AI</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
@@ -103,9 +120,9 @@ export function AppSidebar() {
         <div className="mt-4 p-3 rounded-xl bg-card border border-border/50 text-[10px] text-muted-foreground group-data-[collapsible=icon]:hidden">
           <div className="flex items-center gap-2 mb-1">
             <Lock className="w-3 h-3 text-primary" />
-            <span className="font-semibold text-foreground uppercase tracking-wider">Data Ownership Notice</span>
+            <span className="font-semibold text-foreground uppercase tracking-wider">HIPAA SECURE</span>
           </div>
-          Every client record remains the agent's intellectual property. Data is encrypted at rest (AES-256).
+          BAA Active: AWS/Twilio/Documo. All member data encrypted at rest.
         </div>
       </SidebarFooter>
     </Sidebar>
