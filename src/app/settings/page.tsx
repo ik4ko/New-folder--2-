@@ -55,20 +55,20 @@ export default function AgencySettingsPage() {
 
         <div className="flex-1 overflow-y-auto p-8 max-w-5xl mx-auto w-full space-y-8 bg-[#F7F4F0]/30 dark:bg-background">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="bg-white dark:bg-card p-1 rounded-2xl border shadow-sm mb-8">
-              <TabsTrigger value="identity" className="rounded-xl px-6 py-2 text-xs font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <TabsList className="bg-white dark:bg-card p-1 rounded-2xl border shadow-sm mb-8 flex flex-wrap h-auto gap-1">
+              <TabsTrigger value="identity" className="rounded-xl flex-1 min-w-[120px] py-2.5 text-xs font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                 <Building2 className="w-4 h-4 mr-2" />
                 Identity
               </TabsTrigger>
-              <TabsTrigger value="branding" className="rounded-xl px-6 py-2 text-xs font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <TabsTrigger value="branding" className="rounded-xl flex-1 min-w-[120px] py-2.5 text-xs font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                 <Palette className="w-4 h-4 mr-2" />
                 Branding
               </TabsTrigger>
-              <TabsTrigger value="alerts" className="rounded-xl px-6 py-2 text-xs font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <TabsTrigger value="alerts" className="rounded-xl flex-1 min-w-[120px] py-2.5 text-xs font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                 <Bell className="w-4 h-4 mr-2" />
                 Alerts
               </TabsTrigger>
-              <TabsTrigger value="compliance" className="rounded-xl px-6 py-2 text-xs font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <TabsTrigger value="compliance" className="rounded-xl flex-1 min-w-[120px] py-2.5 text-xs font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
                 <ShieldCheck className="w-4 h-4 mr-2" />
                 Compliance
               </TabsTrigger>
@@ -168,7 +168,7 @@ export default function AgencySettingsPage() {
                       <Label className="text-xs font-bold">Primary Branding Color</Label>
                       <div className="flex gap-4">
                         <div 
-                          className="w-16 h-16 rounded-2xl border-4 border-white shadow-xl" 
+                          className="w-16 h-16 rounded-2xl border-4 border-white shadow-xl shrink-0" 
                           style={{ backgroundColor: agencyProfile.primaryColor || '#B08627' }}
                         />
                         <div className="flex-1 space-y-2">

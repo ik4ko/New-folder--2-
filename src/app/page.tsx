@@ -10,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { 
   CircleAlert, TrendingUp, Users, ShieldCheck, Printer, 
   Zap, PhoneCall, ArrowUpRight, Activity, Calendar, 
-  Settings, Palette, Bell, ShieldAlert 
+  Settings, Palette, Bell, ShieldAlert, Building2
 } from "lucide-react"
 import Link from "next/link"
 import { Progress } from "@/components/ui/progress"
@@ -194,7 +194,13 @@ export default function Dashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <Button variant="outline" asChild className="h-20 flex-col gap-2 rounded-2xl border-primary/10 hover:bg-primary/5 hover:border-primary/30 transition-all group">
+                    <Link href="/settings?tab=identity">
+                      <Building2 className="w-5 h-5 text-primary group-hover:scale-110 transition-transform" />
+                      <span className="text-[10px] font-black uppercase tracking-widest">Identity</span>
+                    </Link>
+                  </Button>
                   <Button variant="outline" asChild className="h-20 flex-col gap-2 rounded-2xl border-primary/10 hover:bg-primary/5 hover:border-primary/30 transition-all group">
                     <Link href="/settings?tab=branding">
                       <Palette className="w-5 h-5 text-primary group-hover:scale-110 transition-transform" />
