@@ -42,21 +42,48 @@ export interface MemberRecord {
   pharmacyName?: string;
 }
 
+export interface GHLSettings {
+  locationId: string;
+  apiKey: string;
+  webhookUrl: string;
+  fieldMapping: {
+    medicareId: string;
+    carrier: string;
+    planName: string;
+    enrollmentPeriod: string;
+  };
+  automationEnabled: boolean;
+}
+
 interface AppState {
   members: MemberRecord[];
   isSynced: boolean;
   isGHLConnected: boolean;
+  ghlSettings: GHLSettings;
   addMember: (member: Partial<MemberRecord>) => void;
   updateMember: (id: string, updates: Partial<MemberRecord>) => void;
   setMembers: (members: MemberRecord[]) => void;
   triggerSync: () => void;
   toggleGHL: () => void;
+  updateGHLSettings: (updates: Partial<GHLSettings>) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
   members: [],
   isSynced: true,
   isGHLConnected: false,
+  ghlSettings: {
+    locationId: '',
+    apiKey: '',
+    webhookUrl: 'https://api.medistay.io/v1/webhooks/ghl/wh_772193',
+    fieldMapping: {
+      medicareId: 'medicare_mbi',
+      carrier: 'current_carrier',
+      planName: 'plan_name',
+      enrollmentPeriod: 'enrollment_type',
+    },
+    automationEnabled: true,
+  },
   addMember: (memberData) => set((state) => {
     const newMember: MemberRecord = {
       id: Math.random().toString(36).substr(2, 9),
@@ -90,14 +117,18 @@ export const useAppStore = create<AppState>((set) => ({
       ...memberData,
     };
     const updatedMembers = [...state.members, newMember];
-    localStorage.setItem('medistay_members', JSON.stringify(updatedMembers));
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('medistay_members', JSON.stringify(updatedMembers));
+    }
     return { members: updatedMembers, isSynced: false };
   }),
   updateMember: (id, updates) => set((state) => {
     const updatedMembers = state.members.map(m => 
       m.id === id ? { ...m, ...updates, updatedAt: Date.now() } : m
     );
-    localStorage.setItem('medistay_members', JSON.stringify(updatedMembers));
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('medistay_members', JSON.stringify(updatedMembers));
+    }
     return { members: updatedMembers, isSynced: false };
   }),
   setMembers: (members) => set({ members }),
@@ -105,7 +136,10 @@ export const useAppStore = create<AppState>((set) => ({
     set({ isSynced: false });
     setTimeout(() => set({ isSynced: true }), 1500);
   },
-  toggleGHL: () => set((state) => ({ isGHLConnected: !state.isGHLConnected }))
+  toggleGHL: () => set((state) => ({ isGHLConnected: !state.isGHLConnected })),
+  updateGHLSettings: (updates) => set((state) => ({
+    ghlSettings: { ...state.ghlSettings, ...updates }
+  })),
 }));
 
 export const initializeStore = () => {
