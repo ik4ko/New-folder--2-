@@ -8,140 +8,133 @@ import {
   Settings, 
   LogOut,
   Sparkles,
-  Lock,
   PhoneCall,
   Printer,
-  Link2
+  Link2,
+  ChevronRight
 } from "lucide-react"
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarHeader,
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarSeparator,
-} from "@/components/ui/sidebar"
-import { SyncStatus } from "./sync-status"
+import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { useAppStore } from "@/lib/store"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { ModeToggle } from "./mode-toggle"
+
+interface NavItemProps {
+  href: string
+  icon: React.ElementType
+  label: string
+  isActive?: boolean
+  isSpecial?: boolean
+}
+
+function NavItem({ href, icon: Icon, label, isActive, isSpecial }: NavItemProps) {
+  return (
+    <TooltipProvider delayDuration={0}>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Link 
+            href={href}
+            className={cn(
+              "group relative flex items-center justify-center h-12 w-12 transition-all duration-200",
+              "before:absolute before:left-[-16px] before:w-1 before:h-2 before:bg-primary before:rounded-r-full before:transition-all before:duration-200",
+              isActive ? "before:h-8 before:left-[-12px]" : "hover:before:h-5 hover:before:left-[-12px]"
+            )}
+          >
+            <div className={cn(
+              "flex items-center justify-center h-12 w-12 rounded-[24px] transition-all duration-200 overflow-hidden",
+              isActive ? "rounded-[16px] bg-primary text-primary-foreground shadow-lg shadow-primary/20" : 
+              isSpecial ? "bg-primary/10 text-primary hover:rounded-[16px] hover:bg-primary hover:text-primary-foreground" :
+              "bg-muted/50 text-muted-foreground hover:rounded-[16px] hover:bg-primary hover:text-primary-foreground"
+            )}>
+              <Icon className="w-5 h-5" />
+            </div>
+          </Link>
+        </TooltipTrigger>
+        <TooltipContent side="right" sideOffset={12} className="font-bold text-xs uppercase tracking-widest">
+          {label}
+        </TooltipContent>
+      </Tooltip>
+    </TooltipProvider>
+  )
+}
 
 export function AppSidebar() {
   const pathname = usePathname()
   const isGHLConnected = useAppStore(s => s.isGHLConnected)
 
-  return (
-    <Sidebar collapsible="icon" className="border-r border-sidebar-border bg-sidebar shadow-xl z-20">
-      <SidebarHeader className="h-16 flex items-center justify-center border-b border-sidebar-border bg-muted/30">
-        <div className="flex items-center gap-3 px-4 w-full">
-          <div className="w-9 h-9 rounded-xl bg-primary flex items-center justify-center text-primary-foreground font-black text-xl shadow-lg shadow-primary/20">
-            M
-          </div>
-          <span className="font-bold text-lg tracking-tight text-foreground truncate group-data-[collapsible=icon]:hidden">
-            MediStay
-          </span>
-        </div>
-      </SidebarHeader>
-      
-      <SidebarContent className="py-6 bg-sidebar">
-        <SidebarMenu className="gap-2 px-3">
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={pathname === '/'} tooltip="Dashboard" className="rounded-xl h-10 px-4 transition-all">
-              <Link href="/">
-                <LayoutDashboard className="w-5 h-5" />
-                <span className="font-medium text-sm">Command Center</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={pathname.startsWith('/members')} tooltip="Members" className="rounded-xl h-10 px-4 transition-all">
-              <Link href="/members">
-                <Users className="w-5 h-5" />
-                <span className="font-medium text-sm">Member Roster</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={pathname === '/fax'} tooltip="SSBCI Fax Agent" className="rounded-xl h-10 px-4 transition-all">
-              <Link href="/fax">
-                <Printer className="w-5 h-5" />
-                <span className="font-medium text-sm">SSBCI Fax Center</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={pathname === '/check-ins'} tooltip="AI Check-in Calls" className="rounded-xl h-10 px-4 transition-all">
-              <Link href="/check-ins">
-                <PhoneCall className="w-5 h-5" />
-                <span className="font-medium text-sm">AI Check-ins</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          
-          <SidebarSeparator className="my-4 mx-2" />
-          
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={pathname === '/ghl'} tooltip="GHL Sync" className={`rounded-xl h-10 px-4 transition-all ${isGHLConnected ? "text-green-600 bg-green-50 dark:bg-green-950/30" : ""}`}>
-              <Link href="/ghl">
-                <Link2 className="w-5 h-5" />
-                <span className="font-medium text-sm">GHL Integration</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={pathname === '/compliance'} tooltip="Compliance" className="rounded-xl h-10 px-4 transition-all">
-              <Link href="/compliance">
-                <ShieldCheck className="w-5 h-5" />
-                <span className="font-medium text-sm">Compliance Vault</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={pathname === '/ai'} tooltip="AI Assistant" className="rounded-xl h-10 px-4 transition-all bg-primary/10 text-primary hover:bg-primary/20 border border-primary/10">
-              <Link href="/ai">
-                <Sparkles className="w-5 h-5" />
-                <span className="font-black uppercase tracking-widest text-[10px]">Retention AI</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarContent>
+  const navItems = [
+    { href: '/', icon: LayoutDashboard, label: 'Command Center' },
+    { href: '/members', icon: Users, label: 'Member Roster' },
+    { href: '/fax', icon: Printer, label: 'SSBCI Fax Center' },
+    { href: '/check-ins', icon: PhoneCall, label: 'AI Check-ins' },
+    { href: '/ghl', icon: Link2, label: 'GHL Integration', isGHL: true },
+    { href: '/compliance', icon: ShieldCheck, label: 'Compliance Vault' },
+    { href: '/ai', icon: Sparkles, label: 'Retention AI', isSpecial: true },
+  ]
 
-      <SidebarFooter className="border-t border-sidebar-border p-4 bg-muted/10">
-        <div className="flex items-center justify-between group-data-[collapsible=icon]:hidden mb-6 px-1">
-          <SyncStatus />
-          <ModeToggle />
+  return (
+    <div className="w-[72px] flex flex-col items-center py-4 bg-sidebar border-r border-sidebar-border h-full shrink-0 z-50 overflow-y-auto scrollbar-hide">
+      {/* Brand Icon */}
+      <Link href="/" className="mb-4 group relative flex items-center justify-center">
+        <div className="w-12 h-12 rounded-[16px] bg-primary flex items-center justify-center text-primary-foreground font-black text-xl shadow-lg shadow-primary/20 hover:rounded-[12px] transition-all duration-200">
+          M
         </div>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={pathname === '/settings'} tooltip="Settings" className="rounded-xl h-9">
-              <Link href="/settings">
-                <Settings className="w-4 h-4" />
-                <span className="text-xs font-bold">Agency Settings</span>
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton className="rounded-xl h-9 text-destructive hover:text-destructive hover:bg-destructive/10" tooltip="Log out">
-              <LogOut className="w-4 h-4" />
-              <span className="text-xs font-bold">Sign Out</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
+        <div className="absolute left-[-12px] h-8 w-1 bg-primary rounded-r-full opacity-0 group-hover:opacity-100 transition-all" />
+      </Link>
+
+      <div className="w-8 h-[2px] bg-muted/50 rounded-full mb-4 shrink-0" />
+
+      {/* Main Nav */}
+      <div className="flex flex-col gap-3 flex-1 w-full items-center">
+        {navItems.map((item) => (
+          <NavItem 
+            key={item.href}
+            href={item.href}
+            icon={item.icon}
+            label={item.label}
+            isActive={pathname === item.href || (item.href !== '/' && pathname.startsWith(item.href))}
+            isSpecial={item.isSpecial}
+          />
+        ))}
+      </div>
+
+      {/* Footer Nav */}
+      <div className="flex flex-col gap-4 items-center mt-auto pt-4 border-t border-sidebar-border w-full">
+        <ModeToggle />
         
-        <div className="mt-6 p-4 rounded-2xl bg-card border border-sidebar-border text-[10px] text-muted-foreground group-data-[collapsible=icon]:hidden shadow-inner">
-          <div className="flex items-center gap-2 mb-2">
-            <Lock className="w-3.5 h-3.5 text-primary" />
-            <span className="font-black text-foreground uppercase tracking-widest text-[9px]">HIPAA SECURE</span>
-          </div>
-          <p className="leading-relaxed font-medium">
-            BAA Active: AWS/Twilio/Documo. Records encrypted with AES-256.
-          </p>
-        </div>
-      </SidebarFooter>
-    </Sidebar>
+        <TooltipProvider delayDuration={0}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Link 
+                href="/settings"
+                className={cn(
+                  "flex items-center justify-center h-12 w-12 rounded-[24px] bg-muted/50 text-muted-foreground transition-all duration-200 hover:rounded-[16px] hover:bg-primary hover:text-primary-foreground",
+                  pathname === '/settings' && "rounded-[16px] bg-primary text-primary-foreground"
+                )}
+              >
+                <Settings className="w-5 h-5" />
+              </Link>
+            </TooltipTrigger>
+            <TooltipContent side="right" sideOffset={12} className="font-bold text-xs uppercase tracking-widest">
+              Settings
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+
+        <TooltipProvider delayDuration={0}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button className="flex items-center justify-center h-12 w-12 rounded-[24px] bg-destructive/5 text-destructive transition-all duration-200 hover:rounded-[16px] hover:bg-destructive hover:text-destructive-foreground">
+                <LogOut className="w-5 h-5" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent side="right" sideOffset={12} className="font-bold text-xs uppercase tracking-widest">
+              Sign Out
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
+    </div>
   )
 }

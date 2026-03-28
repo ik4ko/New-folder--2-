@@ -1,4 +1,3 @@
-
 "use client"
 
 import { Input } from "@/components/ui/input"
@@ -25,75 +24,77 @@ export function CollectionSidebar() {
   }, [members, search])
 
   return (
-    <aside className="w-80 border-r border-sidebar-border bg-sidebar flex flex-col h-full z-10 overflow-hidden shadow-sm">
-      <div className="p-6 border-b border-sidebar-border space-y-4 bg-muted/30">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-bold uppercase tracking-widest text-muted-foreground">Member Roster</h2>
-          <Button variant="ghost" size="icon" asChild className="h-8 w-8 rounded-xl bg-primary text-primary-foreground hover:bg-primary/90 hover:text-primary-foreground shadow-md shadow-primary/20">
-            <Link href="/members/new">
-              <UserPlus className="h-4 w-4" />
-            </Link>
-          </Button>
-        </div>
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+    <aside className="w-[240px] flex flex-col h-full bg-secondary/30 border-r border-sidebar-border shrink-0 z-40 overflow-hidden">
+      {/* Header Area (Channel Category Header Style) */}
+      <div className="h-16 flex items-center justify-between px-4 border-b border-sidebar-border bg-sidebar/50 backdrop-blur-sm">
+        <h2 className="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+          Member Roster
+        </h2>
+        <Button variant="ghost" size="icon" asChild className="h-7 w-7 rounded-lg hover:bg-primary/10 hover:text-primary transition-colors">
+          <Link href="/members/new">
+            <UserPlus className="h-4 w-4" />
+          </Link>
+        </Button>
+      </div>
+
+      {/* Search Area */}
+      <div className="p-3">
+        <div className="relative group">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground group-focus-within:text-primary transition-colors" />
           <Input 
-            placeholder="Search by name or MBI..." 
-            className="pl-9 h-10 bg-background border-border rounded-xl text-sm focus-visible:ring-primary shadow-sm"
+            placeholder="Quick search..." 
+            className="pl-9 h-8 bg-background/50 border-none rounded-lg text-xs focus-visible:ring-primary shadow-inner"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
       </div>
 
-      <ScrollArea className="flex-1 px-3">
-        <div className="py-4 space-y-1.5">
+      <ScrollArea className="flex-1 px-2">
+        <div className="space-y-0.5">
           {filteredMembers.map((member) => (
             <Link 
               key={member.id}
               href={`/members/${member.id}`}
               className={cn(
-                "flex flex-col gap-1.5 p-4 rounded-2xl transition-all duration-200 group relative",
+                "flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-150 group",
                 pathname === `/members/${member.id}` 
-                  ? "bg-primary/5 ring-1 ring-primary/10 shadow-sm border-l-4 border-l-primary" 
-                  : "bg-transparent hover:bg-muted/50"
+                  ? "bg-primary/10 text-primary shadow-sm" 
+                  : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
               )}
             >
-              <div className="flex items-center justify-between">
-                <span className={cn(
-                  "font-bold text-sm truncate",
-                  pathname === `/members/${member.id}` ? "text-primary" : "text-foreground/80"
-                )}>
+              <div className={cn(
+                "w-1.5 h-1.5 rounded-full shrink-0 transition-all",
+                member.status === 'churn-risk' ? "bg-destructive animate-pulse" : 
+                pathname === `/members/${member.id}` ? "bg-primary" : "bg-muted-foreground/30 group-hover:bg-muted-foreground/60"
+              )} />
+              
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-bold truncate leading-tight">
                   {member.fullName}
-                </span>
-                {member.status === 'churn-risk' && (
-                  <AlertCircle className="w-3.5 h-3.5 text-destructive" />
-                )}
+                </p>
+                <p className="text-[10px] opacity-60 font-mono truncate leading-tight">
+                  {member.medicareId}
+                </p>
               </div>
-              <div className="flex items-center justify-between text-[10px] text-muted-foreground font-medium">
-                <span className="font-mono bg-muted px-1.5 rounded uppercase">{member.medicareId}</span>
-                <span className="flex items-center gap-1.5">
-                  <ShieldCheck className={cn(
-                    "w-3 h-3",
-                    member.retentionScore > 80 ? "text-green-500" : member.retentionScore > 50 ? "text-yellow-500" : "text-red-500"
-                  )} />
-                  <span className="font-bold text-foreground">{member.retentionScore}%</span>
-                </span>
-              </div>
+
+              {member.retentionScore < 50 && (
+                <AlertCircle className="w-3 h-3 text-destructive shrink-0" />
+              )}
             </Link>
           ))}
           {filteredMembers.length === 0 && (
-            <div className="p-12 text-center">
-              <p className="text-muted-foreground text-sm font-medium">No members found.</p>
+            <div className="py-10 text-center">
+              <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest opacity-30">Empty Roster</p>
             </div>
           )}
         </div>
       </ScrollArea>
 
-      <div className="p-4 border-t border-sidebar-border bg-muted/30">
-        <Button variant="outline" className="w-full justify-center gap-2 h-10 rounded-xl border-dashed border-border text-muted-foreground hover:bg-muted font-bold text-xs transition-all">
-          <Filter className="w-4 h-4" />
-          Filter by Carrier
+      <div className="p-3 border-t border-sidebar-border bg-sidebar/30">
+        <Button variant="outline" className="w-full justify-start gap-2 h-8 rounded-lg border-dashed border-border bg-background/50 text-muted-foreground hover:bg-muted font-bold text-[10px] uppercase tracking-widest transition-all">
+          <Filter className="w-3 h-3" />
+          Carrier Filter
         </Button>
       </div>
     </aside>

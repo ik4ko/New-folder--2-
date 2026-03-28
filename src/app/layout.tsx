@@ -1,4 +1,3 @@
-
 import type { Metadata } from 'next';
 import './globals.css';
 import { SidebarProvider } from '@/components/ui/sidebar';
@@ -31,16 +30,17 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <SidebarProvider defaultOpen={true}>
-            <div className="flex h-screen w-screen overflow-hidden">
-              <AppSidebar />
-              <main className="flex-1 flex flex-col relative h-full bg-background">
-                {children}
-              </main>
-            </div>
-            <CommandBar />
-            <Toaster />
-          </SidebarProvider>
+          <div className="flex h-screen w-screen overflow-hidden bg-background">
+            {/* Discord-style Module Bar (Leftmost) */}
+            <AppSidebar />
+            
+            {/* Main Application Area (Second Sidebar + Content) */}
+            <main className="flex-1 flex overflow-hidden relative">
+              {children}
+            </main>
+          </div>
+          <CommandBar />
+          <Toaster />
         </ThemeProvider>
       </body>
     </html>
