@@ -6,7 +6,7 @@ import { useAppStore } from "@/lib/store"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Printer, CheckCircle2, Clock, AlertCircle, FileText, Send, RefreshCw, PhoneForwarded } from "lucide-react"
+import { Printer, CheckCircle2, Clock, AlertCircle, FileText, Send, RefreshCw, PhoneForwarded, ShieldAlert } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 
@@ -27,8 +27,12 @@ export default function FaxCenterPage() {
     pending.forEach(m => {
       setTimeout(() => {
         updateMember(m.id, { ssbciStatus: 'faxed' })
-      }, 800)
+      }, 1000)
     })
+  }
+
+  const handlePreview = (name: string) => {
+    toast({ title: "Generating PDF Preview", description: `Creating SSBCI package for ${name}...` })
   }
 
   return (
@@ -57,14 +61,14 @@ export default function FaxCenterPage() {
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-8 space-y-8 bg-slate-50/30 dark:bg-background">
+        <div className="flex-1 overflow-y-auto p-8 space-y-8 bg-[#F7F4F0]/30 dark:bg-background">
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <Card className="rounded-3xl border-none shadow-sm bg-card">
               <CardContent className="pt-6 space-y-2">
                 <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Awaiting Generation</p>
                 <div className="flex items-end justify-between">
                   <div className="text-4xl font-black">{faxQueue.filter(m => m.ssbciStatus === 'pending-fax').length}</div>
-                  <Badge className="bg-amber-100 text-amber-700 border-none mb-1 font-bold">Priority</Badge>
+                  <Badge className="bg-amber-100 text-amber-700 border-none mb-1 font-bold px-3">High Priority</Badge>
                 </div>
               </CardContent>
             </Card>
@@ -136,17 +140,17 @@ export default function FaxCenterPage() {
                       <TableCell>
                         <div className="flex items-center gap-2">
                           {member.ssbciStatus === 'faxed' ? (
-                            <div className="flex items-center gap-2 text-primary bg-primary/5 px-2 py-1 rounded-lg">
+                            <div className="flex items-center gap-2 text-primary bg-primary/5 px-2 py-1 rounded-lg border border-primary/10">
                               <Clock className="w-3.5 h-3.5 animate-spin" />
                               <span className="text-[9px] font-black uppercase tracking-tighter">Transmitted (Wait)</span>
                             </div>
                           ) : member.ssbciStatus === 'pending-fax' ? (
-                            <div className="flex items-center gap-2 text-amber-600 bg-amber-50 px-2 py-1 rounded-lg">
+                            <div className="flex items-center gap-2 text-amber-600 bg-amber-50 px-2 py-1 rounded-lg border border-amber-100">
                               <AlertCircle className="w-3.5 h-3.5" />
                               <span className="text-[9px] font-black uppercase tracking-tighter">Ready to Gen</span>
                             </div>
                           ) : (
-                            <div className="flex items-center gap-2 text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">
+                            <div className="flex items-center gap-2 text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg border border-emerald-100">
                               <CheckCircle2 className="w-3.5 h-3.5" />
                               <span className="text-[9px] font-black uppercase tracking-tighter">Rx Confirmed</span>
                             </div>
@@ -154,7 +158,7 @@ export default function FaxCenterPage() {
                         </div>
                       </TableCell>
                       <TableCell className="text-right px-8">
-                        <Button variant="ghost" size="sm" className="h-9 px-4 text-[10px] font-bold rounded-xl border border-border group-hover:border-primary/30 group-hover:text-primary transition-all">
+                        <Button onClick={() => handlePreview(member.fullName)} variant="ghost" size="sm" className="h-9 px-4 text-[10px] font-bold rounded-xl border border-border group-hover:border-primary/30 group-hover:text-primary transition-all">
                           <FileText className="w-3.5 h-3.5 mr-2 opacity-60" /> Preview Package
                         </Button>
                       </TableCell>

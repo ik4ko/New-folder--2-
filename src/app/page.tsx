@@ -3,7 +3,7 @@
 
 import { CollectionSidebar } from "@/components/collection-sidebar"
 import { useAppStore, initializeStore } from "@/lib/store"
-import { useEffect } from "react"
+import { useEffect, useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -19,11 +19,21 @@ export default function Dashboard() {
     initializeStore()
   }, [])
 
-  const churnRisks = members.filter(m => m.status === 'churn-risk')
-  const totalMembers = members.length
-  const avgRetention = members.length > 0 
-    ? Math.round(members.reduce((acc, m) => acc + m.retentionScore, 0) / members.length)
-    : 0
+  const stats = useMemo(() => {
+    const churnRisks = members.filter(m => m.status === 'churn-risk')
+    const totalMembers = members.length
+    const avgRetention = members.length > 0 
+      ? Math.round(members.reduce((acc, m) => acc + m.retentionScore, 0) / members.length)
+      : 0
+    const pendingFaxes = members.filter(m => m.ssbciStatus === 'pending-fax').length
+    
+    return {
+      totalMembers,
+      avgRetention,
+      churnRisks: churnRisks.length,
+      pendingFaxes
+    }
+  }, [members])
 
   return (
     <div className="flex h-full w-full bg-background">
@@ -42,7 +52,7 @@ export default function Dashboard() {
             </div>
             <div className="flex items-center gap-2 px-4 py-1.5 bg-primary/10 text-primary border border-primary/20 rounded-full text-[10px] font-black uppercase tracking-widest">
               <Zap className="w-3 h-3" />
-              SONNET 3.5: ACTIVE
+              CLAUDE 3.5: ACTIVE
             </div>
           </div>
         </div>
@@ -54,7 +64,7 @@ export default function Dashboard() {
               <Users className="w-4 h-4 text-primary" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-black">{totalMembers}</div>
+              <div className="text-3xl font-black">{stats.totalMembers}</div>
               <p className="text-[10px] text-emerald-600 flex items-center gap-1 mt-1 font-bold">
                 <TrendingUp className="w-3 h-3" />
                 +4.2% growth (30d)
@@ -68,8 +78,8 @@ export default function Dashboard() {
               <ShieldCheck className="w-4 h-4 text-primary" />
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="text-3xl font-black">{avgRetention}%</div>
-              <Progress value={avgRetention} className="h-1.5 bg-muted" />
+              <div className="text-3xl font-black">{stats.avgRetention}%</div>
+              <Progress value={stats.avgRetention} className="h-1.5 bg-muted" />
             </CardContent>
           </Card>
 
@@ -79,7 +89,7 @@ export default function Dashboard() {
               <CircleAlert className="w-4 h-4 text-destructive" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-black text-destructive">{churnRisks.length}</div>
+              <div className="text-3xl font-black text-destructive">{stats.churnRisks}</div>
               <p className="text-[10px] text-destructive/80 mt-1 font-black uppercase tracking-widest animate-pulse">
                 Action Required (24h Window)
               </p>
@@ -93,7 +103,7 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-black">
-                {members.filter(m => m.ssbciStatus === 'pending-fax').length}
+                {stats.pendingFaxes}
               </div>
               <p className="text-[10px] text-muted-foreground mt-1 font-bold">
                 Module 3: chronic SNPs

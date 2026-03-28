@@ -66,7 +66,7 @@ export default function GHLIntegrationPage() {
           </div>
           <div className="flex items-center gap-3">
             {isGHLConnected && (
-              <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 gap-1.5 px-3 h-8">
+              <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 gap-1.5 px-3 h-8 font-bold">
                 <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
                 Live: API v2.0
               </Badge>
@@ -80,8 +80,8 @@ export default function GHLIntegrationPage() {
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-8 max-w-5xl mx-auto w-full space-y-8">
-          <Card className="rounded-3xl border shadow-sm overflow-hidden">
+        <div className="flex-1 overflow-y-auto p-8 max-w-5xl mx-auto w-full space-y-8 bg-[#F7F4F0]/30 dark:bg-background">
+          <Card className="rounded-3xl border shadow-sm overflow-hidden bg-card">
             <CardHeader className="bg-muted/30 border-b pb-6">
               <div className="flex items-center justify-between">
                 <div className="space-y-1">
@@ -94,7 +94,7 @@ export default function GHLIntegrationPage() {
                   </CardDescription>
                 </div>
                 <div className="flex items-center gap-3 bg-white dark:bg-card p-2 rounded-2xl border shadow-sm px-4">
-                  <span className="text-[10px] font-black uppercase text-muted-foreground">Connection Status</span>
+                  <span className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Connection Status</span>
                   <Switch checked={isGHLConnected} onCheckedChange={toggleGHL} />
                 </div>
               </div>
@@ -102,13 +102,13 @@ export default function GHLIntegrationPage() {
             <CardContent className="p-0">
               <Tabs defaultValue="connection" className="w-full">
                 <TabsList className="bg-transparent border-b rounded-none h-12 w-full justify-start px-8 gap-8">
-                  <TabsTrigger value="connection" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-0 font-bold text-xs uppercase tracking-widest h-full">
+                  <TabsTrigger value="connection" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-0 font-black text-xs uppercase tracking-widest h-full">
                     Connection
                   </TabsTrigger>
-                  <TabsTrigger value="mapping" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-0 font-bold text-xs uppercase tracking-widest h-full">
+                  <TabsTrigger value="mapping" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-0 font-black text-xs uppercase tracking-widest h-full">
                     Field Mapping
                   </TabsTrigger>
-                  <TabsTrigger value="automations" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-0 font-bold text-xs uppercase tracking-widest h-full">
+                  <TabsTrigger value="automations" className="data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:border-b-2 data-[state=active]:border-primary rounded-none px-0 font-black text-xs uppercase tracking-widest h-full">
                     Automations
                   </TabsTrigger>
                 </TabsList>
@@ -128,6 +128,7 @@ export default function GHLIntegrationPage() {
                             onChange={(e) => updateGHLSettings({ apiKey: e.target.value })}
                           />
                           <button 
+                            type="button"
                             onClick={() => setShowKey(!showKey)}
                             className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
                           >
@@ -243,7 +244,7 @@ export default function GHLIntegrationPage() {
 
                 <TabsContent value="automations" className="p-8 space-y-10 animate-in fade-in duration-300">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-                    <Card className="rounded-3xl border bg-white dark:bg-slate-900 shadow-sm relative group overflow-hidden flex flex-col">
+                    <Card className="rounded-3xl border bg-card dark:bg-slate-900 shadow-sm relative group overflow-hidden flex flex-col">
                       <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
                         <Zap className="w-20 h-20 text-primary" />
                       </div>
@@ -261,7 +262,7 @@ export default function GHLIntegrationPage() {
                       </CardHeader>
                       <CardContent className="space-y-4 flex-1">
                         <div className="space-y-3">
-                          <Label className="text-[9px] font-bold uppercase text-muted-foreground">Pipeline Mapping</Label>
+                          <Label className="text-[9px] font-bold uppercase text-muted-foreground tracking-widest">Pipeline Mapping</Label>
                           <Select value={ghlSettings.pipelineId} onValueChange={(val) => updateGHLSettings({ pipelineId: val })}>
                             <SelectTrigger className="rounded-xl h-10 text-xs bg-muted/50 border-none shadow-inner">
                               <SelectValue placeholder="Select Pipeline" />
@@ -273,7 +274,7 @@ export default function GHLIntegrationPage() {
                           </Select>
                         </div>
                         <div className="space-y-3">
-                          <Label className="text-[9px] font-bold uppercase text-muted-foreground">Alert Stage</Label>
+                          <Label className="text-[9px] font-bold uppercase text-muted-foreground tracking-widest">Alert Stage</Label>
                           <Select value={ghlSettings.stageId} onValueChange={(val) => updateGHLSettings({ stageId: val })}>
                             <SelectTrigger className="rounded-xl h-10 text-xs bg-muted/50 border-none shadow-inner">
                               <SelectValue placeholder="Select Stage" />
@@ -287,7 +288,7 @@ export default function GHLIntegrationPage() {
                       </CardContent>
                     </Card>
 
-                    <Card className="rounded-3xl border bg-white dark:bg-slate-900 shadow-sm relative group overflow-hidden flex flex-col">
+                    <Card className="rounded-3xl border bg-card dark:bg-slate-900 shadow-sm relative group overflow-hidden flex flex-col">
                       <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
                         <PlayCircle className="w-20 h-20 text-emerald-500" />
                       </div>
@@ -304,20 +305,20 @@ export default function GHLIntegrationPage() {
                         </div>
                       </CardHeader>
                       <CardContent className="space-y-4 flex-1">
-                        <p className="text-[10px] text-muted-foreground leading-relaxed">
+                        <p className="text-[10px] text-muted-foreground leading-relaxed font-medium">
                           Automatically push Medicare Part A/B effective dates and SSBCI verification status back to GHL contact custom fields after MediStay OCR processing.
                         </p>
                         <div className="pt-2">
-                          <Label className="text-[9px] font-bold uppercase text-muted-foreground">Applied Tags</Label>
+                          <Label className="text-[9px] font-bold uppercase text-muted-foreground tracking-widest">Applied Tags</Label>
                           <div className="flex flex-wrap gap-2 mt-2">
-                            <Badge variant="outline" className="text-[9px] bg-emerald-50 text-emerald-700 border-emerald-100">medistay-verified</Badge>
-                            <Badge variant="outline" className="text-[9px] bg-blue-50 text-blue-700 border-blue-100">phi-updated</Badge>
+                            <Badge variant="outline" className="text-[9px] bg-emerald-50 text-emerald-700 border-emerald-100 font-bold uppercase">medistay-verified</Badge>
+                            <Badge variant="outline" className="text-[9px] bg-blue-50 text-blue-700 border-blue-100 font-bold uppercase">phi-updated</Badge>
                           </div>
                         </div>
                       </CardContent>
                     </Card>
 
-                    <Card className="rounded-3xl border bg-white dark:bg-slate-900 shadow-sm relative group overflow-hidden flex flex-col">
+                    <Card className="rounded-3xl border bg-card dark:bg-slate-900 shadow-sm relative group overflow-hidden flex flex-col">
                       <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
                         <CircleAlert className="w-20 h-20 text-primary" />
                       </div>
@@ -334,33 +335,33 @@ export default function GHLIntegrationPage() {
                         </div>
                       </CardHeader>
                       <CardContent className="space-y-4 flex-1">
-                        <p className="text-[10px] text-muted-foreground leading-relaxed">
+                        <p className="text-[10px] text-muted-foreground leading-relaxed font-medium">
                           When Module 5 triggers AEP Shield, automatically send a text via your GHL Number and move contact to 'Loyalty Campaign' pipeline.
                         </p>
                         <div className="space-y-3 pt-2">
-                          <Label className="text-[9px] font-bold uppercase text-muted-foreground">Alert Tag in GHL</Label>
+                          <Label className="text-[9px] font-bold uppercase text-muted-foreground tracking-widest">Alert Tag in GHL</Label>
                           <Input 
                             value={ghlSettings.riskTag} 
                             onChange={(e) => updateGHLSettings({ riskTag: e.target.value })}
-                            className="h-9 rounded-xl text-[10px] bg-muted/50 border-none shadow-inner"
+                            className="h-9 rounded-xl text-[10px] bg-muted/50 border-none shadow-inner font-mono"
                           />
                         </div>
                       </CardContent>
                     </Card>
                   </div>
 
-                  <div className="p-6 rounded-3xl bg-slate-900 text-white relative overflow-hidden">
+                  <div className="p-6 rounded-3xl bg-slate-900 text-white relative overflow-hidden shadow-xl">
                     <div className="flex items-center gap-4 relative z-10">
                       <div className="w-12 h-12 rounded-2xl bg-primary/20 flex items-center justify-center text-primary backdrop-blur-md border border-white/10">
                         <Settings2 className="w-6 h-6" />
                       </div>
                       <div>
-                        <h4 className="text-sm font-black uppercase tracking-widest text-white">Advanced Synchronization Settings</h4>
+                        <h4 className="text-sm font-black uppercase tracking-widest text-white">Advanced Sync Protocols</h4>
                         <p className="text-[10px] text-slate-400">Manage polling frequency and system collision logic.</p>
                       </div>
                       <div className="ml-auto flex items-center gap-4">
                         <div className="text-right">
-                          <p className="text-[9px] font-bold uppercase text-slate-500 mb-1">Frequency</p>
+                          <p className="text-[9px] font-bold uppercase text-slate-500 mb-1 tracking-widest">Frequency</p>
                           <Select value={ghlSettings.syncFrequency} onValueChange={(val: any) => updateGHLSettings({ syncFrequency: val })}>
                             <SelectTrigger className="h-8 w-32 rounded-lg bg-slate-800 border-slate-700 text-[10px] font-bold">
                               <SelectValue placeholder="Frequency" />
@@ -372,8 +373,8 @@ export default function GHLIntegrationPage() {
                             </SelectContent>
                           </Select>
                         </div>
-                        <Button variant="outline" className="h-10 rounded-xl border-slate-700 bg-transparent text-xs hover:bg-slate-800 text-white">
-                          <PlayCircle className="w-4 h-4 mr-2" /> Test Webhook Inbound
+                        <Button variant="outline" className="h-10 rounded-xl border-slate-700 bg-transparent text-xs hover:bg-slate-800 text-white font-bold">
+                          <PlayCircle className="w-4 h-4 mr-2" /> Test Inbound
                         </Button>
                       </div>
                     </div>
@@ -387,19 +388,19 @@ export default function GHLIntegrationPage() {
             <div className="p-6 rounded-3xl bg-emerald-500/5 border border-emerald-500/10 space-y-4">
               <div className="flex items-center gap-2 text-emerald-600">
                 <ShieldCheck className="w-4 h-4" />
-                <span className="text-sm font-bold uppercase tracking-tight">HIPAA Compliant Sync Architecture</span>
+                <span className="text-sm font-bold uppercase tracking-widest">HIPAA Compliant Sync</span>
               </div>
-              <p className="text-[11px] leading-relaxed text-muted-foreground">
-                MediStay matches contacts using <strong>Medicare ID</strong> and <strong>Email</strong>. PHI data is encrypted during transit via TLS 1.3 and handled exclusively within the scope of our signed BAA with GHL Agency accounts.
+              <p className="text-[11px] leading-relaxed text-muted-foreground font-medium">
+                MediStay matches contacts using <strong>Medicare ID</strong> and <strong>Email</strong>. PHI data is encrypted during transit via TLS 1.3 and handled exclusively within the scope of our signed BAA.
               </p>
             </div>
             <div className="p-6 rounded-3xl bg-primary/5 border border-primary/10 space-y-4">
               <div className="flex items-center gap-2 text-primary">
                 <CircleAlert className="w-4 h-4" />
-                <span className="text-sm font-bold uppercase tracking-tight">Conflict Resolution Protocol</span>
+                <span className="text-sm font-bold uppercase tracking-widest">Conflict Protocol</span>
               </div>
-              <p className="text-[11px] leading-relaxed text-muted-foreground">
-                If GHL custom field data conflicts with official CMS snapshots, MediStay marks the record as <strong>Needs Verification</strong> and prioritizes the CMS MARx source as the primary system of record.
+              <p className="text-[11px] leading-relaxed text-muted-foreground font-medium">
+                If CRM data conflicts with official CMS snapshots, MediStay marks the record as <strong>Needs Verification</strong> and prioritizes the CMS MARx source.
               </p>
             </div>
           </div>
@@ -408,9 +409,9 @@ export default function GHLIntegrationPage() {
             <div className="flex items-center justify-between px-1">
               <h3 className="text-sm font-bold flex items-center gap-2">
                 <History className="w-4 h-4 text-muted-foreground" />
-                Recent CRM Synchronization Events
+                Sync Audit Logs
               </h3>
-              <Button variant="ghost" size="sm" className="text-[10px] font-bold text-primary uppercase hover:bg-primary/5">Clear Logs</Button>
+              <Button variant="ghost" size="sm" className="text-[10px] font-bold text-primary uppercase hover:bg-primary/5 tracking-widest">Clear Logs</Button>
             </div>
             <div className="rounded-2xl border border-border bg-card divide-y overflow-hidden shadow-sm">
               {[
@@ -427,7 +428,7 @@ export default function GHLIntegrationPage() {
                       log.type === 'manual' ? 'bg-amber-50 text-amber-600 border-amber-100' :
                       'bg-red-50 text-red-600 border-red-100'
                     }`}>
-                      {log.type === 'sync' ? <RefreshCw className="w-4 h-4" /> :
+                      {log.type === 'sync' ? <Webhook className="w-4 h-4" /> :
                        log.type === 'poll' ? <Database className="w-4 h-4" /> :
                        log.type === 'manual' ? <RefreshCw className="w-4 h-4" /> :
                        <CircleAlert className="w-4 h-4" />}
