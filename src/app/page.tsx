@@ -6,7 +6,7 @@ import { useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { AlertCircle, TrendingUp, Users, ShieldCheck, Printer, Zap, PhoneCall, ArrowUpRight, Activity, Calendar, ShieldAlert } from "lucide-react"
+import { CircleAlert, TrendingUp, Users, ShieldCheck, Printer, Zap, PhoneCall, ArrowUpRight, Activity, Calendar, ShieldAlert } from "lucide-react"
 import Link from "next/link"
 import { Progress } from "@/components/ui/progress"
 import { Button } from "@/components/ui/button"
@@ -75,7 +75,7 @@ export default function Dashboard() {
           <Card className="shadow-sm border-destructive/20 bg-destructive/5 rounded-3xl overflow-hidden">
             <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
               <CardTitle className="text-[10px] font-black uppercase tracking-widest text-destructive">Module 1 Alerts</CardTitle>
-              <AlertCircle className="w-4 h-4 text-destructive" />
+              <CircleAlert className="w-4 h-4 text-destructive" />
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-black text-destructive">{churnRisks.length}</div>

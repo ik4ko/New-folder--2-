@@ -6,10 +6,11 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { 
-  Link2, RefreshCw, CheckCircle2, History, Database, 
+  Link2, RefreshCw, CircleCheck, History, Database, 
   ArrowRight, Key, Webhook, Zap, Settings2, Copy, 
-  ExternalLink, ShieldCheck, AlertCircle, Info,
-  Search, ListFilter, PlayCircle, Eye, EyeOff
+  ExternalLink, ShieldCheck, CircleAlert, Info,
+  Search, ListFilter, PlayCircle, Eye, EyeOff,
+  Briefcase, Calendar, Smartphone
 } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
 import { useState } from "react"
@@ -85,7 +86,7 @@ export default function GHLIntegrationPage() {
                 <div className="space-y-1">
                   <CardTitle className="text-lg font-bold flex items-center gap-2">
                     CRM Direct Link 
-                    {isGHLConnected && <CheckCircle2 className="w-5 h-5 text-emerald-500 ml-1" />}
+                    {isGHLConnected && <CircleCheck className="w-5 h-5 text-emerald-500 ml-1" />}
                   </CardTitle>
                   <CardDescription className="text-xs">
                     Sync your book of business and push retention alerts directly to GoHighLevel pipelines.
@@ -181,7 +182,7 @@ export default function GHLIntegrationPage() {
                           </Button>
                         </div>
                         <div className="flex items-center gap-2 text-[10px] text-emerald-600 font-bold bg-emerald-50 px-3 py-2 rounded-lg border border-emerald-100">
-                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <CircleCheck className="w-3.5 h-3.5" />
                           MediStay Webhook Listener is Active
                         </div>
                       </div>
@@ -317,13 +318,13 @@ export default function GHLIntegrationPage() {
 
                     <Card className="rounded-3xl border bg-white dark:bg-slate-900 shadow-sm relative group overflow-hidden flex flex-col">
                       <div className="absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity">
-                        <ShieldAlert className="w-20 h-20 text-primary" />
+                        <CircleAlert className="w-20 h-20 text-primary" />
                       </div>
                       <CardHeader className="pb-4">
                         <div className="flex justify-between items-start">
                           <div className="space-y-1">
                             <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2">
-                              <ShieldAlert className="w-4 h-4 text-primary" />
+                              <CircleAlert className="w-4 h-4 text-primary" />
                               AEP Shield Integration
                             </CardTitle>
                             <CardDescription className="text-[10px]">September loyalty flow</CardDescription>
@@ -393,7 +394,7 @@ export default function GHLIntegrationPage() {
             </div>
             <div className="p-6 rounded-3xl bg-primary/5 border border-primary/10 space-y-4">
               <div className="flex items-center gap-2 text-primary">
-                <AlertCircle className="w-4 h-4" />
+                <CircleAlert className="w-4 h-4" />
                 <span className="text-sm font-bold uppercase tracking-tight">Conflict Resolution Protocol</span>
               </div>
               <p className="text-[11px] leading-relaxed text-muted-foreground">
@@ -428,7 +429,7 @@ export default function GHLIntegrationPage() {
                       {log.type === 'sync' ? <RefreshCw className="w-4 h-4" /> :
                        log.type === 'poll' ? <Database className="w-4 h-4" /> :
                        log.type === 'manual' ? <RefreshCw className="w-4 h-4" /> :
-                       <AlertCircle className="w-4 h-4" />}
+                       <CircleAlert className="w-4 h-4" />}
                     </div>
                     <div className="space-y-1">
                       <p className="font-bold text-foreground">{log.event}</p>

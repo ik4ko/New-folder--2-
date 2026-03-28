@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { 
-  Sparkles, AlertTriangle, ShieldCheck, UserPlus, Printer, 
-  Phone, Info, Calendar, Handshake, BrainCircuit, RefreshCw
+  Sparkles, TriangleAlert, ShieldCheck, UserPlus, Printer, 
+  Phone, Info, Calendar, Handshake, BrainCircuit, RefreshCw, PhoneCall, CircleAlert
 } from "lucide-react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -86,7 +86,7 @@ export function InsightsPanel({ member }: InsightsPanelProps) {
             <Card className="rounded-2xl border-destructive/20 bg-destructive/5 shadow-sm overflow-hidden">
               <CardHeader className="pb-2">
                 <CardTitle className="text-xs font-bold text-destructive flex items-center gap-2">
-                  <AlertTriangle className="w-3.5 h-3.5" />
+                  <TriangleAlert className="w-3.5 h-3.5" />
                   MODULE 1: CMS SWITCH DETECTED
                 </CardTitle>
               </CardHeader>
