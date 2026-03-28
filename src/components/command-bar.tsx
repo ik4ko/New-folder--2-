@@ -3,13 +3,8 @@
 import * as React from "react"
 import { useRouter } from "next/navigation"
 import {
-  Calculator,
-  Calendar,
-  CreditCard,
   Plus,
-  Search,
   Settings,
-  Smile,
   User,
   Zap,
 } from "lucide-react"
@@ -43,13 +38,13 @@ export function CommandBar() {
 
   return (
     <CommandDialog open={open} onOpenChange={setOpen}>
-      <CommandInput placeholder="Type a command or search clients..." />
+      <CommandInput placeholder="Type a command or search members..." />
       <CommandList>
         <CommandEmpty>No results found.</CommandEmpty>
         <CommandGroup heading="Actions">
-          <CommandItem onSelect={() => { router.push('/clients/new'); setOpen(false); }}>
+          <CommandItem onSelect={() => { router.push('/members/new'); setOpen(false); }}>
             <Plus className="mr-2 h-4 w-4" />
-            <span>Create New Lead</span>
+            <span>Enroll New Member</span>
           </CommandItem>
           <CommandItem onSelect={() => { setOpen(false); }}>
             <Zap className="mr-2 h-4 w-4" />
@@ -58,12 +53,12 @@ export function CommandBar() {
         </CommandGroup>
         <CommandSeparator />
         <CommandGroup heading="Settings">
-          <CommandItem>
+          <CommandItem onSelect={() => { setOpen(false); }}>
             <User className="mr-2 h-4 w-4" />
             <span>Profile</span>
             <CommandShortcut>⌘P</CommandShortcut>
           </CommandItem>
-          <CommandItem>
+          <CommandItem onSelect={() => { setOpen(false); }}>
             <Settings className="mr-2 h-4 w-4" />
             <span>Settings</span>
             <CommandShortcut>⌘S</CommandShortcut>
@@ -73,5 +68,3 @@ export function CommandBar() {
     </CommandDialog>
   )
 }
-
-// Ensure UI component exists or create a simple wrapper if not in Shadcn standard
