@@ -51,8 +51,15 @@ export interface GHLSettings {
     carrier: string;
     planName: string;
     enrollmentPeriod: string;
+    partAEffective: string;
+    partBEffective: string;
+    pcpName: string;
   };
   automationEnabled: boolean;
+  pipelineId: string;
+  stageId: string;
+  riskTag: string;
+  syncFrequency: 'hourly' | 'daily' | 'manual';
 }
 
 interface AppState {
@@ -81,8 +88,15 @@ export const useAppStore = create<AppState>((set) => ({
       carrier: 'current_carrier',
       planName: 'plan_name',
       enrollmentPeriod: 'enrollment_type',
+      partAEffective: 'part_a_date',
+      partBEffective: 'part_b_date',
+      pcpName: 'primary_physician',
     },
     automationEnabled: true,
+    pipelineId: 'PL_99201',
+    stageId: 'ST_CHURN_ALERT',
+    riskTag: 'churn-risk-detected',
+    syncFrequency: 'daily',
   },
   addMember: (memberData) => set((state) => {
     const newMember: MemberRecord = {
