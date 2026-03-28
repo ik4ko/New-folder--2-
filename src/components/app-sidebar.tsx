@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -53,7 +52,7 @@ export function AppSidebar() {
             <SidebarMenuButton asChild isActive={pathname === '/'} tooltip="Dashboard" className="rounded-xl h-10 px-4 transition-all">
               <Link href="/">
                 <LayoutDashboard className="w-5 h-5" />
-                <span className="font-medium">Command Center</span>
+                <span className="font-medium text-sm">Command Center</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -61,7 +60,7 @@ export function AppSidebar() {
             <SidebarMenuButton asChild isActive={pathname.startsWith('/members')} tooltip="Members" className="rounded-xl h-10 px-4 transition-all">
               <Link href="/members">
                 <Users className="w-5 h-5" />
-                <span className="font-medium">Member Roster</span>
+                <span className="font-medium text-sm">Member Roster</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -69,7 +68,7 @@ export function AppSidebar() {
             <SidebarMenuButton asChild isActive={pathname === '/fax'} tooltip="SSBCI Fax Agent" className="rounded-xl h-10 px-4 transition-all">
               <Link href="/fax">
                 <Printer className="w-5 h-5" />
-                <span className="font-medium">SSBCI Fax Center</span>
+                <span className="font-medium text-sm">SSBCI Fax Center</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -77,7 +76,7 @@ export function AppSidebar() {
             <SidebarMenuButton asChild isActive={pathname === '/check-ins'} tooltip="AI Check-in Calls" className="rounded-xl h-10 px-4 transition-all">
               <Link href="/check-ins">
                 <PhoneCall className="w-5 h-5" />
-                <span className="font-medium">AI Check-ins</span>
+                <span className="font-medium text-sm">AI Check-ins</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -88,7 +87,7 @@ export function AppSidebar() {
             <SidebarMenuButton asChild isActive={pathname === '/ghl'} tooltip="GHL Sync" className={`rounded-xl h-10 px-4 transition-all ${isGHLConnected ? "text-green-600 bg-green-50 dark:bg-green-950/30" : ""}`}>
               <Link href="/ghl">
                 <Link2 className="w-5 h-5" />
-                <span className="font-medium">GHL Integration</span>
+                <span className="font-medium text-sm">GHL Integration</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -96,7 +95,7 @@ export function AppSidebar() {
             <SidebarMenuButton asChild isActive={pathname === '/compliance'} tooltip="Compliance" className="rounded-xl h-10 px-4 transition-all">
               <Link href="/compliance">
                 <ShieldCheck className="w-5 h-5" />
-                <span className="font-medium">Compliance Vault</span>
+                <span className="font-medium text-sm">Compliance Vault</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -104,15 +103,15 @@ export function AppSidebar() {
             <SidebarMenuButton asChild isActive={pathname === '/ai'} tooltip="AI Assistant" className="rounded-xl h-10 px-4 transition-all bg-primary/10 text-primary hover:bg-primary/20 border border-primary/10">
               <Link href="/ai">
                 <Sparkles className="w-5 h-5" />
-                <span className="font-bold">Retention AI</span>
+                <span className="font-black uppercase tracking-widest text-[10px]">Retention AI</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarContent>
 
-      <SidebarFooter className="border-t border-sidebar-border p-4 bg-muted/30">
-        <div className="flex items-center justify-between group-data-[collapsible=icon]:hidden mb-4">
+      <SidebarFooter className="border-t border-sidebar-border p-4 bg-muted/10">
+        <div className="flex items-center justify-between group-data-[collapsible=icon]:hidden mb-6 px-1">
           <SyncStatus />
           <ModeToggle />
         </div>
@@ -121,24 +120,26 @@ export function AppSidebar() {
             <SidebarMenuButton asChild isActive={pathname === '/settings'} tooltip="Settings" className="rounded-xl h-9">
               <Link href="/settings">
                 <Settings className="w-4 h-4" />
-                <span className="text-xs">Agency Settings</span>
+                <span className="text-xs font-bold">Agency Settings</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
           <SidebarMenuItem>
             <SidebarMenuButton className="rounded-xl h-9 text-destructive hover:text-destructive hover:bg-destructive/10" tooltip="Log out">
               <LogOut className="w-4 h-4" />
-              <span className="text-xs">Sign Out</span>
+              <span className="text-xs font-bold">Sign Out</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>
         
-        <div className="mt-4 p-3 rounded-xl bg-card border border-sidebar-border text-[10px] text-muted-foreground group-data-[collapsible=icon]:hidden">
-          <div className="flex items-center gap-2 mb-1.5">
-            <Lock className="w-3 h-3 text-primary" />
-            <span className="font-bold text-foreground uppercase tracking-widest text-[9px]">HIPAA SECURE</span>
+        <div className="mt-6 p-4 rounded-2xl bg-card border border-sidebar-border text-[10px] text-muted-foreground group-data-[collapsible=icon]:hidden shadow-inner">
+          <div className="flex items-center gap-2 mb-2">
+            <Lock className="w-3.5 h-3.5 text-primary" />
+            <span className="font-black text-foreground uppercase tracking-widest text-[9px]">HIPAA SECURE</span>
           </div>
-          BAA Active: AWS/Twilio/Documo. Records encrypted at rest.
+          <p className="leading-relaxed font-medium">
+            BAA Active: AWS/Twilio/Documo. Records encrypted with AES-256.
+          </p>
         </div>
       </SidebarFooter>
     </Sidebar>

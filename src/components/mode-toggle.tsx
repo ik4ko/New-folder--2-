@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Moon, Sun, Palette, Check } from "lucide-react"
+import { Moon, Sun, Check, Palette } from "lucide-react"
 import { useTheme } from "next-themes"
 
 import { Button } from "@/components/ui/button"
@@ -42,49 +42,68 @@ export function ModeToggle() {
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
-        <Button variant="outline" size="icon" className="h-9 w-9 rounded-xl border-border/50">
+        <Button variant="outline" size="icon" className="h-10 w-10 rounded-full border-border/50 bg-background/50 backdrop-blur-sm shadow-sm hover:border-primary/50 transition-all">
           <Sun className="h-[1.2rem] w-[1.2rem] rotate-0 scale-100 transition-all dark:-rotate-90 dark:scale-0" />
           <Moon className="absolute h-[1.2rem] w-[1.2rem] rotate-90 scale-0 transition-all dark:rotate-0 dark:scale-100" />
           <span className="sr-only">Toggle theme</span>
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-56 rounded-2xl p-2 shadow-2xl">
-        <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground px-2 py-1.5">
-          Appearance
+      <DropdownMenuContent align="end" className="w-64 rounded-2xl p-3 shadow-2xl border-border/50 bg-popover/95 backdrop-blur-xl">
+        <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground px-2 py-2">
+          Platform Appearance
         </DropdownMenuLabel>
-        <DropdownMenuItem onClick={() => setTheme("light")} className="rounded-xl flex items-center justify-between">
-          <div className="flex items-center gap-2">
+        <div className="grid grid-cols-2 gap-2 p-1">
+          <Button 
+            variant={theme === 'light' ? 'secondary' : 'ghost'} 
+            size="sm" 
+            onClick={() => setTheme("light")}
+            className="rounded-xl flex items-center justify-start gap-2 h-9"
+          >
             <Sun className="w-4 h-4" />
-            <span className="text-sm font-medium">Light (White)</span>
-          </div>
-          {theme === "light" && <Check className="w-4 h-4 text-primary" />}
-        </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => setTheme("dark")} className="rounded-xl flex items-center justify-between">
-          <div className="flex items-center gap-2">
+            <span className="text-xs font-bold">Light</span>
+          </Button>
+          <Button 
+            variant={theme === 'dark' ? 'secondary' : 'ghost'} 
+            size="sm" 
+            onClick={() => setTheme("dark")}
+            className="rounded-xl flex items-center justify-start gap-2 h-9"
+          >
             <Moon className="w-4 h-4" />
-            <span className="text-sm font-medium">Dark (Black)</span>
-          </div>
-          {theme === "dark" && <Check className="w-4 h-4 text-primary" />}
-        </DropdownMenuItem>
+            <span className="text-xs font-bold">Dark</span>
+          </Button>
+        </div>
         
-        <DropdownMenuSeparator className="my-2" />
+        <DropdownMenuSeparator className="my-3 opacity-50" />
         
-        <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground px-2 py-1.5">
-          Accent Color
-        </DropdownMenuLabel>
-        <div className="grid grid-cols-3 gap-1 p-1">
+        <div className="flex items-center justify-between px-2 mb-2">
+          <DropdownMenuLabel className="text-[10px] font-black uppercase tracking-widest text-muted-foreground p-0">
+            Agency Accent
+          </DropdownMenuLabel>
+          <Palette className="w-3 h-3 text-muted-foreground opacity-50" />
+        </div>
+        
+        <div className="grid grid-cols-3 gap-2 p-1">
           {colors.map((color) => (
             <button
               key={color.value}
               onClick={() => handleColorChange(color.value)}
-              className={`h-10 rounded-lg flex items-center justify-center transition-all hover:scale-105 active:scale-95 ${color.class} ${
-                accentColor === color.value ? "ring-2 ring-offset-2 ring-primary ring-offset-background" : "opacity-80"
-              }`}
+              className={`group relative h-12 rounded-xl flex items-center justify-center transition-all hover:scale-105 active:scale-95 ${color.class} shadow-inner`}
               title={color.name}
             >
-              {accentColor === color.value && <Check className="w-4 h-4 text-white" />}
+              {accentColor === color.value ? (
+                <div className="bg-white/20 backdrop-blur-sm rounded-full p-1 border border-white/30 shadow-sm animate-in zoom-in-50 duration-200">
+                  <Check className="w-4 h-4 text-white" />
+                </div>
+              ) : (
+                <div className="opacity-0 group-hover:opacity-100 transition-opacity bg-white/10 rounded-full p-1">
+                  <div className="w-4 h-4 rounded-full border border-white/20" />
+                </div>
+              )}
             </button>
           ))}
+        </div>
+        <div className="mt-3 px-2 py-1.5 rounded-xl bg-muted/50 text-[9px] font-medium text-muted-foreground text-center">
+          Persisted globally across agency modules
         </div>
       </DropdownMenuContent>
     </DropdownMenu>

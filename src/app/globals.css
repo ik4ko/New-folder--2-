@@ -12,11 +12,11 @@
     --popover-foreground: 222 47% 11%;
     --primary: 42 63% 42%; /* Default: Deep Gold */
     --primary-foreground: 0 0% 100%;
-    --secondary: 40 10% 90%;
+    --secondary: 40 10% 96%;
     --secondary-foreground: 222 47% 11%;
-    --muted: 40 10% 90%;
+    --muted: 40 10% 96%;
     --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 40 10% 90%;
+    --accent: 40 10% 96%;
     --accent-foreground: 222 47% 11%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 210 40% 98%;
@@ -64,13 +64,13 @@
     --sidebar-ring: 42 63% 50%;
   }
 
-  /* Color Theme Overrides */
-  [data-theme='blue'] { --primary: 221.2 83.2% 53.3%; --ring: 221.2 83.2% 53.3%; }
-  [data-theme='green'] { --primary: 142.1 76.2% 36.3%; --ring: 142.1 76.2% 36.3%; }
-  [data-theme='purple'] { --primary: 262.1 83.3% 57.8%; --ring: 262.1 83.3% 57.8%; }
-  [data-theme='red'] { --primary: 0 72.2% 50.6%; --ring: 0 72.2% 50.6%; }
-  [data-theme='orange'] { --primary: 24.6 95% 53.1%; --ring: 24.6 95% 53.1%; }
-  [data-theme='gold'] { --primary: 42 63% 42%; --ring: 42 63% 42%; }
+  /* Color Theme Overrides - High Fidelity Palette */
+  [data-theme='blue'] { --primary: 221.2 83.2% 53.3%; --ring: 221.2 83.2% 53.3%; --sidebar-primary: 221.2 83.2% 53.3%; }
+  [data-theme='green'] { --primary: 142.1 76.2% 36.3%; --ring: 142.1 76.2% 36.3%; --sidebar-primary: 142.1 76.2% 36.3%; }
+  [data-theme='purple'] { --primary: 262.1 83.3% 57.8%; --ring: 262.1 83.3% 57.8%; --sidebar-primary: 262.1 83.3% 57.8%; }
+  [data-theme='red'] { --primary: 0 72.2% 50.6%; --ring: 0 72.2% 50.6%; --sidebar-primary: 0 72.2% 50.6%; }
+  [data-theme='orange'] { --primary: 24.6 95% 53.1%; --ring: 24.6 95% 53.1%; --sidebar-primary: 24.6 95% 53.1%; }
+  [data-theme='gold'] { --primary: 42 63% 42%; --ring: 42 63% 42%; --sidebar-primary: 42 63% 42%; }
 }
 
 @layer base {
@@ -83,7 +83,7 @@
 }
 
 .ai-shimmer {
-  background: linear-gradient(90deg, transparent 25%, rgba(176, 134, 39, 0.1) 50%, transparent 75%);
+  background: linear-gradient(90deg, transparent 25%, rgba(var(--primary), 0.1) 50%, transparent 75%);
   background-size: 200% 100%;
   animation: shimmer 2.5s infinite;
 }
@@ -100,4 +100,13 @@
 @keyframes pulse-green {
   0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.4); }
   50% { opacity: .7; box-shadow: 0 0 0 8px rgba(34, 197, 94, 0); }
+}
+
+.pulse-sync-amber {
+  animation: pulse-amber 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse-amber {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(245, 158, 11, 0.4); }
+  50% { opacity: .7; box-shadow: 0 0 0 8px rgba(245, 158, 11, 0); }
 }
