@@ -3,14 +3,42 @@
 
 import { CollectionSidebar } from "@/components/collection-sidebar"
 import { useAppStore } from "@/lib/store"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { ShieldCheck, FileCheck, Lock, History, Search, Download, FileText, Database, ShieldAlert } from "lucide-react"
+import { 
+  ShieldCheck, FileCheck, Lock, History, Search, Download, 
+  FileText, Database, ShieldAlert, FileSignature, Files, 
+  ExternalLink, CheckCircle2, AlertCircle, Clock, Filter
+} from "lucide-react"
 import { Input } from "@/components/ui/input"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { toast } from "@/hooks/use-toast"
+import { useState } from "react"
 
 export default function ComplianceVaultPage() {
   const members = useAppStore((state) => state.members)
+  const [search, setSearch] = useState("")
+
+  const complianceTemplates = [
+    { id: 'soa-2025', title: 'Scope of Appointment (SOA)', version: '2025.1', status: 'Approved', type: 'PDF' },
+    { id: 'ptc-gen', title: 'Permission to Contact (PTC)', version: '2.0', status: 'Approved', type: 'DOCX' },
+    { id: 'baa-agency', title: 'Agency Business Associate Agreement', version: '4.2', status: 'Latest', type: 'PDF' },
+    { id: 'lis-discl', title: 'LIS / Extra Help Disclosure', version: '1.5', status: 'Approved', type: 'PDF' },
+    { id: 'pre-enroll', title: 'Pre-Enrollment Checklist', version: '2025.A', status: 'Required', type: 'PDF' },
+  ]
+
+  const handleDownloadTemplate = (title: string) => {
+    toast({
+      title: "Downloading Template",
+      description: `Preparing ${title} for offline use...`,
+    })
+  }
+
+  const filteredSoaArchive = members.filter(m => 
+    m.soaStatus === 'Completed' && 
+    (m.fullName.toLowerCase().includes(search.toLowerCase()) || m.medicareId.toLowerCase().includes(search.toLowerCase()))
+  )
 
   return (
     <div className="flex h-full w-full bg-background">
@@ -39,14 +67,14 @@ export default function ComplianceVaultPage() {
         </header>
 
         <div className="flex-1 overflow-y-auto p-8 space-y-8 bg-slate-50/30 dark:bg-background">
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <Card className="rounded-3xl border-none shadow-sm bg-emerald-500/5">
               <CardHeader className="pb-2">
-                <CardTitle className="text-[10px] font-black uppercase text-emerald-600 tracking-widest">SOA Integrity Rate</CardTitle>
+                <CardTitle className="text-[10px] font-black uppercase text-emerald-600 tracking-widest">SOA Integrity</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-4xl font-black text-emerald-700 tracking-tighter">99.2%</div>
-                <p className="text-[10px] text-emerald-600/70 mt-1 font-bold">Audit Target: &gt;95%</p>
+                <div className="text-3xl font-black text-emerald-700">99.2%</div>
+                <p className="text-[10px] text-emerald-600/70 mt-1 font-bold">Audit Target: >95%</p>
               </CardContent>
             </Card>
             <Card className="rounded-3xl border-none shadow-sm bg-primary/5">
@@ -54,90 +82,201 @@ export default function ComplianceVaultPage() {
                 <CardTitle className="text-[10px] font-black uppercase text-primary tracking-widest">Signed SOAs</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-4xl font-black text-primary tracking-tighter">{members.filter(m => m.soaStatus === 'Completed').length}</div>
-                <p className="text-[10px] text-primary/70 mt-1 font-bold">10-year retention active</p>
+                <div className="text-3xl font-black text-primary">{members.filter(m => m.soaStatus === 'Completed').length}</div>
+                <p className="text-[10px] text-primary/70 mt-1 font-bold">10-year retention</p>
               </CardContent>
             </Card>
             <Card className="rounded-3xl border-none shadow-sm bg-card">
               <CardHeader className="pb-2">
-                <CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Active PTC Logs</CardTitle>
+                <CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">PTC Logs</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-4xl font-black tracking-tighter">892</div>
-                <p className="text-[10px] text-muted-foreground mt-1 font-bold">Permission to Contact active</p>
+                <div className="text-3xl font-black">892</div>
+                <p className="text-[10px] text-muted-foreground mt-1 font-bold">Active Permissions</p>
+              </CardContent>
+            </Card>
+            <Card className="rounded-3xl border-none shadow-sm bg-card">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">BAA Status</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-3xl font-black text-emerald-600">Active</div>
+                <p className="text-[10px] text-muted-foreground mt-1 font-bold">3 Signed Carriers</p>
               </CardContent>
             </Card>
           </div>
 
-          <div className="space-y-4">
-            <div className="flex items-center justify-between px-2">
-              <h2 className="text-sm font-bold flex items-center gap-2">
-                <FileText className="w-4 h-4 text-primary" />
-                Scope of Appointment (SOA) Repository
-              </h2>
-              <div className="relative w-72">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                <Input placeholder="Search by name, MBI, or date..." className="pl-9 h-10 rounded-2xl text-[11px] bg-card border-none shadow-sm focus-visible:ring-primary" />
+          <Tabs defaultValue="archive" className="space-y-6">
+            <TabsList className="bg-white dark:bg-card p-1 rounded-2xl border shadow-sm h-12 gap-2">
+              <TabsTrigger value="archive" className="rounded-xl px-6 py-2 text-xs font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <Files className="w-4 h-4 mr-2" /> Document Archive
+              </TabsTrigger>
+              <TabsTrigger value="templates" className="rounded-xl px-6 py-2 text-xs font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <FileSignature className="w-4 h-4 mr-2" /> Template Library
+              </TabsTrigger>
+              <TabsTrigger value="audit" className="rounded-xl px-6 py-2 text-xs font-bold data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+                <History className="w-4 h-4 mr-2" /> PHI Audit Logs
+              </TabsTrigger>
+            </TabsList>
+
+            <TabsContent value="archive" className="space-y-4 animate-in fade-in duration-300">
+              <div className="flex items-center justify-between px-2">
+                <h2 className="text-sm font-bold flex items-center gap-2">
+                  <FileText className="w-4 h-4 text-primary" />
+                  Scope of Appointment (SOA) Repository
+                </h2>
+                <div className="flex gap-3">
+                  <div className="relative w-64">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                    <Input 
+                      placeholder="Search archive..." 
+                      className="pl-9 h-10 rounded-2xl text-[11px] bg-card border-none shadow-sm"
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                    />
+                  </div>
+                  <Button variant="outline" size="icon" className="h-10 w-10 rounded-2xl border-none bg-card shadow-sm">
+                    <Filter className="w-4 h-4 text-muted-foreground" />
+                  </Button>
+                </div>
               </div>
-            </div>
-            
-            <Card className="rounded-3xl border-none shadow-sm bg-card overflow-hidden">
-              <div className="divide-y">
-                {members.filter(m => m.soaStatus === 'Completed').length > 0 ? members.filter(m => m.soaStatus === 'Completed').map((member, i) => (
-                  <div key={i} className="px-8 py-5 flex items-center justify-between hover:bg-slate-50/50 transition-colors">
-                    <div className="flex items-center gap-5">
-                      <div className="w-10 h-10 rounded-2xl bg-primary/5 flex items-center justify-center text-primary shadow-inner">
-                        <FileCheck className="w-5 h-5" />
+              
+              <Card className="rounded-3xl border-none shadow-sm bg-card overflow-hidden">
+                <div className="divide-y">
+                  {filteredSoaArchive.length > 0 ? filteredSoaArchive.map((member, i) => (
+                    <div key={i} className="px-8 py-5 flex items-center justify-between hover:bg-slate-50/50 transition-colors">
+                      <div className="flex items-center gap-5">
+                        <div className="w-10 h-10 rounded-2xl bg-primary/5 flex items-center justify-center text-primary shadow-inner">
+                          <FileSignature className="w-5 h-5" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-bold text-foreground">{member.fullName}</p>
+                          <div className="flex items-center gap-3 mt-0.5">
+                            <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-tight">Signed: {member.soaDate || 'Unknown'}</span>
+                            <span className="w-1 h-1 rounded-full bg-slate-300" />
+                            <span className="text-[9px] text-muted-foreground font-mono uppercase tracking-tighter">{member.medicareId}</span>
+                          </div>
+                        </div>
                       </div>
-                      <div>
-                        <p className="text-sm font-bold text-foreground">{member.fullName}</p>
-                        <div className="flex items-center gap-3 mt-0.5">
-                          <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-tight">Signed: {member.soaDate || 'Unknown'}</span>
-                          <span className="w-1 h-1 rounded-full bg-slate-300" />
-                          <span className="text-[9px] text-muted-foreground font-mono uppercase tracking-tighter">{member.medicareId}</span>
+                      <div className="flex items-center gap-4">
+                        <Badge variant="outline" className="text-[9px] font-black uppercase bg-emerald-50 text-emerald-700 border-emerald-100 px-2 py-0.5">VERIFIED E-SIGN</Badge>
+                        <div className="flex gap-2">
+                           <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-primary/5 hover:text-primary transition-all">
+                            <ExternalLink className="w-4 h-4" />
+                          </Button>
+                          <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-primary/5 hover:text-primary transition-all">
+                            <Download className="w-4 h-4" />
+                          </Button>
                         </div>
                       </div>
                     </div>
-                    <div className="flex items-center gap-3">
-                      <Badge variant="outline" className="text-[9px] font-black uppercase bg-slate-50 px-2 py-0.5">E-SIGNED (IP: 72.1.*)</Badge>
-                      <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-primary/5 hover:text-primary transition-all">
-                        <Download className="w-4 h-4" />
-                      </Button>
+                  )) : (
+                    <div className="p-12 text-center text-muted-foreground font-medium flex flex-col items-center gap-3">
+                      <AlertCircle className="w-8 h-8 opacity-20" />
+                      No signed SOAs matching your search in the archive.
                     </div>
-                  </div>
-                )) : (
-                  <div className="p-12 text-center text-muted-foreground font-medium">No signed SOAs found in archive.</div>
-                )}
-              </div>
-            </Card>
-          </div>
+                  )}
+                </div>
+              </Card>
+            </TabsContent>
 
-          <div className="space-y-4">
-            <h2 className="text-sm font-bold flex items-center gap-2 px-2">
-              <History className="w-4 h-4 text-primary" />
-              PHI Access & Modification Log
-            </h2>
-            <Card className="rounded-3xl border-none shadow-xl bg-slate-900 overflow-hidden relative group">
-              <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
-                <Lock className="w-20 h-24 text-white" />
+            <TabsContent value="templates" className="space-y-4 animate-in fade-in duration-300">
+              <div className="flex items-center justify-between px-2">
+                <h2 className="text-sm font-bold flex items-center gap-2">
+                  <Files className="w-4 h-4 text-primary" />
+                  Compliance & Enrollment Templates
+                </h2>
               </div>
-              <div className="p-8 font-mono text-[10px] space-y-2 relative z-10 leading-relaxed">
-                <p className="text-slate-500 border-b border-slate-800 pb-3 mb-4 flex items-center gap-2">
-                  <ShieldAlert className="w-3 h-3" /> // IMMUTABLE AUDIT TRAIL // HIPAA LOGGING ACTIVE // AES-256 ENCRYPTED
-                </p>
-                <div className="space-y-1.5 overflow-hidden">
-                  <p className="animate-in fade-in slide-in-from-left-2 duration-300"><span className="text-emerald-400">[2024-11-20 10:42:11]</span> <span className="text-slate-400">USER_AUTH:</span> Agent ID 123 authenticated via MFA (Biometric)</p>
-                  <p className="animate-in fade-in slide-in-from-left-2 duration-500"><span className="text-emerald-400">[2024-11-20 10:45:02]</span> <span className="text-slate-400">PHI_ACCESS:</span> Record ID 8821 accessed for SSBCI module verification</p>
-                  <p className="animate-in fade-in slide-in-from-left-2 duration-700"><span className="text-amber-400">[2024-11-20 11:02:45]</span> <span className="text-slate-400">DATA_SYNC:</span> Blue Button 2.0 refresh initiated for cluster A (Success)</p>
-                  <p className="animate-in fade-in slide-in-from-left-2 duration-1000"><span className="text-emerald-400">[2024-11-20 11:30:00]</span> <span className="text-slate-400">SYSTEM:</span> Automated check of AEP Shield consent flags completed (1,244 scanned)</p>
-                  <p className="animate-in fade-in slide-in-from-left-2 duration-1000 delay-200"><span className="text-blue-400">[2024-11-20 12:15:33]</span> <span className="text-slate-400">FAX_SENT:</span> SSBCI-PKG-SJ transmitted to Provider ID NPI-99201</p>
-                </div>
-                <div className="pt-4 flex items-center gap-3 text-slate-500 italic border-t border-slate-800 mt-4">
-                  <Badge className="bg-slate-800 text-slate-400 border-none text-[8px] font-black">SHA-256: 8f2e...3a11</Badge>
-                  <span>Records signed with HMAC-SHA256</span>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {complianceTemplates.map((template) => (
+                  <Card key={template.id} className="rounded-3xl border-none shadow-sm hover:shadow-md transition-all group bg-card">
+                    <CardHeader className="pb-4">
+                      <div className="flex justify-between items-start">
+                        <div className="w-10 h-10 rounded-2xl bg-muted flex items-center justify-center text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+                          <FileText className="w-5 h-5" />
+                        </div>
+                        <Badge variant="secondary" className="text-[9px] font-bold uppercase">{template.type}</Badge>
+                      </div>
+                      <CardTitle className="text-sm font-bold mt-4">{template.title}</CardTitle>
+                      <CardDescription className="text-[10px] font-medium">Version {template.version}</CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="flex items-center justify-between pt-2">
+                        <div className="flex items-center gap-1.5 text-emerald-600">
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                          <span className="text-[10px] font-black uppercase tracking-widest">{template.status}</span>
+                        </div>
+                        <Button 
+                          onClick={() => handleDownloadTemplate(template.title)}
+                          variant="ghost" 
+                          size="sm" 
+                          className="h-8 text-[10px] font-bold rounded-xl"
+                        >
+                          <Download className="w-3.5 h-3.5 mr-2" />
+                          Download
+                        </Button>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+                <Card className="rounded-3xl border-2 border-dashed border-muted bg-transparent flex items-center justify-center p-8 group hover:border-primary/30 transition-all cursor-pointer">
+                  <div className="text-center space-y-2">
+                    <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center mx-auto text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-colors">
+                      <Files className="w-5 h-5" />
+                    </div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Upload Custom Form</p>
+                  </div>
+                </Card>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="audit" className="space-y-6 animate-in fade-in duration-300">
+              <div className="flex items-center justify-between px-2">
+                <h2 className="text-sm font-bold flex items-center gap-2">
+                  <History className="w-4 h-4 text-primary" />
+                  Immutable PHI Access & Modification Trail
+                </h2>
+                <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-medium">
+                  <Clock className="w-3 h-3" />
+                  Retention: 10 Years (HIPAA Required)
                 </div>
               </div>
-            </Card>
+              <Card className="rounded-3xl border-none shadow-xl bg-slate-900 overflow-hidden relative group">
+                <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
+                  <Lock className="w-20 h-24 text-white" />
+                </div>
+                <div className="p-8 font-mono text-[10px] space-y-2 relative z-10 leading-relaxed">
+                  <p className="text-slate-500 border-b border-slate-800 pb-3 mb-4 flex items-center gap-2">
+                    <ShieldAlert className="w-3 h-3" /> // IMMUTABLE AUDIT TRAIL // HIPAA LOGGING ACTIVE // AES-256 ENCRYPTED
+                  </p>
+                  <div className="space-y-1.5 overflow-hidden">
+                    <p className="animate-in fade-in slide-in-from-left-2 duration-300"><span className="text-emerald-400">[2024-11-20 10:42:11]</span> <span className="text-slate-400">USER_AUTH:</span> Agent ID 123 authenticated via MFA (Biometric)</p>
+                    <p className="animate-in fade-in slide-in-from-left-2 duration-500"><span className="text-emerald-400">[2024-11-20 10:45:02]</span> <span className="text-slate-400">PHI_ACCESS:</span> Record ID 8821 accessed for SSBCI module verification</p>
+                    <p className="animate-in fade-in slide-in-from-left-2 duration-700"><span className="text-amber-400">[2024-11-20 11:02:45]</span> <span className="text-slate-400">DATA_SYNC:</span> Blue Button 2.0 refresh initiated for cluster A (Success)</p>
+                    <p className="animate-in fade-in slide-in-from-left-2 duration-1000"><span className="text-emerald-400">[2024-11-20 11:30:00]</span> <span className="text-slate-400">SYSTEM:</span> Automated check of AEP Shield consent flags completed (1,244 scanned)</p>
+                    <p className="animate-in fade-in slide-in-from-left-2 duration-1000 delay-200"><span className="text-blue-400">[2024-11-20 12:15:33]</span> <span className="text-slate-400">FAX_SENT:</span> SSBCI-PKG-SJ transmitted to Provider ID NPI-99201</p>
+                    <p className="animate-in fade-in slide-in-from-left-2 duration-1000 delay-300"><span className="text-emerald-400">[2024-11-20 13:02:11]</span> <span className="text-slate-400">SOA_GEN:</span> Compliance document generated for Member ID 9KL2-PX1-ZZ09</p>
+                  </div>
+                  <div className="pt-4 flex items-center gap-3 text-slate-500 italic border-t border-slate-800 mt-4">
+                    <Badge className="bg-slate-800 text-slate-400 border-none text-[8px] font-black">SHA-256: 8f2e...3a11</Badge>
+                    <span>Records signed with HMAC-SHA256</span>
+                  </div>
+                </div>
+              </Card>
+            </TabsContent>
+          </Tabs>
+
+          <div className="p-10 rounded-3xl border-2 border-dashed border-primary/20 bg-primary/5 text-center space-y-4">
+            <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto text-primary shadow-inner">
+              <ShieldAlert className="w-7 h-7" />
+            </div>
+            <div className="max-w-md mx-auto space-y-2">
+              <h3 className="text-sm font-black text-foreground uppercase tracking-widest">Agency BAA & Compliance Lock</h3>
+              <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
+                All records within the MediStay Compliance Vault are encrypted with AES-256 at rest. Access is strictly audited and logged to ensure HIPAA 5010 standard compliance. Documents are retained for the federally mandated 10-year period.
+              </p>
+              <Button variant="link" className="text-xs font-bold text-primary underline-offset-4">Review Agency BAA Agreement</Button>
+            </div>
           </div>
         </div>
       </div>
