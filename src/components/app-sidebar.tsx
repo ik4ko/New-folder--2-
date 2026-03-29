@@ -1,4 +1,3 @@
-
 "use client"
 
 import * as React from "react"
@@ -11,15 +10,13 @@ import {
   PhoneCall,
   Printer,
   Link2,
-  Banknote,
-  LayoutDashboard
+  Banknote
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { ModeToggle } from "./mode-toggle"
-import { useAppStore } from "@/lib/store"
 
 interface NavItemProps {
   href: string
@@ -52,7 +49,7 @@ function NavItem({ href, icon: Icon, label, isActive, isSpecial }: NavItemProps)
             </div>
           </Link>
         </TooltipTrigger>
-        <TooltipContent side="right" sideOffset={12} className="font-bold text-xs uppercase tracking-widest">
+        <TooltipContent side="right" sideOffset={12} className="font-black text-[10px] uppercase tracking-widest">
           {label}
         </TooltipContent>
       </Tooltip>
@@ -64,9 +61,8 @@ export function AppSidebar() {
   const pathname = usePathname()
 
   const navItems = [
-    { href: '/', icon: LayoutDashboard, label: 'Dashboard' },
     { href: '/members', icon: Users, label: 'Member Roster' },
-    { href: '/accounting', icon: Banknote, label: 'Agency Accounting' },
+    { href: '/accounting', icon: Banknote, label: 'Accounting' },
     { href: '/fax', icon: Printer, label: 'SSBCI Fax Center' },
     { href: '/check-ins', icon: PhoneCall, label: 'AI Check-ins' },
     { href: '/ghl', icon: Link2, label: 'GHL Integration' },
@@ -76,10 +72,19 @@ export function AppSidebar() {
 
   return (
     <div className="w-[72px] flex flex-col items-center py-4 bg-sidebar border-r border-sidebar-border h-full shrink-0 z-50 overflow-y-auto scrollbar-hide">
-      {/* Brand Identity (Static Logo) */}
-      <div className="mb-4 h-12 w-12 rounded-[16px] bg-primary flex items-center justify-center text-primary-foreground shadow-lg shadow-primary/20 shrink-0 select-none">
-        <span className="font-black text-xl">M</span>
-      </div>
+      {/* Brand Identity / Home Link */}
+      <TooltipProvider delayDuration={0}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Link href="/" className="mb-4 h-12 w-12 rounded-[16px] bg-primary flex items-center justify-center text-primary-foreground shadow-lg shadow-primary/20 shrink-0 select-none hover:scale-105 transition-transform active:scale-95">
+              <span className="font-black text-xl">M</span>
+            </Link>
+          </TooltipTrigger>
+          <TooltipContent side="right" sideOffset={12} className="font-black text-[10px] uppercase tracking-widest">
+            Command Center
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
 
       <div className="w-8 h-[2px] bg-muted/50 rounded-full mb-4 shrink-0" />
 
@@ -108,13 +113,13 @@ export function AppSidebar() {
                 href="/settings"
                 className={cn(
                   "flex items-center justify-center h-12 w-12 rounded-[24px] bg-muted/50 text-muted-foreground transition-all duration-200 hover:rounded-[16px] hover:bg-primary hover:text-primary-foreground",
-                  pathname === '/settings' && "rounded-[16px] bg-primary text-primary-foreground"
+                  pathname.startsWith('/settings') && "rounded-[16px] bg-primary text-primary-foreground"
                 )}
               >
                 <Settings className="w-5 h-5" />
               </Link>
             </TooltipTrigger>
-            <TooltipContent side="right" sideOffset={12} className="font-bold text-xs uppercase tracking-widest">
+            <TooltipContent side="right" sideOffset={12} className="font-black text-[10px] uppercase tracking-widest">
               Settings
             </TooltipContent>
           </Tooltip>
@@ -127,7 +132,7 @@ export function AppSidebar() {
                 <LogOut className="w-5 h-5" />
               </button>
             </TooltipTrigger>
-            <TooltipContent side="right" sideOffset={12} className="font-bold text-xs uppercase tracking-widest">
+            <TooltipContent side="right" sideOffset={12} className="font-black text-[10px] uppercase tracking-widest">
               Sign Out
             </TooltipContent>
           </Tooltip>

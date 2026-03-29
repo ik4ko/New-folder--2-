@@ -1,4 +1,3 @@
-
 "use client"
 
 import { CollectionSidebar } from "@/components/collection-sidebar"
@@ -48,7 +47,7 @@ function SettingsContent() {
       <header className="h-16 border-b border-border px-8 flex items-center justify-between bg-white/50 backdrop-blur-md sticky top-0 z-10">
         <div className="flex items-center gap-3">
           <Settings className="w-5 h-5 text-primary" />
-          <h1 className="text-xl font-black text-foreground">
+          <h1 className="text-xl font-black text-foreground uppercase tracking-tight">
             {agencyProfile.isSolo ? "Broker Settings" : "Agency Settings"}
           </h1>
         </div>
@@ -61,19 +60,19 @@ function SettingsContent() {
       <div className="flex-1 overflow-y-auto p-8 max-w-5xl mx-auto w-full space-y-8 bg-background">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="bg-muted p-1 rounded-2xl border shadow-sm mb-8 flex flex-wrap h-auto gap-1">
-            <TabsTrigger value="identity" className="rounded-xl flex-1 min-w-[120px] py-2.5 text-xs font-black uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <TabsTrigger value="identity" className="rounded-xl flex-1 min-w-[120px] py-2.5 text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <Building2 className="w-4 h-4 mr-2" /> Identity
             </TabsTrigger>
-            <TabsTrigger value="team" className="rounded-xl flex-1 min-w-[120px] py-2.5 text-xs font-black uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <TabsTrigger value="team" className="rounded-xl flex-1 min-w-[120px] py-2.5 text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <Users2 className="w-4 h-4 mr-2" /> Team
             </TabsTrigger>
-            <TabsTrigger value="branding" className="rounded-xl flex-1 min-w-[120px] py-2.5 text-xs font-black uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <TabsTrigger value="branding" className="rounded-xl flex-1 min-w-[120px] py-2.5 text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <Palette className="w-4 h-4 mr-2" /> Branding
             </TabsTrigger>
-            <TabsTrigger value="alerts" className="rounded-xl flex-1 min-w-[120px] py-2.5 text-xs font-black uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <TabsTrigger value="alerts" className="rounded-xl flex-1 min-w-[120px] py-2.5 text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <Bell className="w-4 h-4 mr-2" /> Alerts
             </TabsTrigger>
-            <TabsTrigger value="compliance" className="rounded-xl flex-1 min-w-[120px] py-2.5 text-xs font-black uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <TabsTrigger value="compliance" className="rounded-xl flex-1 min-w-[120px] py-2.5 text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
               <ShieldCheck className="w-4 h-4 mr-2" /> Compliance
             </TabsTrigger>
           </TabsList>
@@ -133,11 +132,11 @@ function SettingsContent() {
                 <div>
                   <CardTitle className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
                     <Users2 className="w-4 h-4 text-primary" />
-                    Individualized Team Accounts
+                    Individualized Accounts
                   </CardTitle>
                   <CardDescription className="text-xs font-bold text-muted-foreground/80">Manage access levels and NPNs for your brokers.</CardDescription>
                 </div>
-                <Button onClick={handleAddUser} size="sm" className="rounded-xl font-bold bg-primary hover:bg-primary/90 text-white">
+                <Button onClick={handleAddUser} size="sm" className="rounded-xl font-black uppercase tracking-widest bg-primary hover:bg-primary/90 text-white text-[10px] h-9 px-4">
                   <Plus className="w-4 h-4 mr-2" /> Add User
                 </Button>
               </CardHeader>
@@ -155,18 +154,18 @@ function SettingsContent() {
                   <TableBody>
                     {brokers.map((broker) => (
                       <TableRow key={broker.id} className="border-border/50">
-                        <TableCell className="px-8 font-bold text-sm">
+                        <TableCell className="px-8 font-black text-sm">
                           <div className="flex flex-col">
-                            <span>{broker.name}</span>
-                            <span className="text-[10px] text-muted-foreground lowercase">{broker.email}</span>
+                            <span className="uppercase tracking-tight">{broker.name}</span>
+                            <span className="text-[10px] text-muted-foreground lowercase font-bold">{broker.email}</span>
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline" className="text-[9px] uppercase font-black tracking-tighter">
+                          <Badge variant="outline" className="text-[9px] uppercase font-black tracking-tighter border-border bg-muted/20">
                             {broker.role}
                           </Badge>
                         </TableCell>
-                        <TableCell className="font-mono text-[11px] font-bold">{broker.npn || 'N/A'}</TableCell>
+                        <TableCell className="font-mono text-[11px] font-black text-primary">{broker.npn || 'N/A'}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1.5 text-emerald-600">
                             <BadgeCheck className="w-3.5 h-3.5" />
@@ -174,8 +173,8 @@ function SettingsContent() {
                           </div>
                         </TableCell>
                         <TableCell className="text-right px-8">
-                          <Button variant="ghost" size="icon" className="rounded-xl h-8 w-8">
-                            <MoreVertical className="w-4 h-4" />
+                          <Button variant="ghost" size="icon" className="rounded-xl h-8 w-8 hover:bg-primary/5">
+                            <MoreVertical className="w-4 h-4 text-muted-foreground" />
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -187,30 +186,51 @@ function SettingsContent() {
           </TabsContent>
 
           <TabsContent value="branding" className="space-y-6">
-            <Card className="rounded-3xl border shadow-sm bg-card p-6">
-              <CardTitle className="text-sm font-black uppercase mb-4">White-Label Customization</CardTitle>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <Card className="rounded-3xl border shadow-sm bg-card p-8">
+              <CardTitle className="text-sm font-black uppercase tracking-widest mb-6 flex items-center gap-2">
+                <Palette className="w-4 h-4 text-primary" />
+                White-Label Customization
+              </CardTitle>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
                 <div className="space-y-4">
-                  <Label className="text-xs font-black uppercase">Primary Branding Color</Label>
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Primary Agency Color</Label>
                   <div className="flex gap-4 items-center">
-                    <div className="w-12 h-12 rounded-xl bg-primary shadow-inner" />
-                    <Input className="font-mono text-xs" value={agencyProfile.primaryColor} readOnly />
+                    <div className="w-14 h-14 rounded-2xl bg-primary shadow-inner border border-black/5" />
+                    <Input className="font-mono text-xs font-black h-12 rounded-xl" value={agencyProfile.primaryColor} readOnly />
                   </div>
+                </div>
+                <div className="p-6 rounded-2xl bg-primary/5 border border-primary/10 space-y-2">
+                  <p className="text-[11px] text-primary font-black uppercase tracking-widest">Branding Tip</p>
+                  <p className="text-[11px] text-muted-foreground font-bold leading-relaxed italic">
+                    "This color is used for member-facing PDF summaries, SSBCI cover sheets, and the broker dashboard accents."
+                  </p>
                 </div>
               </div>
             </Card>
           </TabsContent>
 
           <TabsContent value="compliance" className="space-y-6">
-            <Card className="rounded-3xl border shadow-sm bg-slate-900 text-white p-8 overflow-hidden relative">
-              <div className="absolute top-0 right-0 p-6 opacity-10"><Lock className="w-32 h-32" /></div>
-              <CardTitle className="text-sm font-black uppercase tracking-widest text-emerald-400 flex items-center gap-2 mb-6">
+            <Card className="rounded-3xl border shadow-sm bg-slate-900 text-white p-10 overflow-hidden relative">
+              <div className="absolute top-0 right-0 p-6 opacity-10"><Lock className="w-32 h-32 text-white" /></div>
+              <CardTitle className="text-sm font-black uppercase tracking-widest text-emerald-400 flex items-center gap-2 mb-8">
                 <ShieldCheck className="w-5 h-5" /> HIPAA BAA Compliance Lock
               </CardTitle>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
-                <div className="p-5 rounded-2xl bg-white/5 border border-white/10">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Team MFA</span>
-                  <p className="text-[11px] text-slate-200 mt-2">Enforced for all individualized broker accounts.</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
+                <div className="p-6 rounded-2xl bg-white/5 border border-white/10 space-y-3">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                    <Fingerprint className="w-3 h-3" /> Team MFA Enforced
+                  </span>
+                  <p className="text-[11px] text-slate-200 font-bold leading-relaxed">
+                    Biometric or Token-based Multi-Factor Authentication is enforced for all individualized broker accounts.
+                  </p>
+                </div>
+                <div className="p-6 rounded-2xl bg-white/5 border border-white/10 space-y-3">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
+                    <ShieldAlert className="w-3 h-3" /> Data Retention
+                  </span>
+                  <p className="text-[11px] text-slate-200 font-bold leading-relaxed">
+                    Member data and call recordings are retained for the HIPAA-required period of 6-10 years.
+                  </p>
                 </div>
               </div>
             </Card>
@@ -225,7 +245,7 @@ export default function AgencySettingsPage() {
   return (
     <div className="flex h-full w-full bg-background">
       <CollectionSidebar />
-      <Suspense fallback={<div className="flex-1 p-20 text-center font-bold">Loading Settings...</div>}>
+      <Suspense fallback={<div className="flex-1 p-20 text-center font-black uppercase tracking-widest opacity-30">Loading Settings...</div>}>
         <SettingsContent />
       </Suspense>
     </div>
