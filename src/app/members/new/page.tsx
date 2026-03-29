@@ -1,4 +1,3 @@
-
 "use client"
 
 import { CollectionSidebar } from "@/components/collection-sidebar"
@@ -129,7 +128,7 @@ export default function NewMemberPage() {
             <div className="h-4 w-[1px] bg-border" />
             <div className="flex items-center gap-2">
                 <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Draft Mode</span>
+                <span className="text-[10px] font-black uppercase tracking-widest text-foreground">Draft Mode</span>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -150,7 +149,7 @@ export default function NewMemberPage() {
               </div>
               <div className="space-y-1">
                 <h3 className="text-sm font-bold text-foreground">Biometric Data Capture</h3>
-                <p className="text-xs text-muted-foreground font-medium">Upload ID, Medicare Card, or Policy Document to pre-fill 70% of this form.</p>
+                <p className="text-xs text-foreground font-semibold">Upload ID, Medicare Card, or Policy Document to pre-fill 70% of this form.</p>
               </div>
               <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleOCR} />
               {loading && <div className="flex items-center gap-2 text-[10px] font-black uppercase text-primary animate-pulse"><Wand2 className="w-3 h-3" /> Analyzing...</div>}
@@ -176,38 +175,38 @@ export default function NewMemberPage() {
                     <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
                       <User className="w-4 h-4" />
                     </div>
-                    <span className="font-bold text-sm uppercase tracking-widest">Personal Identity</span>
+                    <span className="font-bold text-sm uppercase tracking-widest text-foreground">Personal Identity</span>
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="pt-2 pb-6 space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Full Legal Name</Label>
+                      <Label className="text-[10px] font-black uppercase text-foreground tracking-widest ml-1">Full Legal Name</Label>
                       <Input 
                         placeholder="e.g. Johnathan Smith" 
                         value={formData.fullName}
                         onChange={e => setFormData(p => ({...p, fullName: e.target.value}))}
-                        className="rounded-xl h-11 border-border/60 bg-white"
+                        className="rounded-xl h-11 border-border bg-white text-foreground"
                       />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">DOB</Label>
+                        <Label className="text-[10px] font-black uppercase text-foreground tracking-widest ml-1">DOB</Label>
                         <Input 
                           type="date"
                           value={formData.dob}
                           onChange={e => setFormData(p => ({...p, dob: e.target.value}))}
-                          className="rounded-xl h-11 border-border/60 bg-white"
+                          className="rounded-xl h-11 border-border bg-white text-foreground"
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">SSN (Last 4)</Label>
+                        <Label className="text-[10px] font-black uppercase text-foreground tracking-widest ml-1">SSN (Last 4)</Label>
                         <Input 
                           placeholder="0000"
                           maxLength={4}
                           value={formData.ssnLast4}
                           onChange={e => setFormData(p => ({...p, ssnLast4: e.target.value}))}
-                          className="rounded-xl h-11 border-border/60 bg-white font-mono"
+                          className="rounded-xl h-11 border-border bg-white font-mono text-foreground"
                         />
                       </div>
                     </div>
@@ -215,33 +214,33 @@ export default function NewMemberPage() {
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1 flex items-center gap-1.5"><Phone className="w-3 h-3" /> Phone</Label>
+                      <Label className="text-[10px] font-black uppercase text-foreground tracking-widest ml-1 flex items-center gap-1.5"><Phone className="w-3 h-3" /> Phone</Label>
                       <Input 
                         placeholder="415-555-0100"
                         value={formData.phone}
                         onChange={e => setFormData(p => ({...p, phone: e.target.value}))}
-                        className="rounded-xl h-11 border-border/60 bg-white"
+                        className="rounded-xl h-11 border-border bg-white text-foreground"
                       />
                     </div>
                     <div className="space-y-2 md:col-span-2">
-                      <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1 flex items-center gap-1.5"><Mail className="w-3 h-3" /> Email Address</Label>
+                      <Label className="text-[10px] font-black uppercase text-foreground tracking-widest ml-1 flex items-center gap-1.5"><Mail className="w-3 h-3" /> Email Address</Label>
                       <Input 
                         type="email"
                         placeholder="j.smith@example.com"
                         value={formData.email}
                         onChange={e => setFormData(p => ({...p, email: e.target.value}))}
-                        className="rounded-xl h-11 border-border/60 bg-white"
+                        className="rounded-xl h-11 border-border bg-white text-foreground"
                       />
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1 flex items-center gap-1.5"><MapPin className="w-3 h-3" /> Physical Address</Label>
+                    <Label className="text-[10px] font-black uppercase text-foreground tracking-widest ml-1 flex items-center gap-1.5"><MapPin className="w-3 h-3" /> Physical Address</Label>
                     <Input 
                       placeholder="Street, City, State, ZIP"
                       value={formData.address}
                       onChange={e => setFormData(p => ({...p, address: e.target.value}))}
-                      className="rounded-xl h-11 border-border/60 bg-white"
+                      className="rounded-xl h-11 border-border bg-white text-foreground"
                     />
                   </div>
                 </AccordionContent>
@@ -254,36 +253,36 @@ export default function NewMemberPage() {
                     <div className="w-8 h-8 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-600">
                       <FileCheck className="w-4 h-4" />
                     </div>
-                    <span className="font-bold text-sm uppercase tracking-widest">Medicare Credentials</span>
+                    <span className="font-bold text-sm uppercase tracking-widest text-foreground">Medicare Credentials</span>
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="pt-2 pb-6 space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Medicare ID (MBI)</Label>
+                      <Label className="text-[10px] font-black uppercase text-foreground tracking-widest ml-1">Medicare ID (MBI)</Label>
                       <Input 
                         placeholder="1EG4-TE5-MK22"
                         value={formData.medicareId}
                         onChange={e => setFormData(p => ({...p, medicareId: e.target.value.toUpperCase()}))}
-                        className="rounded-xl h-11 border-border/60 bg-white font-mono"
+                        className="rounded-xl h-11 border-border bg-white font-mono text-foreground"
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Part A Effective</Label>
+                      <Label className="text-[10px] font-black uppercase text-foreground tracking-widest ml-1">Part A Effective</Label>
                       <Input 
                         type="date"
                         value={formData.partAEffective}
                         onChange={e => setFormData(p => ({...p, partAEffective: e.target.value}))}
-                        className="rounded-xl h-11 border-border/60 bg-white"
+                        className="rounded-xl h-11 border-border bg-white text-foreground"
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Part B Effective</Label>
+                      <Label className="text-[10px] font-black uppercase text-foreground tracking-widest ml-1">Part B Effective</Label>
                       <Input 
                         type="date"
                         value={formData.partBEffective}
                         onChange={e => setFormData(p => ({...p, partBEffective: e.target.value}))}
-                        className="rounded-xl h-11 border-border/60 bg-white"
+                        className="rounded-xl h-11 border-border bg-white text-foreground"
                       />
                     </div>
                   </div>
@@ -297,18 +296,18 @@ export default function NewMemberPage() {
                     <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-600">
                       <Briefcase className="w-4 h-4" />
                     </div>
-                    <span className="font-bold text-sm uppercase tracking-widest">Policy & Coverage</span>
+                    <span className="font-bold text-sm uppercase tracking-widest text-foreground">Policy & Coverage</span>
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="pt-2 pb-6 space-y-6">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Carrier / Payer</Label>
+                      <Label className="text-[10px] font-black uppercase text-foreground tracking-widest ml-1">Carrier / Payer</Label>
                       <Select 
                         value={formData.carrier}
                         onValueChange={(val) => setFormData(p => ({...p, carrier: val}))}
                       >
-                        <SelectTrigger className="rounded-xl h-11 border-border/60 bg-white">
+                        <SelectTrigger className="rounded-xl h-11 border-border bg-white text-foreground">
                           <SelectValue placeholder="Select Carrier" />
                         </SelectTrigger>
                         <SelectContent className="max-h-[300px]">
@@ -323,24 +322,24 @@ export default function NewMemberPage() {
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Plan Name</Label>
+                      <Label className="text-[10px] font-black uppercase text-foreground tracking-widest ml-1">Plan Name</Label>
                       <Input 
                         placeholder="e.g. Choice PPO Plus"
                         value={formData.planName}
                         onChange={e => setFormData(p => ({...p, planName: e.target.value}))}
-                        className="rounded-xl h-11 border-border/60 bg-white"
+                        className="rounded-xl h-11 border-border bg-white text-foreground"
                       />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Enrollment Period</Label>
+                      <Label className="text-[10px] font-black uppercase text-foreground tracking-widest ml-1">Enrollment Period</Label>
                       <Select 
                         value={formData.enrollmentPeriod}
                         onValueChange={(val: any) => setFormData(p => ({...p, enrollmentPeriod: val}))}
                       >
-                        <SelectTrigger className="rounded-xl h-11 border-border/60 bg-white">
+                        <SelectTrigger className="rounded-xl h-11 border-border bg-white text-foreground">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -352,21 +351,21 @@ export default function NewMemberPage() {
                       </Select>
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Monthly Premium</Label>
+                      <Label className="text-[10px] font-black uppercase text-foreground tracking-widest ml-1">Monthly Premium</Label>
                       <Input 
                         placeholder="$0.00"
                         value={formData.monthlyPremium}
                         onChange={e => setFormData(p => ({...p, monthlyPremium: e.target.value}))}
-                        className="rounded-xl h-11 border-border/60 bg-white"
+                        className="rounded-xl h-11 border-border bg-white text-foreground"
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Federal Benefits</Label>
+                      <Label className="text-[10px] font-black uppercase text-foreground tracking-widest ml-1">Federal Benefits</Label>
                       <Select 
                         value={formData.medicareMedicaidStatus}
                         onValueChange={(val: any) => setFormData(p => ({...p, medicareMedicaidStatus: val}))}
                       >
-                        <SelectTrigger className="rounded-xl h-11 border-border/60 bg-white">
+                        <SelectTrigger className="rounded-xl h-11 border-border bg-white text-foreground">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -388,12 +387,12 @@ export default function NewMemberPage() {
                     <div className="w-8 h-8 rounded-full bg-red-500/10 flex items-center justify-center text-red-600">
                       <Heart className="w-4 h-4" />
                     </div>
-                    <span className="font-bold text-sm uppercase tracking-widest">Health & Providers</span>
+                    <span className="font-bold text-sm uppercase tracking-widest text-foreground">Health & Providers</span>
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="pt-2 pb-6 space-y-6">
                   <div className="space-y-3">
-                    <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Chronic Care Identifiers (Module 3 Prep)</Label>
+                    <Label className="text-[10px] font-black uppercase text-foreground tracking-widest ml-1">Chronic Care Identifiers</Label>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                       {["Diabetes", "Hypertension", "Heart Condition", "Respiratory Issue", "Mobility Issues"].map(cond => (
                         <div key={cond} className="flex items-center space-x-3 p-3 rounded-xl border bg-white hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => {
@@ -403,8 +402,8 @@ export default function NewMemberPage() {
                             healthConditions: current.includes(cond) ? current.filter(c => c !== cond) : [...current, cond]
                           }))
                         }}>
-                          <Checkbox id={cond} checked={formData.healthConditions?.includes(cond)} className="rounded-full" />
-                          <Label htmlFor={cond} className="text-xs font-bold cursor-pointer">{cond}</Label>
+                          <Checkbox id={cond} checked={formData.healthConditions?.includes(cond)} className="rounded-full border-foreground" />
+                          <Label htmlFor={cond} className="text-xs font-bold cursor-pointer text-foreground">{cond}</Label>
                         </div>
                       ))}
                     </div>
@@ -412,21 +411,21 @@ export default function NewMemberPage() {
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1 flex items-center gap-1.5"><Stethoscope className="w-3 h-3" /> PCP Name</Label>
+                      <Label className="text-[10px] font-black uppercase text-foreground tracking-widest ml-1 flex items-center gap-1.5"><Stethoscope className="w-3 h-3" /> PCP Name</Label>
                       <Input 
                         placeholder="Dr. Alexander Wright"
                         value={formData.pcpName}
                         onChange={e => setFormData(p => ({...p, pcpName: e.target.value}))}
-                        className="rounded-xl h-11 border-border/60 bg-white"
+                        className="rounded-xl h-11 border-border bg-white text-foreground"
                       />
                     </div>
                     <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Preferred Pharmacy</Label>
+                      <Label className="text-[10px] font-black uppercase text-foreground tracking-widest ml-1">Preferred Pharmacy</Label>
                       <Input 
                         placeholder="CVS #1204 / Walgreens"
                         value={formData.pharmacyName}
                         onChange={e => setFormData(p => ({...p, pharmacyName: e.target.value}))}
-                        className="rounded-xl h-11 border-border/60 bg-white"
+                        className="rounded-xl h-11 border-border bg-white text-foreground"
                       />
                     </div>
                   </div>
