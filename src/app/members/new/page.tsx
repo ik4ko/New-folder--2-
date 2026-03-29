@@ -122,7 +122,7 @@ export default function NewMemberPage() {
       <CollectionSidebar />
       
       <div className="flex-1 flex flex-col h-full overflow-hidden">
-        <header className="h-16 border-b border-border px-8 flex items-center justify-between bg-white/50 backdrop-blur-md sticky top-0 z-10">
+        <header className="h-16 border-b border-border px-8 flex items-center justify-between bg-card/50 backdrop-blur-md sticky top-0 z-10">
           <div className="flex items-center gap-4">
             <h1 className="text-xl font-bold text-foreground">Member Enrollment</h1>
             <div className="h-4 w-[1px] bg-border" />
@@ -144,7 +144,7 @@ export default function NewMemberPage() {
           {/* AI Intake Section */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             <div className="md:col-span-2 p-8 rounded-3xl border-2 border-dashed border-primary/20 bg-primary/5 flex flex-col items-center justify-center gap-4 text-center group hover:bg-primary/10 transition-all cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-              <div className="w-16 h-16 rounded-2xl bg-white shadow-sm flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+              <div className="w-16 h-16 rounded-2xl bg-card shadow-sm flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
                 <Camera className="w-8 h-8" />
               </div>
               <div className="space-y-1">
@@ -186,7 +186,7 @@ export default function NewMemberPage() {
                         placeholder="e.g. Johnathan Smith" 
                         value={formData.fullName}
                         onChange={e => setFormData(p => ({...p, fullName: e.target.value}))}
-                        className="rounded-xl h-11 border-border bg-white text-foreground font-semibold"
+                        className="rounded-xl h-11 border-border bg-background"
                       />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
@@ -196,7 +196,7 @@ export default function NewMemberPage() {
                           type="date"
                           value={formData.dob}
                           onChange={e => setFormData(p => ({...p, dob: e.target.value}))}
-                          className="rounded-xl h-11 border-border bg-white text-foreground font-semibold"
+                          className="rounded-xl h-11 border-border bg-background"
                         />
                       </div>
                       <div className="space-y-2">
@@ -206,7 +206,7 @@ export default function NewMemberPage() {
                           maxLength={4}
                           value={formData.ssnLast4}
                           onChange={e => setFormData(p => ({...p, ssnLast4: e.target.value}))}
-                          className="rounded-xl h-11 border-border bg-white font-mono text-foreground font-semibold"
+                          className="rounded-xl h-11 border-border bg-background font-mono"
                         />
                       </div>
                     </div>
@@ -219,7 +219,7 @@ export default function NewMemberPage() {
                         placeholder="415-555-0100"
                         value={formData.phone}
                         onChange={e => setFormData(p => ({...p, phone: e.target.value}))}
-                        className="rounded-xl h-11 border-border bg-white text-foreground font-semibold"
+                        className="rounded-xl h-11 border-border bg-background"
                       />
                     </div>
                     <div className="space-y-2 md:col-span-2">
@@ -229,7 +229,7 @@ export default function NewMemberPage() {
                         placeholder="j.smith@example.com"
                         value={formData.email}
                         onChange={e => setFormData(p => ({...p, email: e.target.value}))}
-                        className="rounded-xl h-11 border-border bg-white text-foreground font-semibold"
+                        className="rounded-xl h-11 border-border bg-background"
                       />
                     </div>
                   </div>
@@ -240,7 +240,7 @@ export default function NewMemberPage() {
                       placeholder="Street, City, State, ZIP"
                       value={formData.address}
                       onChange={e => setFormData(p => ({...p, address: e.target.value}))}
-                      className="rounded-xl h-11 border-border bg-white text-foreground font-semibold"
+                      className="rounded-xl h-11 border-border bg-background"
                     />
                   </div>
                 </AccordionContent>
@@ -264,7 +264,7 @@ export default function NewMemberPage() {
                         placeholder="1EG4-TE5-MK22"
                         value={formData.medicareId}
                         onChange={e => setFormData(p => ({...p, medicareId: e.target.value.toUpperCase()}))}
-                        className="rounded-xl h-11 border-border bg-white font-mono text-foreground font-semibold"
+                        className="rounded-xl h-11 border-border bg-background font-mono"
                       />
                     </div>
                     <div className="space-y-2">
@@ -273,7 +273,7 @@ export default function NewMemberPage() {
                         type="date"
                         value={formData.partAEffective}
                         onChange={e => setFormData(p => ({...p, partAEffective: e.target.value}))}
-                        className="rounded-xl h-11 border-border bg-white text-foreground font-semibold"
+                        className="rounded-xl h-11 border-border bg-background"
                       />
                     </div>
                     <div className="space-y-2">
@@ -282,7 +282,7 @@ export default function NewMemberPage() {
                         type="date"
                         value={formData.partBEffective}
                         onChange={e => setFormData(p => ({...p, partBEffective: e.target.value}))}
-                        className="rounded-xl h-11 border-border bg-white text-foreground font-semibold"
+                        className="rounded-xl h-11 border-border bg-background"
                       />
                     </div>
                   </div>
@@ -307,7 +307,7 @@ export default function NewMemberPage() {
                         value={formData.carrier}
                         onValueChange={(val) => setFormData(p => ({...p, carrier: val}))}
                       >
-                        <SelectTrigger className="rounded-xl h-11 border-border bg-white text-foreground font-semibold">
+                        <SelectTrigger className="rounded-xl h-11 border-border bg-background">
                           <SelectValue placeholder="Select Carrier" />
                         </SelectTrigger>
                         <SelectContent className="max-h-[300px]">
@@ -327,7 +327,7 @@ export default function NewMemberPage() {
                         placeholder="e.g. Choice PPO Plus"
                         value={formData.planName}
                         onChange={e => setFormData(p => ({...p, planName: e.target.value}))}
-                        className="rounded-xl h-11 border-border bg-white text-foreground font-semibold"
+                        className="rounded-xl h-11 border-border bg-background"
                       />
                     </div>
                   </div>
@@ -339,7 +339,7 @@ export default function NewMemberPage() {
                         value={formData.enrollmentPeriod}
                         onValueChange={(val: any) => setFormData(p => ({...p, enrollmentPeriod: val}))}
                       >
-                        <SelectTrigger className="rounded-xl h-11 border-border bg-white text-foreground font-semibold">
+                        <SelectTrigger className="rounded-xl h-11 border-border bg-background">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -356,7 +356,7 @@ export default function NewMemberPage() {
                         placeholder="$0.00"
                         value={formData.monthlyPremium}
                         onChange={e => setFormData(p => ({...p, monthlyPremium: e.target.value}))}
-                        className="rounded-xl h-11 border-border bg-white text-foreground font-semibold"
+                        className="rounded-xl h-11 border-border bg-background"
                       />
                     </div>
                     <div className="space-y-2">
@@ -365,7 +365,7 @@ export default function NewMemberPage() {
                         value={formData.medicareMedicaidStatus}
                         onValueChange={(val: any) => setFormData(p => ({...p, medicareMedicaidStatus: val}))}
                       >
-                        <SelectTrigger className="rounded-xl h-11 border-border bg-white text-foreground font-semibold">
+                        <SelectTrigger className="rounded-xl h-11 border-border bg-background">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
@@ -395,7 +395,7 @@ export default function NewMemberPage() {
                     <Label className="text-[10px] font-black uppercase text-foreground tracking-widest ml-1">Chronic Care Identifiers</Label>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
                       {["Diabetes", "Hypertension", "Heart Condition", "Respiratory Issue", "Mobility Issues"].map(cond => (
-                        <div key={cond} className="flex items-center space-x-3 p-3 rounded-xl border bg-white hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => {
+                        <div key={cond} className="flex items-center space-x-3 p-3 rounded-xl border bg-background hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => {
                           const current = formData.healthConditions || []
                           setFormData(p => ({
                             ...p, 
@@ -416,7 +416,7 @@ export default function NewMemberPage() {
                         placeholder="Dr. Alexander Wright"
                         value={formData.pcpName}
                         onChange={e => setFormData(p => ({...p, pcpName: e.target.value}))}
-                        className="rounded-xl h-11 border-border bg-white text-foreground font-semibold"
+                        className="rounded-xl h-11 border-border bg-background"
                       />
                     </div>
                     <div className="space-y-2">
@@ -425,7 +425,7 @@ export default function NewMemberPage() {
                         placeholder="CVS #1204 / Walgreens"
                         value={formData.pharmacyName}
                         onChange={e => setFormData(p => ({...p, pharmacyName: e.target.value}))}
-                        className="rounded-xl h-11 border-border bg-white text-foreground font-semibold"
+                        className="rounded-xl h-11 border-border bg-background"
                       />
                     </div>
                   </div>

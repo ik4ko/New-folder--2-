@@ -24,10 +24,12 @@ const colors = [
 ]
 
 export function ModeToggle() {
-  const { setTheme, theme } = useTheme()
+  const { setTheme, resolvedTheme } = useTheme()
   const [accentColor, setAccentColor] = React.useState<string>("gold")
+  const [mounted, setMounted] = React.useState(false)
 
   React.useEffect(() => {
+    setMounted(true)
     const savedColor = localStorage.getItem("medistay-accent-color") || "gold"
     setAccentColor(savedColor)
     document.documentElement.setAttribute("data-theme", savedColor)
@@ -38,6 +40,12 @@ export function ModeToggle() {
     localStorage.setItem("medistay-accent-color", color)
     document.documentElement.setAttribute("data-theme", color)
   }
+
+  if (!mounted) return (
+    <Button variant="outline" size="icon" className="h-10 w-10 rounded-full border-border/50 bg-background/50">
+      <Sun className="h-[1.2rem] w-[1.2rem]" />
+    </Button>
+  )
 
   return (
     <DropdownMenu>
@@ -54,22 +62,22 @@ export function ModeToggle() {
         </DropdownMenuLabel>
         <div className="grid grid-cols-2 gap-2 p-1">
           <Button 
-            variant={theme === 'light' ? 'secondary' : 'ghost'} 
+            variant={resolvedTheme === 'light' ? 'secondary' : 'ghost'} 
             size="sm" 
             onClick={() => setTheme("light")}
             className="rounded-xl flex items-center justify-start gap-2 h-9"
           >
             <Sun className="w-4 h-4" />
-            <span className="text-xs font-bold">Light</span>
+            <span className="text-xs font-bold">White Mode</span>
           </Button>
           <Button 
-            variant={theme === 'dark' ? 'secondary' : 'ghost'} 
+            variant={resolvedTheme === 'dark' ? 'secondary' : 'ghost'} 
             size="sm" 
             onClick={() => setTheme("dark")}
             className="rounded-xl flex items-center justify-start gap-2 h-9"
           >
             <Moon className="w-4 h-4" />
-            <span className="text-xs font-bold">Dark</span>
+            <span className="text-xs font-bold">Dark Mode</span>
           </Button>
         </div>
         
