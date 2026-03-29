@@ -1,9 +1,8 @@
 "use client"
 
 import { Input } from "@/components/ui/input"
-import { Search, UserPlus, Filter, ShieldCheck, AlertCircle } from "lucide-react"
-import { useAppStore, type MemberRecord } from "@/lib/store"
-import { Badge } from "@/components/ui/badge"
+import { Search, UserPlus, Filter, AlertCircle } from "lucide-react"
+import { useAppStore } from "@/lib/store"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
 import { useState, useMemo } from "react"
@@ -12,7 +11,7 @@ import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 
 export function CollectionSidebar() {
-  const members = useAppStore((state) => state.members)
+  const { members, isSidebarOpen } = useAppStore()
   const [search, setSearch] = useState("")
   const pathname = usePathname()
 
@@ -24,10 +23,13 @@ export function CollectionSidebar() {
   }, [members, search])
 
   return (
-    <aside className="w-[240px] flex flex-col h-full bg-secondary/30 border-r border-sidebar-border shrink-0 z-40 overflow-hidden">
+    <aside className={cn(
+      "flex flex-col h-full bg-secondary/30 border-r border-sidebar-border shrink-0 z-40 overflow-hidden transition-all duration-300 ease-in-out",
+      isSidebarOpen ? "w-[240px]" : "w-0 border-r-0"
+    )}>
       {/* Header Area (Channel Category Header Style) */}
-      <div className="h-16 flex items-center justify-between px-4 border-b border-sidebar-border bg-sidebar/50 backdrop-blur-sm">
-        <h2 className="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2">
+      <div className="h-16 flex items-center justify-between px-4 border-b border-sidebar-border bg-sidebar/50 backdrop-blur-sm shrink-0">
+        <h2 className="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2 whitespace-nowrap">
           Member Roster
         </h2>
         <Button variant="ghost" size="icon" asChild className="h-7 w-7 rounded-lg hover:bg-primary/10 hover:text-primary transition-colors">
@@ -38,7 +40,7 @@ export function CollectionSidebar() {
       </div>
 
       {/* Search Area */}
-      <div className="p-3">
+      <div className="p-3 shrink-0">
         <div className="relative group">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground group-focus-within:text-primary transition-colors" />
           <Input 
@@ -91,7 +93,7 @@ export function CollectionSidebar() {
         </div>
       </ScrollArea>
 
-      <div className="p-3 border-t border-sidebar-border bg-sidebar/30">
+      <div className="p-3 border-t border-sidebar-border bg-sidebar/30 shrink-0">
         <Button variant="outline" className="w-full justify-start gap-2 h-8 rounded-lg border-dashed border-border bg-background/50 text-muted-foreground hover:bg-muted font-bold text-[10px] uppercase tracking-widest transition-all">
           <Filter className="w-3 h-3" />
           Carrier Filter

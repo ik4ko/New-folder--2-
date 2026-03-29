@@ -11,7 +11,7 @@ import {
   PhoneCall,
   Printer,
   Link2,
-  ChevronRight
+  PanelLeft
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
@@ -61,27 +61,28 @@ function NavItem({ href, icon: Icon, label, isActive, isSpecial }: NavItemProps)
 
 export function AppSidebar() {
   const pathname = usePathname()
-  const isGHLConnected = useAppStore(s => s.isGHLConnected)
+  const { isSidebarOpen, toggleSidebar } = useAppStore()
 
   const navItems = [
     { href: '/', icon: LayoutDashboard, label: 'Command Center' },
     { href: '/members', icon: Users, label: 'Member Roster' },
     { href: '/fax', icon: Printer, label: 'SSBCI Fax Center' },
     { href: '/check-ins', icon: PhoneCall, label: 'AI Check-ins' },
-    { href: '/ghl', icon: Link2, label: 'GHL Integration', isGHL: true },
+    { href: '/ghl', icon: Link2, label: 'GHL Integration' },
     { href: '/compliance', icon: ShieldCheck, label: 'Compliance Vault' },
     { href: '/ai', icon: Sparkles, label: 'Retention AI', isSpecial: true },
   ]
 
   return (
     <div className="w-[72px] flex flex-col items-center py-4 bg-sidebar border-r border-sidebar-border h-full shrink-0 z-50 overflow-y-auto scrollbar-hide">
-      {/* Brand Icon */}
-      <Link href="/" className="mb-4 group relative flex items-center justify-center">
-        <div className="w-12 h-12 rounded-[16px] bg-primary flex items-center justify-center text-primary-foreground font-black text-xl shadow-lg shadow-primary/20 hover:rounded-[12px] transition-all duration-200">
-          M
-        </div>
+      {/* Retraction Toggle */}
+      <button 
+        onClick={toggleSidebar}
+        className="mb-4 group relative flex items-center justify-center h-12 w-12 rounded-[16px] bg-muted/50 text-muted-foreground hover:bg-primary hover:text-primary-foreground transition-all duration-200 shadow-sm border border-border/50"
+      >
+        <PanelLeft className={cn("w-5 h-5 transition-transform duration-300", !isSidebarOpen && "rotate-180")} />
         <div className="absolute left-[-12px] h-8 w-1 bg-primary rounded-r-full opacity-0 group-hover:opacity-100 transition-all" />
-      </Link>
+      </button>
 
       <div className="w-8 h-[2px] bg-muted/50 rounded-full mb-4 shrink-0" />
 

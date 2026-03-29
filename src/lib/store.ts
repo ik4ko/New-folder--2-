@@ -76,6 +76,7 @@ interface AppState {
   members: MemberRecord[];
   isSynced: boolean;
   isGHLConnected: boolean;
+  isSidebarOpen: boolean;
   ghlSettings: GHLSettings;
   agencyProfile: AgencyProfile;
   addMember: (member: Partial<MemberRecord>) => void;
@@ -83,6 +84,7 @@ interface AppState {
   setMembers: (members: MemberRecord[]) => void;
   triggerSync: () => void;
   toggleGHL: () => void;
+  toggleSidebar: () => void;
   updateGHLSettings: (updates: Partial<GHLSettings>) => void;
   updateAgencyProfile: (updates: Partial<AgencyProfile>) => void;
 }
@@ -91,6 +93,7 @@ export const useAppStore = create<AppState>((set) => ({
   members: [],
   isSynced: true,
   isGHLConnected: false,
+  isSidebarOpen: true,
   ghlSettings: {
     locationId: 'loc_99201_sf',
     apiKey: '',
@@ -170,6 +173,7 @@ export const useAppStore = create<AppState>((set) => ({
     setTimeout(() => set({ isSynced: true }), 1500);
   },
   toggleGHL: () => set((state) => ({ isGHLConnected: !state.isGHLConnected })),
+  toggleSidebar: () => set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
   updateGHLSettings: (updates) => set((state) => ({
     ghlSettings: { ...state.ghlSettings, ...updates }
   })),
