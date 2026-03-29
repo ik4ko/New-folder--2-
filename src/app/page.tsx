@@ -1,4 +1,3 @@
-
 "use client"
 
 import { CollectionSidebar } from "@/components/collection-sidebar"
@@ -30,7 +29,6 @@ export default function Dashboard() {
       ? Math.round(members.reduce((acc, m) => acc + (m.retentionScore || 0), 0) / members.length)
       : 0
     const pendingFaxes = members.filter(m => m.ssbciStatus === 'pending-fax').length
-    const activeCalls = members.filter(m => m.checkInStatus === 'scheduled').length
     
     // Revenue simulation
     const atRiskRevenue = churnRisks.length * 600
@@ -40,7 +38,6 @@ export default function Dashboard() {
       avgRetention,
       churnRisks: churnRisks.length,
       pendingFaxes,
-      activeCalls,
       atRiskRevenue
     }
   }, [members])
@@ -77,11 +74,11 @@ export default function Dashboard() {
             <p className="text-muted-foreground mt-1 font-bold italic">Autonomous Medicare Monitoring & Member Protection</p>
           </div>
           <div className="flex gap-3">
-            <div className="flex items-center gap-2 px-4 py-1.5 bg-emerald-500/10 text-emerald-600 border border-emerald-500/20 rounded-full text-[10px] font-black uppercase tracking-widest">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+            <div className="flex items-center gap-2 px-4 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm">
+              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
               CMS MARx: ONLINE
             </div>
-            <div className="flex items-center gap-2 px-4 py-1.5 bg-primary/10 text-primary border border-primary/20 rounded-full text-[10px] font-black uppercase tracking-widest">
+            <div className="flex items-center gap-2 px-4 py-1.5 bg-primary text-white rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/20">
               <Zap className="w-3 h-3" />
               CLAUDE 3.5: ACTIVE
             </div>
@@ -91,12 +88,12 @@ export default function Dashboard() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <Card className="shadow-sm border-border bg-card rounded-3xl overflow-hidden">
             <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-              <CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Book of Business</CardTitle>
+              <CardTitle className="text-[10px] font-black uppercase tracking-widest text-foreground">Book of Business</CardTitle>
               <Users className="w-4 h-4 text-primary" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-black">{stats.totalMembers}</div>
-              <p className="text-[10px] text-emerald-600 flex items-center gap-1 mt-1 font-black uppercase tracking-tight">
+              <div className="text-3xl font-black text-foreground">{stats.totalMembers}</div>
+              <p className="text-[10px] text-emerald-700 flex items-center gap-1 mt-1 font-black uppercase tracking-tight">
                 <TrendingUp className="w-3 h-3" />
                 Live Roster Connected
               </p>
@@ -105,11 +102,11 @@ export default function Dashboard() {
           
           <Card className="shadow-sm border-border bg-card rounded-3xl overflow-hidden">
             <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-              <CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Avg. Retention Score</CardTitle>
+              <CardTitle className="text-[10px] font-black uppercase tracking-widest text-foreground">Avg. Retention Score</CardTitle>
               <ShieldCheck className="w-4 h-4 text-primary" />
             </CardHeader>
             <CardContent className="space-y-3">
-              <div className="text-3xl font-black">{stats.avgRetention}%</div>
+              <div className="text-3xl font-black text-foreground">{stats.avgRetention}%</div>
               <Progress value={stats.avgRetention} className="h-1.5 bg-muted" />
             </CardContent>
           </Card>
@@ -121,7 +118,7 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-black text-destructive">-${stats.atRiskRevenue.toLocaleString()}</div>
-              <p className="text-[10px] text-destructive/80 mt-1 font-black uppercase tracking-widest animate-pulse">
+              <p className="text-[10px] text-destructive font-black uppercase tracking-widest animate-pulse">
                 Projected Churn Impact
               </p>
             </CardContent>
@@ -129,11 +126,11 @@ export default function Dashboard() {
 
           <Card className="shadow-sm border-border bg-card rounded-3xl overflow-hidden">
             <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-              <CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">SSBCI Fax Queue</CardTitle>
+              <CardTitle className="text-[10px] font-black uppercase tracking-widest text-foreground">SSBCI Fax Queue</CardTitle>
               <Printer className="w-4 h-4 text-primary" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-black">
+              <div className="text-3xl font-black text-foreground">
                 {stats.pendingFaxes}
               </div>
               <p className="text-[10px] text-muted-foreground mt-1 font-black uppercase tracking-tight">
@@ -165,11 +162,11 @@ export default function Dashboard() {
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/50 hover:bg-muted/50 border-none">
-                      <TableHead className="font-black text-[10px] uppercase tracking-widest text-muted-foreground h-10 px-6">Member</TableHead>
-                      <TableHead className="font-black text-[10px] uppercase tracking-widest text-muted-foreground h-10">Active Plan</TableHead>
-                      <TableHead className="font-black text-[10px] uppercase tracking-widest text-muted-foreground h-10 text-center">Module 1</TableHead>
-                      <TableHead className="font-black text-[10px] uppercase tracking-widest text-muted-foreground h-10 text-center">Health</TableHead>
-                      <TableHead className="text-right font-black text-[10px] uppercase tracking-widest text-muted-foreground h-10 px-6">Action</TableHead>
+                      <TableHead className="font-black text-[10px] uppercase tracking-widest text-foreground h-10 px-6">Member</TableHead>
+                      <TableHead className="font-black text-[10px] uppercase tracking-widest text-foreground h-10">Active Plan</TableHead>
+                      <TableHead className="font-black text-[10px] uppercase tracking-widest text-foreground h-10 text-center">Module 1</TableHead>
+                      <TableHead className="font-black text-[10px] uppercase tracking-widest text-foreground h-10 text-center">Health</TableHead>
+                      <TableHead className="text-right font-black text-[10px] uppercase tracking-widest text-foreground h-10 px-6">Action</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -202,7 +199,7 @@ export default function Dashboard() {
                           </div>
                         </TableCell>
                         <TableCell className="text-right px-6">
-                          <Button variant="outline" size="sm" asChild className="h-7 px-3 text-[9px] font-black uppercase tracking-tighter border-primary/20 text-primary hover:bg-primary/5 rounded-xl transition-all">
+                          <Button variant="outline" size="sm" asChild className="h-7 px-3 text-[9px] font-black uppercase tracking-tighter border-border text-foreground hover:bg-primary/5 rounded-xl transition-all shadow-sm">
                             <Link href={`/members/${member.id}`}>Details</Link>
                           </Button>
                         </TableCell>
@@ -222,25 +219,25 @@ export default function Dashboard() {
               </CardHeader>
               <CardContent className="p-6">
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <Button variant="outline" asChild className="h-20 flex-col gap-2 rounded-2xl border-primary/10 hover:bg-primary/5 hover:border-primary/30 transition-all group">
+                  <Button variant="outline" asChild className="h-20 flex-col gap-2 rounded-2xl border-border hover:bg-primary/5 hover:border-primary/30 transition-all group">
                     <Link href="/settings?tab=identity">
                       <Building2 className="w-5 h-5 text-primary group-hover:scale-110 transition-transform" />
                       <span className="text-[10px] font-black uppercase tracking-widest">Identity</span>
                     </Link>
                   </Button>
-                  <Button variant="outline" asChild className="h-20 flex-col gap-2 rounded-2xl border-primary/10 hover:bg-primary/5 hover:border-primary/30 transition-all group">
+                  <Button variant="outline" asChild className="h-20 flex-col gap-2 rounded-2xl border-border hover:bg-primary/5 hover:border-primary/30 transition-all group">
                     <Link href="/settings?tab=team">
                       <Users className="w-5 h-5 text-primary group-hover:scale-110 transition-transform" />
                       <span className="text-[10px] font-black uppercase tracking-widest">Team</span>
                     </Link>
                   </Button>
-                  <Button variant="outline" asChild className="h-20 flex-col gap-2 rounded-2xl border-primary/10 hover:bg-primary/5 hover:border-primary/30 transition-all group">
+                  <Button variant="outline" asChild className="h-20 flex-col gap-2 rounded-2xl border-border hover:bg-primary/5 hover:border-primary/30 transition-all group">
                     <Link href="/accounting">
                       <Banknote className="w-5 h-5 text-primary group-hover:scale-110 transition-transform" />
                       <span className="text-[10px] font-black uppercase tracking-widest">Finance</span>
                     </Link>
                   </Button>
-                  <Button variant="outline" asChild className="h-20 flex-col gap-2 rounded-2xl border-primary/10 hover:bg-primary/5 hover:border-primary/30 transition-all group">
+                  <Button variant="outline" asChild className="h-20 flex-col gap-2 rounded-2xl border-border hover:bg-primary/5 hover:border-primary/30 transition-all group">
                     <Link href="/settings?tab=compliance">
                       <ShieldAlert className="w-5 h-5 text-primary group-hover:scale-110 transition-transform" />
                       <span className="text-[10px] font-black uppercase tracking-widest">Compliance</span>
@@ -252,7 +249,7 @@ export default function Dashboard() {
           </div>
 
           <div className="space-y-6">
-            <Card className="shadow-sm border-primary/20 bg-primary/5 relative overflow-hidden group rounded-3xl border-none">
+            <Card className="shadow-sm border-border bg-primary/5 relative overflow-hidden group rounded-3xl border-none">
               <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
                 <Zap className="w-24 h-24 text-primary" />
               </div>
@@ -263,12 +260,12 @@ export default function Dashboard() {
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="p-4 rounded-2xl bg-card border border-primary/10 text-[11px] leading-relaxed text-muted-foreground font-bold shadow-sm">
-                  <span className="font-black text-primary uppercase text-[10px] block mb-1">Module 5: AEP SHIELD</span> 
+                <div className="p-4 rounded-2xl bg-white border border-primary/10 text-[11px] leading-relaxed text-foreground font-bold shadow-sm">
+                  <span className="font-black text-primary uppercase text-[10px] block mb-1 underline decoration-primary/20 underline-offset-4">Module 5: AEP SHIELD</span> 
                   {stats.churnRisks > 0 ? `${stats.churnRisks} high-risk members detected in current MARx poll. Triggering pre-emptive loyalty flows.` : "Roster fully protected. No disenrollment risks detected in latest snapshot."}
                 </div>
-                <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/10 text-[11px] leading-relaxed text-emerald-700 font-bold shadow-sm">
-                  <span className="font-black text-emerald-600 uppercase text-[10px] block mb-1">PROFITABILITY ALERT</span> 
+                <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-100 text-[11px] leading-relaxed text-emerald-800 font-bold shadow-sm">
+                  <span className="font-black text-emerald-700 uppercase text-[10px] block mb-1">PROFITABILITY ALERT</span> 
                   Agency retention ROI is currently at <strong>92%</strong>. Projected commission savings for Q4: <strong>${(stats.totalMembers * 150).toLocaleString()}</strong>.
                 </div>
                 <Button className="w-full text-[10px] font-black uppercase tracking-widest bg-primary hover:bg-primary/90 text-white rounded-2xl shadow-lg shadow-primary/20" asChild>
@@ -280,22 +277,24 @@ export default function Dashboard() {
             </Card>
 
             <Card className="shadow-sm border-border bg-card rounded-3xl overflow-hidden">
-              <CardHeader className="pb-2 bg-muted/20 border-b">
+              <CardHeader className="pb-2 bg-muted/30 border-b border-border">
                 <CardTitle className="text-[10px] font-black uppercase tracking-widest text-foreground">Active Bot Task Queue</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4 p-6">
                 {botTasks.length > 0 ? botTasks.map((act, i) => (
-                  <div key={i} className="flex items-center justify-between text-[11px] border-b border-border/50 pb-3 last:border-0 last:pb-0">
+                  <div key={i} className="flex items-center justify-between text-[11px] border-b border-border pb-3 last:border-0 last:pb-0">
                     <div className="flex items-center gap-3">
-                      <div className="w-7 h-7 rounded-lg bg-muted flex items-center justify-center">
+                      <div className="w-7 h-7 rounded-lg bg-muted flex items-center justify-center border border-border/50">
                         <act.icon className={`w-3.5 h-3.5 ${act.color}`} />
                       </div>
                       <div>
                         <p className="text-foreground font-black uppercase tracking-tight">{act.label}</p>
-                        <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-tighter">{act.detail}</p>
+                        <p className="text-[9px] text-muted-foreground font-black uppercase tracking-tighter italic">{act.detail}</p>
                       </div>
                     </div>
-                    <Badge variant="outline" className="text-[8px] font-black uppercase py-0 px-1.5 border-border">{act.status}</Badge>
+                    <Badge variant="outline" className="text-[8px] font-black uppercase py-0 px-1.5 border-border text-foreground">
+                      {act.status}
+                    </Badge>
                   </div>
                 )) : (
                   <div className="py-4 text-center text-muted-foreground italic text-[10px] font-black uppercase tracking-widest">

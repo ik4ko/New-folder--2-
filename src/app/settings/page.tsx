@@ -1,8 +1,7 @@
-
 "use client"
 
 import { CollectionSidebar } from "@/components/collection-sidebar"
-import { useAppStore, type BrokerAccount } from "@/lib/store"
+import { useAppStore } from "@/lib/store"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -12,9 +11,9 @@ import { Switch } from "@/components/ui/switch"
 import { 
   Settings, Building2, User, ShieldCheck, Bell, 
   Palette, Save, Lock, Users2, Plus, 
-  MoreVertical, ShieldAlert, BadgeCheck,
-  CreditCard, CheckCircle2, History, Download,
-  ExternalLink, Fingerprint, ExternalLink as LinkIcon,
+  MoreVertical, BadgeCheck,
+  CreditCard, History, Download,
+  Fingerprint, ExternalLink as LinkIcon,
   ShoppingBag, Shield
 } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
@@ -24,11 +23,7 @@ import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { 
   AlertDialog, 
-  AlertDialogAction, 
-  AlertDialogCancel, 
   AlertDialogContent, 
-  AlertDialogDescription, 
-  AlertDialogFooter, 
   AlertDialogHeader, 
   AlertDialogTitle, 
   AlertDialogTrigger 
@@ -54,12 +49,12 @@ function SettingsContent() {
 
   const handleAddUser = () => {
     addBroker({ name: "New Broker", role: "broker", email: "", npn: "" })
-    toast({ title: "User Placeholder Added", description: "Edit the details in the team list below." })
+    toast({ title: "User Added", description: "New broker placeholder created." })
   }
 
   const handleUpdatePlan = (plan: 'entry' | 'starter' | 'pro' | 'enterprise') => {
     updateAgencyProfile({ billingPlan: plan, isSubscriptionActive: true })
-    toast({ title: "Plan Updated", description: `Agency successfully switched to the ${plan.toUpperCase()} tier.` })
+    toast({ title: "Plan Updated", description: `Agency switched to ${plan.toUpperCase()} tier.` })
   }
 
   const handleStripeCheckout = (action: 'confirm' | 'decline') => {
@@ -68,14 +63,14 @@ function SettingsContent() {
       handleUpdatePlan('entry')
       toast({ 
         title: "Payment Successful", 
-        description: "Your $29 Entry Plan is now active. BAA records updated.",
+        description: "Your $29 Entry Plan is now active.",
         className: "bg-emerald-50 border-emerald-200 text-emerald-900 font-bold"
       })
     } else {
       toast({ 
         variant: "destructive",
         title: "Payment Cancelled", 
-        description: "Your subscription request was declined or cancelled." 
+        description: "Payment session declined." 
       })
     }
   }
@@ -89,7 +84,7 @@ function SettingsContent() {
             {agencyProfile.isSolo ? "Broker Settings" : "Agency Settings"}
           </h1>
         </div>
-        <Button onClick={handleSave} className="rounded-xl h-10 font-black uppercase tracking-widest bg-primary hover:bg-primary/90 px-6 shadow-lg shadow-primary/20">
+        <Button onClick={handleSave} className="rounded-xl h-10 font-black uppercase tracking-widest bg-primary hover:bg-primary/90 px-6 shadow-lg shadow-primary/20 text-white">
           <Save className="w-4 h-4 mr-2" />
           Save Changes
         </Button>
@@ -97,35 +92,35 @@ function SettingsContent() {
 
       <div className="flex-1 overflow-y-auto p-8 max-w-5xl mx-auto w-full space-y-8 bg-background">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-          <TabsList className="bg-muted p-1 rounded-2xl border shadow-sm mb-8 flex flex-wrap h-auto gap-1">
-            <TabsTrigger value="identity" className="rounded-xl flex-1 min-w-[120px] py-2.5 text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+          <TabsList className="bg-muted p-1 rounded-2xl border border-border mb-8 flex flex-wrap h-auto gap-1 shadow-inner">
+            <TabsTrigger value="identity" className="rounded-xl flex-1 min-w-[120px] py-2.5 text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white">
               <Building2 className="w-4 h-4 mr-2" /> Identity
             </TabsTrigger>
-            <TabsTrigger value="team" className="rounded-xl flex-1 min-w-[120px] py-2.5 text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <TabsTrigger value="team" className="rounded-xl flex-1 min-w-[120px] py-2.5 text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white">
               <Users2 className="w-4 h-4 mr-2" /> Team
             </TabsTrigger>
-            <TabsTrigger value="billing" className="rounded-xl flex-1 min-w-[120px] py-2.5 text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <TabsTrigger value="billing" className="rounded-xl flex-1 min-w-[120px] py-2.5 text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white">
               <CreditCard className="w-4 h-4 mr-2" /> Billing
             </TabsTrigger>
-            <TabsTrigger value="branding" className="rounded-xl flex-1 min-w-[120px] py-2.5 text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <TabsTrigger value="branding" className="rounded-xl flex-1 min-w-[120px] py-2.5 text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white">
               <Palette className="w-4 h-4 mr-2" /> Branding
             </TabsTrigger>
-            <TabsTrigger value="alerts" className="rounded-xl flex-1 min-w-[120px] py-2.5 text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <TabsTrigger value="alerts" className="rounded-xl flex-1 min-w-[120px] py-2.5 text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white">
               <Bell className="w-4 h-4 mr-2" /> Alerts
             </TabsTrigger>
-            <TabsTrigger value="compliance" className="rounded-xl flex-1 min-w-[120px] py-2.5 text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+            <TabsTrigger value="compliance" className="rounded-xl flex-1 min-w-[120px] py-2.5 text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white">
               <ShieldCheck className="w-4 h-4 mr-2" /> Compliance
             </TabsTrigger>
           </TabsList>
 
           <TabsContent value="identity" className="space-y-6 animate-in fade-in duration-300">
-            <Card className="rounded-3xl border shadow-sm bg-card">
+            <Card className="rounded-3xl border border-border shadow-sm bg-card">
               <CardHeader>
                 <CardTitle className="text-sm font-black uppercase tracking-widest text-foreground flex items-center gap-2">
                   <User className="w-4 h-4 text-primary" />
                   Management Mode
                 </CardTitle>
-                <CardDescription className="text-xs font-bold text-muted-foreground/80">
+                <CardDescription className="text-xs font-bold text-muted-foreground">
                   Configure whether you are operating as a solo broker or a full agency.
                 </CardDescription>
               </CardHeader>
@@ -151,7 +146,7 @@ function SettingsContent() {
                     <Input 
                       value={agencyProfile.name}
                       onChange={(e) => updateAgencyProfile({ name: e.target.value })}
-                      className="rounded-xl h-12 bg-background border-border/60 text-foreground font-black pl-4"
+                      className="rounded-xl h-12 bg-background border-border text-foreground font-black pl-4 shadow-inner"
                     />
                   </div>
                   <div className="space-y-3">
@@ -159,7 +154,7 @@ function SettingsContent() {
                     <Input 
                       value={agencyProfile.licenseNumber}
                       onChange={(e) => updateAgencyProfile({ licenseNumber: e.target.value })}
-                      className="rounded-xl h-12 bg-background border-border/60 font-mono text-foreground font-black pl-4"
+                      className="rounded-xl h-12 bg-background border-border font-mono text-foreground font-black pl-4 shadow-inner"
                     />
                   </div>
                 </div>
@@ -168,14 +163,14 @@ function SettingsContent() {
           </TabsContent>
 
           <TabsContent value="team" className="space-y-6 animate-in fade-in duration-300">
-            <Card className="rounded-3xl border shadow-sm bg-card overflow-hidden">
-              <CardHeader className="flex flex-row items-center justify-between border-b bg-muted/10">
+            <Card className="rounded-3xl border border-border shadow-sm bg-card overflow-hidden">
+              <CardHeader className="flex flex-row items-center justify-between border-b bg-muted/30 py-4">
                 <div>
                   <CardTitle className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
                     <Users2 className="w-4 h-4 text-primary" />
                     Individualized Accounts
                   </CardTitle>
-                  <CardDescription className="text-xs font-bold text-muted-foreground/80">Manage access levels and NPNs for your brokers.</CardDescription>
+                  <CardDescription className="text-xs font-bold">Manage access levels and NPNs for your brokers.</CardDescription>
                 </div>
                 <Button onClick={handleAddUser} size="sm" className="rounded-xl font-black uppercase tracking-widest bg-primary hover:bg-primary/90 text-white text-[10px] h-9 px-4">
                   <Plus className="w-4 h-4 mr-2" /> Add User
@@ -184,38 +179,38 @@ function SettingsContent() {
               <CardContent className="p-0">
                 <Table>
                   <TableHeader>
-                    <TableRow className="bg-muted/30 border-none">
-                      <TableHead className="font-black text-[10px] uppercase px-8">Account</TableHead>
-                      <TableHead className="font-black text-[10px] uppercase">Role</TableHead>
-                      <TableHead className="font-black text-[10px] uppercase">NPN (Individual)</TableHead>
-                      <TableHead className="font-black text-[10px] uppercase">Status</TableHead>
-                      <TableHead className="text-right px-8 font-black text-[10px] uppercase">Action</TableHead>
+                    <TableRow className="bg-muted/50 border-none">
+                      <TableHead className="font-black text-[10px] uppercase px-8 text-foreground">Account</TableHead>
+                      <TableHead className="font-black text-[10px] uppercase text-foreground">Role</TableHead>
+                      <TableHead className="font-black text-[10px] uppercase text-foreground">NPN (Individual)</TableHead>
+                      <TableHead className="font-black text-[10px] uppercase text-foreground">Status</TableHead>
+                      <TableHead className="text-right px-8 font-black text-[10px] uppercase text-foreground">Action</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {brokers.map((broker) => (
                       <TableRow key={broker.id} className="border-border/50">
-                        <TableCell className="px-8 font-black text-sm">
+                        <TableCell className="px-8 font-black text-sm text-foreground">
                           <div className="flex flex-col">
                             <span className="uppercase tracking-tight">{broker.name}</span>
-                            <span className="text-[10px] text-muted-foreground lowercase font-bold">{broker.email}</span>
+                            <span className="text-[10px] text-muted-foreground lowercase font-bold italic">{broker.email || 'no-email@agency.com'}</span>
                           </div>
                         </TableCell>
                         <TableCell>
-                          <Badge variant="outline" className="text-[9px] uppercase font-black tracking-tighter border-border bg-muted/20">
+                          <Badge variant="outline" className="text-[9px] uppercase font-black tracking-tighter border-border bg-white text-foreground">
                             {broker.role}
                           </Badge>
                         </TableCell>
-                        <TableCell className="font-mono text-[11px] font-black text-primary">{broker.npn || 'N/A'}</TableCell>
+                        <TableCell className="font-mono text-[11px] font-black text-primary">{broker.npn || '00000000'}</TableCell>
                         <TableCell>
-                          <div className="flex items-center gap-1.5 text-emerald-600">
+                          <div className="flex items-center gap-1.5 text-emerald-700">
                             <BadgeCheck className="w-3.5 h-3.5" />
                             <span className="text-[10px] font-black uppercase">Active</span>
                           </div>
                         </TableCell>
                         <TableCell className="text-right px-8">
                           <Button variant="ghost" size="icon" className="rounded-xl h-8 w-8 hover:bg-primary/5">
-                            <MoreVertical className="w-4 h-4 text-muted-foreground" />
+                            <MoreVertical className="w-4 h-4 text-foreground" />
                           </Button>
                         </TableCell>
                       </TableRow>
@@ -227,9 +222,8 @@ function SettingsContent() {
           </TabsContent>
 
           <TabsContent value="billing" className="space-y-8 animate-in fade-in duration-300">
-            {/* Stripe Promo Section */}
-            <Card className="rounded-3xl border-2 border-primary bg-primary/5 shadow-xl overflow-hidden relative group">
-              <div className="absolute top-0 right-0 p-8 opacity-10"><ShoppingBag className="w-32 h-32" /></div>
+            <Card className="rounded-3xl border-2 border-primary bg-primary/5 shadow-xl overflow-hidden relative">
+              <div className="absolute top-0 right-0 p-8 opacity-10"><ShoppingBag className="w-32 h-32 text-primary" /></div>
               <CardContent className="p-10 flex flex-col md:flex-row items-center justify-between gap-8 relative z-10">
                 <div className="space-y-4 text-center md:text-left">
                   <div className="flex items-center justify-center md:justify-start gap-3">
@@ -241,14 +235,14 @@ function SettingsContent() {
                       <p className="text-[10px] font-black text-primary uppercase tracking-widest">Entry-Level Member Protection</p>
                     </div>
                   </div>
-                  <p className="text-sm font-bold text-muted-foreground leading-relaxed max-w-lg">
-                    Perfect for new independent brokers. Get full access to Module 1 (MARx Monitoring) and basic CRM sync without attaching a permanent payment method.
+                  <p className="text-sm font-bold text-foreground leading-relaxed max-w-lg">
+                    Perfect for new independent brokers. Get full access to Module 1 (MARx Monitoring) and basic CRM sync.
                   </p>
                 </div>
-                <div className="text-center md:text-right space-y-4 bg-white dark:bg-slate-900 p-8 rounded-3xl shadow-lg border border-primary/20 min-w-[240px]">
+                <div className="text-center md:text-right space-y-4 bg-white p-8 rounded-3xl shadow-lg border border-border min-w-[240px]">
                   <div className="flex items-baseline justify-center md:justify-end gap-1">
                     <span className="text-4xl font-black text-foreground">$29</span>
-                    <span className="text-xs font-bold text-muted-foreground uppercase">/mo</span>
+                    <span className="text-xs font-black text-muted-foreground uppercase">/mo</span>
                   </div>
                   
                   <AlertDialog open={isCheckoutOpen} onOpenChange={setIsCheckoutOpen}>
@@ -259,179 +253,83 @@ function SettingsContent() {
                     </AlertDialogTrigger>
                     <AlertDialogContent className="max-w-2xl rounded-3xl p-0 overflow-hidden border-none shadow-2xl">
                       <div className="bg-[#635BFF] p-8 text-white flex flex-col items-center justify-center space-y-4">
-                        <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center">
-                          <ShoppingBag className="w-8 h-8" />
-                        </div>
+                        <ShoppingBag className="w-10 h-10" />
                         <h2 className="text-2xl font-black uppercase tracking-tight">Stripe Checkout</h2>
                         <p className="text-sm font-medium opacity-80">Payment for MediStay Entry Plan</p>
                       </div>
-                      <div className="p-10 space-y-8 bg-white dark:bg-slate-900">
-                        <div className="flex justify-between items-center border-b pb-6">
-                          <div className="space-y-1">
-                            <p className="text-xs font-black uppercase tracking-widest text-muted-foreground">Order Summary</p>
-                            <p className="text-lg font-black text-foreground">Entry Plan (Monthly)</p>
-                          </div>
-                          <p className="text-2xl font-black text-foreground">$29.00</p>
-                        </div>
-                        <div className="space-y-4">
-                          <div className="p-4 rounded-2xl bg-muted/30 border border-border flex items-center gap-4">
-                            <Shield className="w-5 h-5 text-emerald-600" />
-                            <p className="text-xs font-bold leading-relaxed">
-                              MediStay is BAA-compliant. Your payment information is encrypted via Stripe and processed in a PCI-DSS Level 1 environment.
-                            </p>
-                          </div>
+                      <div className="p-10 space-y-8 bg-white">
+                        <div className="flex justify-between items-center border-b border-border pb-6 text-foreground font-black uppercase tracking-widest text-xs">
+                          <span>Order Total</span>
+                          <span>$29.00</span>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
-                          <Button variant="outline" className="h-14 rounded-2xl font-black uppercase tracking-widest border-2" onClick={() => handleStripeCheckout('decline')}>
+                          <Button variant="outline" className="h-14 rounded-2xl font-black uppercase border-2 border-border" onClick={() => handleStripeCheckout('decline')}>
                             Cancel
                           </Button>
-                          <Button className="h-14 rounded-2xl bg-[#635BFF] hover:bg-[#534be5] text-white font-black uppercase tracking-widest shadow-xl shadow-[#635bff]/20" onClick={() => handleStripeCheckout('confirm')}>
+                          <Button className="h-14 rounded-2xl bg-[#635BFF] hover:bg-[#534be5] text-white font-black uppercase" onClick={() => handleStripeCheckout('confirm')}>
                             Pay $29.00
                           </Button>
                         </div>
                       </div>
                     </AlertDialogContent>
                   </AlertDialog>
-                  
-                  <p className="text-[9px] font-black text-muted-foreground uppercase text-center md:text-right">No Credit Card Required Now</p>
                 </div>
               </CardContent>
             </Card>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {[
-                { id: 'starter', name: 'Starter', price: '$499', features: ['Up to 500 Members', 'Module 1 & 2 Access', 'Basic CRM Sync'], desc: 'For independent brokers.' },
-                { id: 'pro', name: 'Agency Pro', price: '$899', features: ['Unlimited Members', 'Full Module Suite (1-5)', 'Priority GHL Webhooks', 'Individualized NPN Splits'], desc: 'Our most popular agency plan.' },
-                { id: 'enterprise', name: 'Enterprise', price: '$1,499', features: ['Custom Multi-Carrier Sync', 'White-Label Portals', 'Dedicated BAA Audit Support', 'API Access'], desc: 'For large multi-state agencies.' }
-              ].map((plan) => (
-                <Card key={plan.id} className={`rounded-3xl border-2 transition-all overflow-hidden flex flex-col ${agencyProfile.billingPlan === plan.id ? 'border-primary bg-primary/5' : 'border-border bg-card'}`}>
-                  <CardHeader className="pb-4">
-                    <div className="flex justify-between items-start">
-                      <CardTitle className="text-sm font-black uppercase tracking-widest">{plan.name}</CardTitle>
-                      {agencyProfile.billingPlan === plan.id && <Badge className="bg-primary text-white font-black uppercase text-[8px]">Current</Badge>}
-                    </div>
-                    <div className="flex items-baseline gap-1 mt-2">
-                      <span className="text-3xl font-black">{plan.price}</span>
-                      <span className="text-xs text-muted-foreground font-bold">/mo</span>
-                    </div>
-                    <CardDescription className="text-[10px] font-bold mt-2 leading-relaxed">{plan.desc}</CardDescription>
-                  </CardHeader>
-                  <CardContent className="flex-1 space-y-4">
-                    <ul className="space-y-2">
-                      {plan.features.map(f => (
-                        <li key={f} className="flex items-center gap-2 text-[10px] font-bold">
-                          <CheckCircle2 className="w-3 h-3 text-primary" />
-                          {f}
-                        </li>
-                      ))}
-                    </ul>
-                    <Button 
-                      onClick={() => handleUpdatePlan(plan.id as any)}
-                      disabled={agencyProfile.billingPlan === plan.id}
-                      className={`w-full rounded-xl text-[10px] font-black uppercase h-10 tracking-widest ${agencyProfile.billingPlan === plan.id ? 'bg-muted text-muted-foreground' : 'bg-primary hover:bg-primary/90'}`}
-                    >
-                      {agencyProfile.billingPlan === plan.id ? 'Plan Active' : 'Switch to ' + plan.name}
-                    </Button>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              <Card className="rounded-3xl border shadow-sm bg-card">
-                <CardHeader>
-                  <CardTitle className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
-                    <Lock className="w-4 h-4 text-primary" />
-                    BAA-Compliant Payment Vault
-                  </CardTitle>
-                  <CardDescription className="text-xs font-bold">Encrypted payment methods managed via BAA-signed processor.</CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4">
-                  {agencyProfile.billingPlan === 'entry' ? (
-                    <div className="p-6 rounded-2xl bg-amber-50 border border-amber-100 space-y-2">
-                      <p className="text-xs font-black text-amber-900 uppercase">One-Time Stripe Session Active</p>
-                      <p className="text-[10px] font-medium text-amber-800 leading-relaxed">
-                        You are currently on the Entry Plan via Stripe Checkout. No permanent payment method is stored. To upgrade to higher tiers, please attach a formal Agency BAA payment method.
-                      </p>
-                    </div>
-                  ) : (
-                    <div className="p-4 rounded-2xl bg-muted/20 border border-border flex items-center justify-between">
-                      <div className="flex items-center gap-4">
-                        <div className="w-10 h-7 bg-slate-800 rounded flex items-center justify-center">
-                          <CreditCard className="w-5 h-5 text-white" />
-                        </div>
-                        <div>
-                          <p className="text-xs font-black uppercase">Visa Ending in 4242</p>
-                          <p className="text-[10px] text-muted-foreground font-bold">Expires 12/26</p>
-                        </div>
-                      </div>
-                      <Button variant="ghost" size="sm" className="text-[10px] font-black text-primary uppercase">Edit</Button>
-                    </div>
-                  )}
-                  <Button variant="outline" className="w-full rounded-xl border-dashed h-10 text-[10px] font-black uppercase tracking-widest">
-                    <Plus className="w-3 h-3 mr-2" /> Add Backup Method
-                  </Button>
-                </CardContent>
-              </Card>
-
-              <Card className="rounded-3xl border shadow-sm bg-card overflow-hidden">
-                <CardHeader className="bg-muted/10 border-b">
-                  <CardTitle className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
-                    <History className="w-4 h-4 text-primary" />
-                    Billing History
-                  </CardTitle>
-                </CardHeader>
-                <div className="divide-y">
-                  {[
-                    { date: 'Nov 01, 2024', amount: agencyProfile.billingPlan === 'entry' ? '$29.00' : '$899.00', status: 'Paid', inv: 'INV-MS-99201' },
-                    { date: 'Oct 01, 2024', amount: '$899.00', status: 'Paid', inv: 'INV-MS-99188' }
-                  ].map((row, i) => (
-                    <div key={i} className="px-6 py-4 flex items-center justify-between hover:bg-slate-50/50">
-                      <div>
-                        <p className="text-xs font-black">{row.date}</p>
-                        <p className="text-[9px] text-muted-foreground font-bold uppercase tracking-widest">{row.inv}</p>
-                      </div>
-                      <div className="flex items-center gap-4">
-                        <span className="text-xs font-black">{row.amount}</span>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" onClick={() => toast({ title: "Downloading Invoice", description: `Preparing HIPAA-compliant PDF for ${row.inv}...` })}>
-                          <Download className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </Card>
-            </div>
           </TabsContent>
 
           <TabsContent value="branding" className="space-y-6">
-            <Card className="rounded-3xl border shadow-sm bg-card p-8">
-              <CardTitle className="text-sm font-black uppercase tracking-widest mb-6 flex items-center gap-2">
-                <Palette className="w-4 h-4 text-primary" />
-                White-Label Customization
-              </CardTitle>
+            <Card className="rounded-3xl border border-border shadow-sm bg-card p-10">
+              <div className="flex items-center gap-4 mb-8">
+                <Palette className="w-6 h-6 text-primary" />
+                <h2 className="text-lg font-black uppercase tracking-tight text-foreground">White-Label Branding</h2>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
                 <div className="space-y-4">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Primary Agency Color</Label>
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-foreground">Primary Theme Color</Label>
                   <div className="flex gap-4 items-center">
-                    <div className="w-14 h-14 rounded-2xl bg-primary shadow-inner border border-black/5" />
-                    <Input className="font-mono text-xs font-black h-12 rounded-xl" value={agencyProfile.primaryColor} readOnly />
+                    <div className="w-16 h-16 rounded-2xl bg-primary shadow-inner border border-black/10" />
+                    <Input className="font-mono text-xs font-black h-12 rounded-xl bg-background border-border text-foreground pl-4" value={agencyProfile.primaryColor} readOnly />
                   </div>
                 </div>
-                <div className="p-6 rounded-2xl bg-primary/5 border border-primary/10 space-y-2">
-                  <p className="text-[11px] text-primary font-black uppercase tracking-widest">Branding Tip</p>
-                  <p className="text-[11px] text-muted-foreground font-bold leading-relaxed italic">
-                    "This color is used for member-facing PDF summaries, SSBCI cover sheets, and the broker dashboard accents."
-                  </p>
+                <div className="p-6 rounded-2xl bg-primary/5 border border-primary/10 space-y-2 text-[11px] text-foreground font-bold leading-relaxed italic">
+                  "This color is used for member-facing PDF summaries, SSBCI cover sheets, and the broker dashboard accents."
                 </div>
               </div>
             </Card>
           </TabsContent>
 
+          <TabsContent value="alerts" className="space-y-6">
+            <Card className="rounded-3xl border border-border shadow-sm bg-card p-10">
+              <div className="flex items-center justify-between mb-8">
+                <div className="flex items-center gap-4">
+                  <Bell className="w-6 h-6 text-primary" />
+                  <h2 className="text-lg font-black uppercase tracking-tight text-foreground">Real-Time Alerts</h2>
+                </div>
+                <Switch defaultChecked />
+              </div>
+              <div className="grid grid-cols-1 gap-4">
+                {[
+                  { title: "Critical Churn Detection", desc: "SMS alert when MARx snapshot detects carrier switch." },
+                  { title: "Daily Sync Summary", desc: "Email summary of overnight CRM and CMS polls." },
+                  { title: "Compliance Expiry", desc: "Nudge when SOAs are approaching the 10-year limit." }
+                ].map((alert, i) => (
+                  <div key={i} className="flex items-center justify-between p-5 rounded-2xl bg-muted/20 border border-border">
+                    <div className="space-y-1">
+                      <p className="text-sm font-black text-foreground uppercase tracking-tight">{alert.title}</p>
+                      <p className="text-[11px] text-muted-foreground font-bold">{alert.desc}</p>
+                    </div>
+                    <Switch defaultChecked />
+                  </div>
+                ))}
+              </div>
+            </Card>
+          </TabsContent>
+
           <TabsContent value="compliance" className="space-y-6">
-            <Card className="rounded-3xl border shadow-sm bg-slate-900 text-white p-10 overflow-hidden relative">
+            <Card className="rounded-3xl border border-border shadow-sm bg-slate-900 text-white p-10 overflow-hidden relative">
               <div className="absolute top-0 right-0 p-6 opacity-10"><Lock className="w-32 h-32 text-white" /></div>
-              <CardTitle className="text-sm font-black uppercase tracking-widest text-emerald-400 flex items-center gap-2 mb-8">
+              <CardTitle className="text-sm font-black uppercase tracking-widest text-emerald-400 flex items-center gap-2 mb-8 underline decoration-emerald-400/30 underline-offset-8">
                 <ShieldCheck className="w-5 h-5" /> HIPAA BAA Compliance Lock
               </CardTitle>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
@@ -445,7 +343,7 @@ function SettingsContent() {
                 </div>
                 <div className="p-6 rounded-2xl bg-white/5 border border-white/10 space-y-3">
                   <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
-                    <ShieldAlert className="w-3 h-3" /> Data Retention
+                    <History className="w-3 h-3" /> Data Retention
                   </span>
                   <p className="text-[11px] text-slate-200 font-bold leading-relaxed">
                     Member data and call recordings are retained for the HIPAA-required period of 6-10 years.
@@ -464,7 +362,7 @@ export default function AgencySettingsPage() {
   return (
     <div className="flex h-full w-full bg-background">
       <CollectionSidebar />
-      <Suspense fallback={<div className="flex-1 p-20 text-center font-black uppercase tracking-widest opacity-30">Loading Settings...</div>}>
+      <Suspense fallback={<div className="flex-1 p-20 text-center font-black uppercase tracking-widest opacity-30 text-foreground">Loading Settings...</div>}>
         <SettingsContent />
       </Suspense>
     </div>
