@@ -40,11 +40,8 @@ export default function LandingPage() {
           </nav>
           <div className="flex items-center gap-4">
             <ModeToggle />
-            <Button variant="ghost" className="hidden sm:flex text-xs font-black uppercase tracking-widest" asChild>
+            <Button variant="outline" className="hidden sm:flex rounded-xl h-11 px-6 border-2 font-black uppercase tracking-widest text-[10px]" asChild>
               <Link href="/dashboard">Log In</Link>
-            </Button>
-            <Button className="rounded-xl h-11 px-6 bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest text-[10px] shadow-xl shadow-primary/20" asChild>
-              <Link href="/dashboard">Launch Command Center</Link>
             </Button>
           </div>
         </header>
