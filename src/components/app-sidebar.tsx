@@ -4,7 +4,6 @@
 import * as React from "react"
 import { 
   Users, 
-  LayoutDashboard, 
   ShieldCheck, 
   Settings, 
   LogOut,
@@ -65,8 +64,8 @@ export function AppSidebar() {
   const pathname = usePathname()
   const { toggleSidebar, isSidebarOpen } = useAppStore()
 
+  // Removed LayoutDashboard (Command Center) nav item as it was redundant with the top-level area
   const navItems = [
-    { href: '/', icon: LayoutDashboard, label: 'Command Center' },
     { href: '/members', icon: Users, label: 'Member Roster' },
     { href: '/accounting', icon: Banknote, label: 'Agency Accounting' },
     { href: '/fax', icon: Printer, label: 'SSBCI Fax Center' },
@@ -78,7 +77,7 @@ export function AppSidebar() {
 
   return (
     <div className="w-[72px] flex flex-col items-center py-4 bg-sidebar border-r border-sidebar-border h-full shrink-0 z-50 overflow-y-auto scrollbar-hide">
-      {/* Retraction Toggle at Top */}
+      {/* Roster Collapse Toggle */}
       <TooltipProvider delayDuration={0}>
         <Tooltip>
           <TooltipTrigger asChild>
