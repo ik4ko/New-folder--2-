@@ -10,13 +10,15 @@ import {
   Sparkles,
   PhoneCall,
   Printer,
-  Link2
+  Link2,
+  PanelLeft
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { ModeToggle } from "./mode-toggle"
+import { useAppStore } from "@/lib/store"
 
 interface NavItemProps {
   href: string
@@ -59,6 +61,7 @@ function NavItem({ href, icon: Icon, label, isActive, isSpecial }: NavItemProps)
 
 export function AppSidebar() {
   const pathname = usePathname()
+  const { toggleSidebar, isSidebarOpen } = useAppStore()
 
   const navItems = [
     { href: '/', icon: LayoutDashboard, label: 'Command Center' },
@@ -72,10 +75,25 @@ export function AppSidebar() {
 
   return (
     <div className="w-[72px] flex flex-col items-center py-4 bg-sidebar border-r border-sidebar-border h-full shrink-0 z-50 overflow-y-auto scrollbar-hide">
-      {/* Brand Icon placeholder */}
-      <div className="mb-4 h-12 w-12 rounded-[16px] bg-primary flex items-center justify-center text-primary-foreground font-black text-xl shadow-lg">
-        M
-      </div>
+      {/* Retraction Toggle at Top */}
+      <TooltipProvider delayDuration={0}>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <button 
+              onClick={toggleSidebar}
+              className={cn(
+                "mb-4 h-12 w-12 rounded-[16px] bg-muted/50 flex items-center justify-center text-muted-foreground transition-all duration-300 hover:bg-primary hover:text-primary-foreground shadow-sm",
+                !isSidebarOpen && "bg-primary/10 text-primary"
+              )}
+            >
+              <PanelLeft className={cn("w-5 h-5 transition-transform duration-300", !isSidebarOpen && "rotate-180")} />
+            </button>
+          </TooltipTrigger>
+          <TooltipContent side="right" sideOffset={12} className="font-bold text-xs uppercase tracking-widest">
+            {isSidebarOpen ? "Collapse Roster" : "Expand Roster"}
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
 
       <div className="w-8 h-[2px] bg-muted/50 rounded-full mb-4 shrink-0" />
 

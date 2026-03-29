@@ -1,7 +1,7 @@
 "use client"
 
 import { Input } from "@/components/ui/input"
-import { Search, UserPlus, Filter, AlertCircle, PanelLeftClose, PanelLeft } from "lucide-react"
+import { Search, UserPlus, Filter, AlertCircle, PanelLeftClose, ChevronLeft } from "lucide-react"
 import { useAppStore } from "@/lib/store"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
@@ -29,7 +29,7 @@ export function CollectionSidebar() {
     )}>
       {/* Header Area */}
       <div className="h-16 flex items-center justify-between px-4 border-b border-sidebar-border bg-sidebar/50 backdrop-blur-sm shrink-0">
-        <h2 className="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2 whitespace-nowrap">
+        <h2 className="text-xs font-black uppercase tracking-widest text-foreground flex items-center gap-2 whitespace-nowrap">
           Member Roster
         </h2>
         <div className="flex items-center gap-1">
@@ -42,7 +42,7 @@ export function CollectionSidebar() {
             variant="ghost" 
             size="icon" 
             onClick={toggleSidebar}
-            className="h-7 w-7 rounded-lg hover:bg-primary/10 hover:text-primary transition-colors"
+            className="h-7 w-7 rounded-lg hover:bg-primary/10 hover:text-primary transition-colors lg:hidden"
           >
             <PanelLeftClose className="h-4 w-4" />
           </Button>
@@ -55,7 +55,7 @@ export function CollectionSidebar() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground group-focus-within:text-primary transition-colors" />
           <Input 
             placeholder="Quick search..." 
-            className="pl-9 h-8 bg-background/50 border-none rounded-lg text-xs focus-visible:ring-primary shadow-inner"
+            className="pl-9 h-8 bg-background/50 border-none rounded-lg text-xs focus-visible:ring-primary shadow-inner text-foreground font-bold"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />

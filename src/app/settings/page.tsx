@@ -78,7 +78,7 @@ function SettingsContent() {
                   <User className="w-4 h-4 text-primary" />
                   Management Mode
                 </CardTitle>
-                <CardDescription className="text-xs font-bold text-muted-foreground">
+                <CardDescription className="text-xs font-bold text-muted-foreground/80">
                   Configure whether you are operating as a solo broker or a full agency.
                 </CardDescription>
               </CardHeader>
@@ -106,7 +106,7 @@ function SettingsContent() {
                       <Input 
                         value={agencyProfile.name}
                         onChange={(e) => updateAgencyProfile({ name: e.target.value })}
-                        className="rounded-xl pl-11 h-12 bg-background border-border/60 focus-visible:ring-primary text-foreground font-bold"
+                        className="rounded-xl pl-11 h-12 bg-background border-border/60 focus-visible:ring-primary text-foreground font-black"
                       />
                     </div>
                   </div>
@@ -117,7 +117,7 @@ function SettingsContent() {
                       <Input 
                         value={agencyProfile.licenseNumber}
                         onChange={(e) => updateAgencyProfile({ licenseNumber: e.target.value })}
-                        className="rounded-xl pl-11 h-12 bg-background border-border/60 font-mono text-foreground"
+                        className="rounded-xl pl-11 h-12 bg-background border-border/60 font-mono text-foreground font-black"
                       />
                     </div>
                   </div>
@@ -128,7 +128,7 @@ function SettingsContent() {
                       <Input 
                         value={agencyProfile.phone}
                         onChange={(e) => updateAgencyProfile({ phone: e.target.value })}
-                        className="rounded-xl pl-11 h-12 bg-background border-border/60 text-foreground"
+                        className="rounded-xl pl-11 h-12 bg-background border-border/60 text-foreground font-black"
                       />
                     </div>
                   </div>
@@ -139,7 +139,7 @@ function SettingsContent() {
                       <Input 
                         value={agencyProfile.email}
                         onChange={(e) => updateAgencyProfile({ email: e.target.value })}
-                        className="rounded-xl pl-11 h-12 bg-background border-border/60 text-foreground"
+                        className="rounded-xl pl-11 h-12 bg-background border-border/60 text-foreground font-black"
                       />
                     </div>
                   </div>
@@ -155,7 +155,7 @@ function SettingsContent() {
                   <Palette className="w-4 h-4 text-primary" />
                   White-Label Customization
                 </CardTitle>
-                <CardDescription className="text-xs font-bold text-muted-foreground">
+                <CardDescription className="text-xs font-bold text-muted-foreground/80">
                   Customize the appearance of member notifications and the benefits summary mailers.
                 </CardDescription>
               </CardHeader>
@@ -172,7 +172,7 @@ function SettingsContent() {
                         <Input 
                           type="text" 
                           placeholder="#B08627" 
-                          className="h-10 rounded-xl font-mono text-xs text-foreground" 
+                          className="h-10 rounded-xl font-mono text-xs text-foreground font-black" 
                           value={agencyProfile.primaryColor}
                           onChange={(e) => updateAgencyProfile({ primaryColor: e.target.value })}
                         />
@@ -201,7 +201,7 @@ function SettingsContent() {
                   <Bell className="w-4 h-4 text-primary" />
                   Global Alert Routing
                 </CardTitle>
-                <CardDescription className="text-xs font-bold text-muted-foreground">
+                <CardDescription className="text-xs font-bold text-muted-foreground/80">
                   Configure how and when your team receives automated retention notifications.
                 </CardDescription>
               </CardHeader>
