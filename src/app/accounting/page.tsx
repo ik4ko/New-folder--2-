@@ -14,8 +14,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Progress } from "@/components/ui/progress"
 import { toast } from "@/hooks/use-toast"
 import { useMemo } from "react"
+import { useRouter } from "next/navigation"
 
 export default function AccountingPage() {
+  const router = useRouter()
   const { ledger, members, agencyProfile, brokers } = useAppStore()
 
   const stats = useMemo(() => {
@@ -39,6 +41,10 @@ export default function AccountingPage() {
     toast({ title, description: desc })
   }
 
+  const navigateToBilling = () => {
+    router.push('/settings?tab=billing')
+  }
+
   return (
     <div className="flex h-full w-full bg-background">
       <CollectionSidebar />
@@ -58,7 +64,7 @@ export default function AccountingPage() {
             <Button variant="outline" className="rounded-2xl h-10 text-xs font-black uppercase tracking-widest border-border" onClick={() => handleAction("Exporting Ledger", "Generating encrypted financial CSV...")}>
               <Download className="w-4 h-4 mr-2" /> Export
             </Button>
-            <Button className="rounded-2xl h-10 text-xs font-black uppercase tracking-widest bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20" onClick={() => handleAction("Billing Portal", "Redirecting to secure Stripe dashboard...")}>
+            <Button className="rounded-2xl h-10 text-xs font-black uppercase tracking-widest bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20" onClick={navigateToBilling}>
               <CreditCard className="w-4 h-4 mr-2" /> Manage Plan
             </Button>
           </div>
@@ -99,7 +105,9 @@ export default function AccountingPage() {
                 <CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">SaaS Cost</CardTitle>
               </CardHeader>
               <CardContent>
-                <div className="text-3xl font-black text-foreground">$899</div>
+                <div className="text-3xl font-black text-foreground">
+                  ${agencyProfile.billingPlan === 'starter' ? '499' : agencyProfile.billingPlan === 'pro' ? '899' : '1499'}
+                </div>
                 <p className="text-[10px] text-muted-foreground mt-1 font-bold uppercase tracking-tight">{agencyProfile.billingPlan.toUpperCase()} Plan (Monthly)</p>
               </CardContent>
             </Card>
@@ -200,7 +208,7 @@ export default function AccountingPage() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <p className="text-[11px] text-muted-foreground leading-relaxed font-bold">
-                    Commissions are auto-split based on broker assignment rules defined in <strong className="text-foreground">Settings &gt; Team</strong>.
+                    Commissions are auto-split based on broker assignment rules defined in <strong>Settings {"&gt;"} Team</strong>.
                   </p>
                   <div className="space-y-3">
                     {brokers.slice(0, 3).map((broker, i) => (
@@ -231,7 +239,7 @@ export default function AccountingPage() {
               <p className="text-[11px] text-muted-foreground leading-relaxed font-bold">
                 Your MediStay subscription is managed via BAA-compliant payment processors. All commission data is encrypted with AES-256 and accessible only to authorized agency roles.
               </p>
-              <Button variant="link" className="text-xs font-black text-primary uppercase tracking-widest underline-offset-4" onClick={() => handleAction("Download Invoice", "Accessing billing history vault...")}>Download Billing History</Button>
+              <Button variant="link" className="text-xs font-black text-primary uppercase tracking-widest underline-offset-4" onClick={navigateToBilling}>Download Billing History</Button>
             </div>
           </div>
         </div>
