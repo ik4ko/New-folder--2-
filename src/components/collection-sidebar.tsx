@@ -1,7 +1,8 @@
+
 "use client"
 
 import { Input } from "@/components/ui/input"
-import { Search, UserPlus, Filter, AlertCircle, PanelLeftClose, ChevronLeft } from "lucide-react"
+import { Search, UserPlus, Filter, AlertCircle, PanelLeftClose } from "lucide-react"
 import { useAppStore } from "@/lib/store"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
@@ -42,7 +43,7 @@ export function CollectionSidebar() {
             variant="ghost" 
             size="icon" 
             onClick={toggleSidebar}
-            className="h-7 w-7 rounded-lg hover:bg-primary/10 hover:text-primary transition-colors lg:hidden"
+            className="h-7 w-7 rounded-lg hover:bg-primary/10 hover:text-primary transition-colors"
           >
             <PanelLeftClose className="h-4 w-4" />
           </Button>

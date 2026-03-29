@@ -11,8 +11,8 @@ import {
   PhoneCall,
   Printer,
   Link2,
-  PanelLeft,
-  Banknote
+  Banknote,
+  LayoutDashboard
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
@@ -62,10 +62,9 @@ function NavItem({ href, icon: Icon, label, isActive, isSpecial }: NavItemProps)
 
 export function AppSidebar() {
   const pathname = usePathname()
-  const { toggleSidebar, isSidebarOpen } = useAppStore()
 
-  // Removed LayoutDashboard (Command Center) nav item as it was redundant with the top-level area
   const navItems = [
+    { href: '/', icon: LayoutDashboard, label: 'Dashboard' },
     { href: '/members', icon: Users, label: 'Member Roster' },
     { href: '/accounting', icon: Banknote, label: 'Agency Accounting' },
     { href: '/fax', icon: Printer, label: 'SSBCI Fax Center' },
@@ -77,25 +76,10 @@ export function AppSidebar() {
 
   return (
     <div className="w-[72px] flex flex-col items-center py-4 bg-sidebar border-r border-sidebar-border h-full shrink-0 z-50 overflow-y-auto scrollbar-hide">
-      {/* Roster Collapse Toggle */}
-      <TooltipProvider delayDuration={0}>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <button 
-              onClick={toggleSidebar}
-              className={cn(
-                "mb-4 h-12 w-12 rounded-[16px] bg-muted/50 flex items-center justify-center text-muted-foreground transition-all duration-300 hover:bg-primary hover:text-primary-foreground shadow-sm",
-                !isSidebarOpen && "bg-primary/10 text-primary"
-              )}
-            >
-              <PanelLeft className={cn("w-5 h-5 transition-transform duration-300", !isSidebarOpen && "rotate-180")} />
-            </button>
-          </TooltipTrigger>
-          <TooltipContent side="right" sideOffset={12} className="font-bold text-xs uppercase tracking-widest">
-            {isSidebarOpen ? "Collapse Roster" : "Expand Roster"}
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+      {/* Brand Identity (Static Logo) */}
+      <div className="mb-4 h-12 w-12 rounded-[16px] bg-primary flex items-center justify-center text-primary-foreground shadow-lg shadow-primary/20 shrink-0 select-none">
+        <span className="font-black text-xl">M</span>
+      </div>
 
       <div className="w-8 h-[2px] bg-muted/50 rounded-full mb-4 shrink-0" />
 
