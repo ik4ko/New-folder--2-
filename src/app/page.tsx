@@ -1,4 +1,3 @@
-
 "use client"
 
 import { Button } from "@/components/ui/button"
@@ -6,16 +5,20 @@ import { Badge } from "@/components/ui/badge"
 import { 
   ShieldCheck, Zap, Activity, Users, 
   ArrowRight, CheckCircle2, Globe, Lock, 
-  Sparkles, MousePointerClick
+  Sparkles, Calendar, MousePointerClick
 } from "lucide-react"
 import Link from "next/link"
 import { ModeToggle } from "@/components/mode-toggle"
+import Image from "next/image"
+import { PlaceHolderImages } from "@/lib/placeholder-images"
 
 export default function LandingPage() {
+  const heroImage = PlaceHolderImages.find(img => img.id === 'branding-header')
+
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
       {/* Nav */}
-      <header className="h-20 border-b border-border px-8 flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur-md z-50">
+      <header className="h-20 border-b border-border/50 px-8 flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur-xl z-50">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl bg-primary flex items-center justify-center text-white font-black text-xl shadow-lg shadow-primary/20">
             M
@@ -69,20 +72,33 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* Stats / Proof */}
-      <section className="py-12 border-y bg-muted/20">
-        <div className="max-w-6xl mx-auto px-8 grid grid-cols-2 md:grid-cols-4 gap-8">
-          {[
-            { label: "Retention Rate", value: "98.2%" },
-            { label: "Switch Alerts", value: "< 24h" },
-            { label: "Broker Users", value: "1,200+" },
-            { label: "HIPAA Compliant", value: "100%" },
-          ].map((stat, i) => (
-            <div key={i} className="text-center space-y-1">
-              <p className="text-3xl font-black tracking-tighter text-primary">{stat.value}</p>
-              <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">{stat.label}</p>
+      {/* High-DPI Visual Proof */}
+      <section className="px-8 pb-32">
+        <div className="max-w-6xl mx-auto rounded-[3rem] overflow-hidden border border-border shadow-2xl bg-muted/20 relative aspect-[2/1]">
+          {heroImage && (
+            <Image 
+              src={heroImage.imageUrl}
+              alt={heroImage.description}
+              fill
+              className="object-cover opacity-40 grayscale group-hover:opacity-100 transition-opacity"
+              data-ai-hint="modern office"
+            />
+          )}
+          <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
+          <div className="absolute bottom-12 left-12 right-12 flex items-end justify-between">
+            <div className="space-y-2">
+              <Badge className="bg-emerald-500 text-white border-none font-black uppercase text-[10px]">Live Data</Badge>
+              <h3 className="text-2xl font-black uppercase tracking-tighter">Command Center Preview</h3>
             </div>
-          ))}
+            <div className="flex gap-2">
+              <div className="w-12 h-12 rounded-2xl bg-background/80 backdrop-blur-md border border-border flex items-center justify-center">
+                <ShieldCheck className="w-6 h-6 text-primary" />
+              </div>
+              <div className="w-12 h-12 rounded-2xl bg-background/80 backdrop-blur-md border border-border flex items-center justify-center">
+                <Zap className="w-6 h-6 text-accent" />
+              </div>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -147,7 +163,7 @@ export default function LandingPage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="p-10 rounded-[2.5rem] bg-background border border-border space-y-8 flex flex-col justify-between">
+            <div className="p-10 rounded-[2.5rem] bg-background border border-border space-y-8 flex flex-col justify-between shadow-sm">
               <div className="space-y-6">
                 <div>
                   <h4 className="text-xs font-black uppercase tracking-widest text-muted-foreground">Entry Tier</h4>
@@ -193,7 +209,7 @@ export default function LandingPage() {
               </Button>
             </div>
 
-            <div className="p-10 rounded-[2.5rem] bg-background border border-border space-y-8 flex flex-col justify-between">
+            <div className="p-10 rounded-[2.5rem] bg-background border border-border space-y-8 flex flex-col justify-between shadow-sm">
               <div className="space-y-6">
                 <div>
                   <h4 className="text-xs font-black uppercase tracking-widest text-muted-foreground">Enterprise</h4>
@@ -218,7 +234,7 @@ export default function LandingPage() {
       </section>
 
       {/* Footer */}
-      <footer className="py-20 px-8 border-t">
+      <footer className="py-20 px-8 border-t border-border/50">
         <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12">
           <div className="space-y-6">
             <div className="flex items-center gap-3">
@@ -264,7 +280,7 @@ export default function LandingPage() {
             </div>
           </div>
         </div>
-        <div className="max-w-6xl mx-auto mt-20 pt-8 border-t flex flex-col md:flex-row items-center justify-between gap-4">
+        <div className="max-w-6xl mx-auto mt-20 pt-8 border-t border-border/50 flex flex-col md:flex-row items-center justify-between gap-4">
           <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">© 2025 MediStay Intelligence Inc. All rights reserved.</p>
           <div className="flex items-center gap-6">
             <Link href="#" className="text-[9px] font-black text-muted-foreground uppercase tracking-widest hover:text-primary">Privacy Policy</Link>

@@ -2,9 +2,15 @@
   "placeholderImages": [
     {
       "id": "branding-header",
-      "description": "Sophisticated insurance office setting",
-      "imageUrl": "https://picsum.photos/seed/insure1/1200/600",
+      "description": "High-resolution sophisticated insurance office setting",
+      "imageUrl": "https://picsum.photos/seed/insure1/2400/1200",
       "imageHint": "modern office"
+    },
+    {
+      "id": "hero-bg",
+      "description": "Premium abstract blue and white gradients",
+      "imageUrl": "https://picsum.photos/seed/bg1/2400/1600",
+      "imageHint": "abstract blue"
     }
   ]
 }

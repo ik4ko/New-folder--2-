@@ -71,6 +71,9 @@
   }
   body {
     @apply bg-background text-foreground font-body;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
   }
 }
 
@@ -81,4 +84,13 @@
 .scrollbar-hide {
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+/* Sharp Rendering Utilities */
+.high-dpi-border {
+  border-width: 0.5px;
+}
+
+img {
+  image-rendering: -webkit-optimize-contrast;
 }
