@@ -1,224 +1,276 @@
 "use client"
 
-import { CollectionSidebar } from "@/components/collection-sidebar"
-import { useAppStore, initializeStore } from "@/lib/store"
-import { useEffect, useMemo } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { 
-  Activity, Users, ShieldCheck, Printer, 
-  Zap, ArrowUpRight, Sparkles, Banknote, Calendar
+  ShieldCheck, Zap, Activity, Users, 
+  ArrowRight, CheckCircle2, Globe, Lock, 
+  Sparkles, MousePointerClick
 } from "lucide-react"
 import Link from "next/link"
-import { Button } from "@/components/ui/button"
+import { ModeToggle } from "@/components/mode-toggle"
 
-export default function Dashboard() {
-  const members = useAppStore((state) => state.members)
-
-  useEffect(() => {
-    initializeStore()
-  }, [])
-
-  const stats = useMemo(() => {
-    const churnRisks = members.filter(m => m.status === 'churn-risk')
-    const totalMembers = members.length
-    const avgRetention = members.length > 0 
-      ? Math.round(members.reduce((acc, m) => acc + (m.retentionScore || 0), 0) / members.length)
-      : 0
-    const pendingFaxes = members.filter(m => m.ssbciStatus === 'pending-fax').length
-    
-    return {
-      totalMembers,
-      avgRetention,
-      churnRisks: churnRisks.length,
-      pendingFaxes
-    }
-  }, [members])
-
-  const recentActivity = useMemo(() => {
-    return [...members]
-      .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
-      .slice(0, 5)
-  }, [members])
-
+export default function LandingPage() {
   return (
-    <div className="flex h-full w-full bg-background overflow-hidden">
-      <CollectionSidebar />
-      
-      <div className="flex-1 flex flex-col h-full bg-background overflow-hidden">
-        <div className="flex-1 overflow-y-auto p-10 space-y-10">
-          {/* Header */}
-          <div className="flex items-start justify-between">
-            <div className="space-y-1.5">
-              <h1 className="text-4xl font-black tracking-tight text-foreground uppercase">Retention Command Center</h1>
-              <p className="text-muted-foreground font-black text-lg max-w-2xl uppercase tracking-tight opacity-70">
-                Autonomous Medicare Monitoring & Member Protection
+    <div className="flex flex-col min-h-screen bg-background text-foreground">
+      {/* Nav */}
+      <header className="h-20 border-b border-border px-8 flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur-md z-50">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-2xl bg-primary flex items-center justify-center text-white font-black text-xl shadow-lg shadow-primary/20">
+            M
+          </div>
+          <span className="text-xl font-black tracking-tighter uppercase">MediStay</span>
+        </div>
+        <nav className="hidden md:flex items-center gap-8">
+          <Link href="#features" className="text-xs font-black uppercase tracking-widest hover:text-primary transition-colors">Features</Link>
+          <Link href="#pricing" className="text-xs font-black uppercase tracking-widest hover:text-primary transition-colors">Pricing</Link>
+          <Link href="#compliance" className="text-xs font-black uppercase tracking-widest hover:text-primary transition-colors">Compliance</Link>
+        </nav>
+        <div className="flex items-center gap-4">
+          <ModeToggle />
+          <Button variant="ghost" className="hidden sm:flex text-xs font-black uppercase tracking-widest" asChild>
+            <Link href="/dashboard">Log In</Link>
+          </Button>
+          <Button className="rounded-xl h-11 px-6 bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest text-[10px] shadow-xl shadow-primary/20" asChild>
+            <Link href="/dashboard">Launch Command Center</Link>
+          </Button>
+        </div>
+      </header>
+
+      {/* Hero */}
+      <section className="relative py-24 md:py-32 px-8 overflow-hidden">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-6xl h-full -z-10">
+          <div className="absolute top-0 left-0 w-96 h-96 bg-primary/10 rounded-full blur-[120px] animate-pulse" />
+          <div className="absolute bottom-0 right-0 w-96 h-96 bg-accent/10 rounded-full blur-[120px] animate-pulse delay-700" />
+        </div>
+
+        <div className="max-w-5xl mx-auto text-center space-y-8">
+          <Badge className="bg-primary/10 text-primary border-primary/20 px-4 py-1.5 h-auto gap-2 font-black uppercase tracking-widest text-[10px] rounded-full">
+            <Sparkles className="w-3.5 h-3.5" />
+            Autonomous Medicare Retention is Here
+          </Badge>
+          <h1 className="text-5xl md:text-7xl font-black tracking-tighter uppercase leading-[0.9]">
+            Shield Your <span className="text-primary">Book of Business</span> From Competitors.
+          </h1>
+          <p className="text-lg md:text-xl text-muted-foreground font-bold max-w-2xl mx-auto uppercase tracking-tight opacity-80">
+            Real-time CMS switch detection, automated SSBCI faxes, and AI-driven member check-ins. Built for enterprise Medicare agencies.
+          </p>
+          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
+            <Button size="lg" className="w-full sm:w-auto h-16 px-10 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest shadow-2xl shadow-primary/30 text-xs gap-3" asChild>
+              <Link href="/dashboard">
+                Start 14-Day Free Trial <ArrowRight className="w-5 h-5" />
+              </Link>
+            </Button>
+            <Button size="lg" variant="outline" className="w-full sm:w-auto h-16 px-10 rounded-2xl border-2 border-border font-black uppercase tracking-widest text-xs" asChild>
+              <Link href="#features">See How it Works</Link>
+            </Button>
+          </div>
+        </div>
+      </section>
+
+      {/* Stats / Proof */}
+      <section className="py-12 border-y bg-muted/20">
+        <div className="max-w-6xl mx-auto px-8 grid grid-cols-2 md:grid-cols-4 gap-8">
+          {[
+            { label: "Retention Rate", value: "98.2%" },
+            { label: "Switch Alerts", value: "< 24h" },
+            { label: "Broker Users", value: "1,200+" },
+            { label: "HIPAA Compliant", value: "100%" },
+          ].map((stat, i) => (
+            <div key={i} className="text-center space-y-1">
+              <p className="text-3xl font-black tracking-tighter text-primary">{stat.value}</p>
+              <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">{stat.label}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* Features */}
+      <section id="features" className="py-32 px-8">
+        <div className="max-w-6xl mx-auto space-y-20">
+          <div className="text-center space-y-4">
+            <h2 className="text-4xl font-black uppercase tracking-tighter">The Retention <span className="text-accent">OS</span></h2>
+            <p className="text-muted-foreground font-black uppercase tracking-widest text-xs">Four modules of absolute member protection.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="p-10 rounded-[2.5rem] bg-card border border-border space-y-6 hover:border-primary/30 transition-all group">
+              <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                <Activity className="w-7 h-7" />
+              </div>
+              <h3 className="text-2xl font-black uppercase tracking-tight">Module 1: CMS Switch Detection</h3>
+              <p className="text-sm font-bold text-muted-foreground uppercase leading-relaxed opacity-70">
+                Instantly detect when a member switches carriers via nightly MARx snapshot polls. Catch churn before the disenrollment window closes.
               </p>
             </div>
-            <div className="flex gap-3">
-              <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 px-4 py-1.5 h-10 gap-2 font-black uppercase tracking-widest">
-                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                CMS MARx: Active
-              </Badge>
-              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 px-4 py-1.5 h-10 gap-2 font-black uppercase tracking-widest">
-                <Zap className="w-3.5 h-3.5" />
-                GHL Sync: Enabled
-              </Badge>
-            </div>
-          </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-            {/* Stats Cards */}
-            <Card className="bg-muted/30 border-none rounded-[2rem] p-6 flex flex-col justify-between min-h-[200px] shadow-sm">
-              <div className="flex justify-between items-start">
-                <span className="text-xs font-black uppercase tracking-widest text-muted-foreground">Book of <br />Business</span>
-                <Users className="w-5 h-5 text-primary opacity-50" />
+            <div className="p-10 rounded-[2.5rem] bg-card border border-border space-y-6 hover:border-accent/30 transition-all group">
+              <div className="w-14 h-14 rounded-2xl bg-accent/10 flex items-center justify-center text-accent group-hover:scale-110 transition-transform">
+                <Sparkles className="w-7 h-7" />
               </div>
-              <div>
-                <div className="text-5xl font-black mb-2 tracking-tighter">{stats.totalMembers}</div>
-                <div className="text-[10px] font-black uppercase text-emerald-500 tracking-widest">+4% growth this month</div>
-              </div>
-            </Card>
-
-            <Card className="bg-muted/30 border-none rounded-[2rem] p-6 flex flex-col justify-between min-h-[200px] shadow-sm">
-              <div className="flex justify-between items-start">
-                <span className="text-xs font-black uppercase tracking-widest text-muted-foreground">Avg <br />Retention Score</span>
-                <ShieldCheck className="w-5 h-5 text-emerald-500 opacity-50" />
-              </div>
-              <div>
-                <div className="text-5xl font-black mb-2 tracking-tighter">{stats.avgRetention}%</div>
-                <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden mt-4">
-                  <div className="h-full bg-emerald-500" style={{ width: `${stats.avgRetention}%` }} />
-                </div>
-              </div>
-            </Card>
-
-            <Card className="bg-muted/30 border-none rounded-[2rem] p-6 flex flex-col justify-between min-h-[200px] shadow-sm">
-              <div className="flex justify-between items-start">
-                <span className="text-xs font-black uppercase tracking-widest text-destructive">CMS <br />Switch Alerts</span>
-                <Activity className="w-5 h-5 text-destructive opacity-50" />
-              </div>
-              <div>
-                <div className="text-5xl font-black text-destructive mb-2 tracking-tighter">{stats.churnRisks}</div>
-                <div className="text-[10px] font-black uppercase text-destructive tracking-widest">Action Required (24h Window)</div>
-              </div>
-            </Card>
-
-            <Card className="bg-muted/30 border-none rounded-[2rem] p-6 flex flex-col justify-between min-h-[200px] shadow-sm">
-              <div className="flex justify-between items-start">
-                <span className="text-xs font-black uppercase tracking-widest text-muted-foreground">Pending <br />SSBCI Faxes</span>
-                <Printer className="w-5 h-5 text-primary opacity-50" />
-              </div>
-              <div>
-                <div className="text-5xl font-black mb-2 tracking-tighter">{stats.pendingFaxes}</div>
-                <div className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Auto-generation active</div>
-              </div>
-            </Card>
-          </div>
-
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
-            {/* Change Detection Table */}
-            <div className="lg:col-span-2 space-y-6">
-              <div className="flex items-end justify-between px-2">
-                <h3 className="text-2xl font-black tracking-tight uppercase">Active Change Detection</h3>
-                <Button variant="link" className="text-primary font-black text-xs uppercase tracking-widest h-auto p-0" asChild>
-                  <Link href="/members">View All <ArrowUpRight className="ml-1 w-4 h-4" /></Link>
-                </Button>
-              </div>
-              <div className="rounded-[2rem] bg-muted/20 border-none overflow-hidden">
-                <Table>
-                  <TableHeader>
-                    <TableRow className="border-none hover:bg-transparent bg-transparent">
-                      <TableHead className="font-black uppercase tracking-widest text-[10px] py-6 px-8 text-muted-foreground">Member</TableHead>
-                      <TableHead className="font-black uppercase tracking-widest text-[10px] text-muted-foreground">Current Carrier</TableHead>
-                      <TableHead className="font-black uppercase tracking-widest text-[10px] text-muted-foreground">Status</TableHead>
-                      <TableHead className="font-black uppercase tracking-widest text-[10px] text-muted-foreground">Protection</TableHead>
-                      <TableHead className="text-right font-black uppercase tracking-widest text-[10px] px-8 text-muted-foreground">Act</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {recentActivity.map((member) => (
-                      <TableRow key={member.id} className="border-border/50 hover:bg-muted/30 transition-colors">
-                        <TableCell className="font-black py-5 px-8 text-foreground uppercase tracking-tight">{member.fullName}</TableCell>
-                        <TableCell className="text-xs font-bold text-muted-foreground uppercase">{member.carrier}</TableCell>
-                        <TableCell>
-                          <Badge 
-                            variant={member.status === 'churn-risk' ? 'destructive' : 'outline'} 
-                            className="rounded-md uppercase text-[9px] font-black px-2 py-0.5"
-                          >
-                            {member.status === 'churn-risk' ? 'Switch Detected' : 'Shielded'}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <div className={`w-1.5 h-1.5 rounded-full ${member.retentionScore > 80 ? 'bg-emerald-500' : member.retentionScore > 50 ? 'bg-amber-500' : 'bg-destructive'}`} />
-                            <span className="text-xs font-black">{member.retentionScore}%</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-right px-8">
-                          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-primary/10 hover:text-primary transition-all" asChild>
-                            <Link href={`/members/${member.id}`}><ArrowUpRight className="w-4 h-4" /></Link>
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
+              <h3 className="text-2xl font-black uppercase tracking-tight">Module 2: Maya AI Check-ins</h3>
+              <p className="text-sm font-bold text-muted-foreground uppercase leading-relaxed opacity-70">
+                Autonomous voice check-ins at critical policy milestones. Maya identifies dissatisfaction and escalates high-risk cases to brokers in real-time.
+              </p>
             </div>
 
-            {/* AI Insights Sidebar */}
-            <div className="space-y-6">
-              <div className="flex items-center gap-3 px-2">
-                <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-sm">
-                  <Sparkles className="w-5 h-5" />
-                </div>
-                <h3 className="text-lg font-black tracking-tight text-foreground uppercase leading-none">Retention AI <br /><span className="text-primary">Insights</span></h3>
+            <div className="p-10 rounded-[2.5rem] bg-card border border-border space-y-6 hover:border-primary/30 transition-all group">
+              <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                <Lock className="w-7 h-7" />
               </div>
-              
-              <div className="space-y-4">
-                <Card className="bg-primary/5 border border-primary/10 rounded-[2rem] p-8 space-y-6">
-                  <div className="space-y-2">
-                    <div className="text-[10px] font-black uppercase text-primary tracking-widest flex items-center gap-2">
-                      <ShieldCheck className="w-3 h-3" /> AEP Shield Ready:
-                    </div>
-                    <p className="text-[11px] text-foreground leading-relaxed font-bold uppercase tracking-tight">
-                      September campaign scheduled for {stats.totalMembers} members. High-risk segments detected.
-                    </p>
-                  </div>
-                  <div className="h-px bg-primary/10" />
-                  <div className="space-y-2">
-                    <div className="text-[10px] font-black uppercase text-emerald-600 tracking-widest flex items-center gap-2">
-                      <Banknote className="w-3 h-3" /> LIS Opportunity:
-                    </div>
-                    <p className="text-[11px] text-foreground leading-relaxed font-bold uppercase tracking-tight">
-                      {members.filter(m => m.medicareMedicaidStatus === 'Medicare').length} members likely eligible for Extra Help based on local income markers.
-                    </p>
-                  </div>
-                </Card>
+              <h3 className="text-2xl font-black uppercase tracking-tight">Module 3: SSBCI Fax Agent</h3>
+              <p className="text-sm font-bold text-muted-foreground uppercase leading-relaxed opacity-70">
+                Automated chronic condition verification. MediStay faxes PCP offices directly to activate specialized benefits, locking in member loyalty.
+              </p>
+            </div>
 
-                <Button className="w-full h-16 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest shadow-lg shadow-primary/20 text-xs" asChild>
-                  <Link href="/ai">Run Strategy Agent</Link>
-                </Button>
-
-                <div className="p-6 rounded-2xl border border-border bg-card flex items-center justify-between group cursor-pointer hover:border-primary/30 transition-all">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-all">
-                      <Calendar className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Next Compliance Audit</p>
-                      <p className="text-xs font-black text-foreground uppercase tracking-tight">Oct 12, 2025</p>
-                    </div>
-                  </div>
-                  <ArrowUpRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-all" />
-                </div>
+            <div className="p-10 rounded-[2.5rem] bg-card border border-border space-y-6 hover:border-accent/30 transition-all group">
+              <div className="w-14 h-14 rounded-2xl bg-accent/10 flex items-center justify-center text-accent group-hover:scale-110 transition-transform">
+                <Globe className="w-7 h-7" />
               </div>
+              <h3 className="text-2xl font-black uppercase tracking-tight">Module 4: GHL Data Sync</h3>
+              <p className="text-sm font-bold text-muted-foreground uppercase leading-relaxed opacity-70">
+                Two-way sync with GoHighLevel. Map Medicare fields directly to your CRM and trigger workflows automatically based on retention logic.
+              </p>
             </div>
           </div>
         </div>
-      </div>
+      </section>
+
+      {/* Pricing */}
+      <section id="pricing" className="py-32 px-8 bg-muted/30">
+        <div className="max-w-6xl mx-auto space-y-16">
+          <div className="text-center space-y-4">
+            <h2 className="text-4xl font-black uppercase tracking-tighter">Scalable <span className="text-primary">Protection</span></h2>
+            <p className="text-muted-foreground font-black uppercase tracking-widest text-xs">Plans for solo brokers and global agencies.</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+            <div className="p-10 rounded-[2.5rem] bg-background border border-border space-y-8 flex flex-col justify-between">
+              <div className="space-y-6">
+                <div>
+                  <h4 className="text-xs font-black uppercase tracking-widest text-muted-foreground">Entry Tier</h4>
+                  <div className="flex items-baseline gap-1 mt-2">
+                    <span className="text-5xl font-black tracking-tighter">$29</span>
+                    <span className="text-xs font-black text-muted-foreground">/MO</span>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  {["100 Members", "MARx Switch Alerts", "Standard GHL Sync", "Email Alerts"].map((item, i) => (
+                    <div key={i} className="flex items-center gap-2 text-xs font-black uppercase tracking-tight">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-500" /> {item}
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <Button className="w-full h-14 rounded-2xl border-2 border-primary text-primary bg-transparent hover:bg-primary/5 font-black uppercase text-xs" asChild>
+                <Link href="/dashboard">Get Started</Link>
+              </Button>
+            </div>
+
+            <div className="p-10 rounded-[2.5rem] bg-primary text-white space-y-8 flex flex-col justify-between shadow-2xl shadow-primary/40 relative overflow-hidden">
+              <div className="absolute top-0 right-0 p-6 opacity-10"><Zap className="w-32 h-32" /></div>
+              <div className="space-y-6 relative z-10">
+                <div>
+                  <Badge className="bg-white/20 text-white border-white/30 mb-4 font-black uppercase text-[9px] tracking-widest">Most Popular</Badge>
+                  <h4 className="text-xs font-black uppercase tracking-widest text-primary-foreground/70">Pro Agency</h4>
+                  <div className="flex items-baseline gap-1 mt-2">
+                    <span className="text-5xl font-black tracking-tighter">$899</span>
+                    <span className="text-xs font-black text-primary-foreground/70">/MO</span>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  {["Unlimited Members", "Maya AI Voice (500m/mo)", "SSBCI Fax Center", "White-Label PDFs", "Priority Support"].map((item, i) => (
+                    <div key={i} className="flex items-center gap-2 text-xs font-black uppercase tracking-tight">
+                      <CheckCircle2 className="w-4 h-4 text-accent" /> {item}
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <Button className="w-full h-14 rounded-2xl bg-white text-primary hover:bg-white/90 font-black uppercase text-xs relative z-10" asChild>
+                <Link href="/dashboard">Go Pro Now</Link>
+              </Button>
+            </div>
+
+            <div className="p-10 rounded-[2.5rem] bg-background border border-border space-y-8 flex flex-col justify-between">
+              <div className="space-y-6">
+                <div>
+                  <h4 className="text-xs font-black uppercase tracking-widest text-muted-foreground">Enterprise</h4>
+                  <div className="flex items-baseline gap-1 mt-2">
+                    <span className="text-5xl font-black tracking-tighter">Custom</span>
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  {["Full BAA Ownership", "On-Prem Deployment", "Custom AI Training", "API Endpoint Access", "Account Manager"].map((item, i) => (
+                    <div key={i} className="flex items-center gap-2 text-xs font-black uppercase tracking-tight">
+                      <CheckCircle2 className="w-4 h-4 text-emerald-500" /> {item}
+                    </div>
+                  ))}
+                </div>
+              </div>
+              <Button className="w-full h-14 rounded-2xl border-2 border-border text-foreground bg-transparent hover:bg-muted font-black uppercase text-xs" asChild>
+                <Link href="/dashboard">Contact Sales</Link>
+              </Button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Footer */}
+      <footer className="py-20 px-8 border-t">
+        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12">
+          <div className="space-y-6">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-white font-black text-lg">
+                M
+              </div>
+              <span className="text-lg font-black tracking-tighter uppercase">MediStay</span>
+            </div>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase leading-relaxed max-w-xs">
+              The world's first autonomous retention system designed specifically for the Medicare market.
+            </p>
+          </div>
+          
+          <div className="space-y-4">
+            <h5 className="text-[10px] font-black uppercase tracking-widest">Modules</h5>
+            <ul className="space-y-2 text-[10px] font-black text-muted-foreground uppercase tracking-tight">
+              <li><Link href="#" className="hover:text-primary transition-colors">CMS Switch Detection</Link></li>
+              <li><Link href="#" className="hover:text-primary transition-colors">Maya AI Voice</Link></li>
+              <li><Link href="#" className="hover:text-primary transition-colors">SSBCI Fax Center</Link></li>
+              <li><Link href="#" className="hover:text-primary transition-colors">GHL Integration</Link></li>
+            </ul>
+          </div>
+
+          <div className="space-y-4">
+            <h5 className="text-[10px] font-black uppercase tracking-widest">Agency</h5>
+            <ul className="space-y-2 text-[10px] font-black text-muted-foreground uppercase tracking-tight">
+              <li><Link href="#" className="hover:text-primary transition-colors">About Us</Link></li>
+              <li><Link href="#" className="hover:text-primary transition-colors">Careers</Link></li>
+              <li><Link href="#" className="hover:text-primary transition-colors">Compliance Vault</Link></li>
+              <li><Link href="#" className="hover:text-primary transition-colors">BAA Agreement</Link></li>
+            </ul>
+          </div>
+
+          <div className="space-y-6">
+            <div className="p-4 rounded-2xl bg-muted/50 border border-border/50">
+              <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                <Lock className="w-3 h-3" />
+                <span className="text-[9px] font-black uppercase tracking-widest">HIPAA SECURE</span>
+              </div>
+              <p className="text-[9px] text-muted-foreground leading-relaxed font-bold uppercase tracking-tight opacity-60">
+                BAA Active: AWS/Twilio/Documo. Records encrypted at rest.
+              </p>
+            </div>
+          </div>
+        </div>
+        <div className="max-w-6xl mx-auto mt-20 pt-8 border-t flex flex-col md:flex-row items-center justify-between gap-4">
+          <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">© 2025 MediStay Intelligence Inc. All rights reserved.</p>
+          <div className="flex items-center gap-6">
+            <Link href="#" className="text-[9px] font-black text-muted-foreground uppercase tracking-widest hover:text-primary">Privacy Policy</Link>
+            <Link href="#" className="text-[9px] font-black text-muted-foreground uppercase tracking-widest hover:text-primary">Terms of Service</Link>
+          </div>
+        </div>
+      </footer>
     </div>
   )
 }

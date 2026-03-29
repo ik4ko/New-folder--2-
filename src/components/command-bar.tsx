@@ -7,6 +7,8 @@ import {
   Settings,
   User,
   Zap,
+  LayoutDashboard,
+  Home
 } from "lucide-react"
 
 import {
@@ -41,6 +43,17 @@ export function CommandBar() {
       <CommandInput placeholder="Type a command or search members..." />
       <CommandList>
         <CommandEmpty>No results found.</CommandEmpty>
+        <CommandGroup heading="Navigation">
+          <CommandItem onSelect={() => { router.push('/dashboard'); setOpen(false); }}>
+            <LayoutDashboard className="mr-2 h-4 w-4" />
+            <span>Go to Command Center</span>
+          </CommandItem>
+          <CommandItem onSelect={() => { router.push('/'); setOpen(false); }}>
+            <Home className="mr-2 h-4 w-4" />
+            <span>Go to Landing Page</span>
+          </CommandItem>
+        </CommandGroup>
+        <CommandSeparator />
         <CommandGroup heading="Actions">
           <CommandItem onSelect={() => { router.push('/members/new'); setOpen(false); }}>
             <Plus className="mr-2 h-4 w-4" />
@@ -53,12 +66,7 @@ export function CommandBar() {
         </CommandGroup>
         <CommandSeparator />
         <CommandGroup heading="Settings">
-          <CommandItem onSelect={() => { setOpen(false); }}>
-            <User className="mr-2 h-4 w-4" />
-            <span>Profile</span>
-            <CommandShortcut>⌘P</CommandShortcut>
-          </CommandItem>
-          <CommandItem onSelect={() => { setOpen(false); }}>
+          <CommandItem onSelect={() => { router.push('/settings'); setOpen(false); }}>
             <Settings className="mr-2 h-4 w-4" />
             <span>Settings</span>
             <CommandShortcut>⌘S</CommandShortcut>

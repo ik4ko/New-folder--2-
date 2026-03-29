@@ -5,6 +5,7 @@ import { AppSidebar } from '@/components/app-sidebar';
 import { CommandBar } from '@/components/command-bar';
 import { Toaster } from '@/components/ui/toaster';
 import { ThemeProvider } from '@/components/theme-provider';
+import { AppShell } from '@/components/app-layout-shell';
 
 export const metadata: Metadata = {
   title: 'MediStay | Medicare Retention SaaS',
@@ -30,15 +31,9 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <div className="flex h-screen w-screen overflow-hidden bg-background">
-            {/* Discord-style Module Bar (Leftmost) */}
-            <AppSidebar />
-            
-            {/* Main Application Area (Second Sidebar + Content) */}
-            <main className="flex-1 flex overflow-hidden relative">
-              {children}
-            </main>
-          </div>
+          <AppShell>
+            {children}
+          </AppShell>
           <CommandBar />
           <Toaster />
         </ThemeProvider>
