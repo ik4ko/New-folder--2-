@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -11,7 +12,8 @@ import {
   PhoneCall,
   Printer,
   Link2,
-  PanelLeft
+  PanelLeft,
+  Banknote
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
@@ -66,6 +68,7 @@ export function AppSidebar() {
   const navItems = [
     { href: '/', icon: LayoutDashboard, label: 'Command Center' },
     { href: '/members', icon: Users, label: 'Member Roster' },
+    { href: '/accounting', icon: Banknote, label: 'Agency Accounting' },
     { href: '/fax', icon: Printer, label: 'SSBCI Fax Center' },
     { href: '/check-ins', icon: PhoneCall, label: 'AI Check-ins' },
     { href: '/ghl', icon: Link2, label: 'GHL Integration' },

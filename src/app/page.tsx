@@ -10,7 +10,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { 
   CircleAlert, TrendingUp, Users, ShieldCheck, Printer, 
   Zap, PhoneCall, ArrowUpRight, Activity, Calendar, 
-  Settings, Palette, Bell, ShieldAlert, Building2, Clock
+  Settings, Palette, Bell, ShieldAlert, Building2, Clock,
+  DollarSign, Banknote
 } from "lucide-react"
 import Link from "next/link"
 import { Progress } from "@/components/ui/progress"
@@ -32,12 +33,16 @@ export default function Dashboard() {
     const pendingFaxes = members.filter(m => m.ssbciStatus === 'pending-fax').length
     const activeCalls = members.filter(m => m.checkInStatus === 'scheduled').length
     
+    // Revenue simulation
+    const atRiskRevenue = churnRisks.length * 600 // $600/year per member
+    
     return {
       totalMembers,
       avgRetention,
       churnRisks: churnRisks.length,
       pendingFaxes,
-      activeCalls
+      activeCalls,
+      atRiskRevenue
     }
   }, [members])
 
@@ -112,13 +117,13 @@ export default function Dashboard() {
 
           <Card className="shadow-sm border-destructive/20 bg-destructive/5 rounded-3xl overflow-hidden">
             <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-              <CardTitle className="text-[10px] font-black uppercase tracking-widest text-destructive">Module 1 Alerts</CardTitle>
-              <CircleAlert className="w-4 h-4 text-destructive" />
+              <CardTitle className="text-[10px] font-black uppercase text-destructive tracking-widest">Revenue at Risk</CardTitle>
+              <DollarSign className="w-4 h-4 text-destructive" />
             </CardHeader>
             <CardContent>
-              <div className="text-3xl font-black text-destructive">{stats.churnRisks}</div>
+              <div className="text-3xl font-black text-destructive">-${stats.atRiskRevenue.toLocaleString()}</div>
               <p className="text-[10px] text-destructive/80 mt-1 font-black uppercase tracking-widest animate-pulse">
-                Action Required (24h Window)
+                Projected Churn Impact
               </p>
             </CardContent>
           </Card>
@@ -225,15 +230,15 @@ export default function Dashboard() {
                     </Link>
                   </Button>
                   <Button variant="outline" asChild className="h-20 flex-col gap-2 rounded-2xl border-primary/10 hover:bg-primary/5 hover:border-primary/30 transition-all group">
-                    <Link href="/settings?tab=branding">
-                      <Palette className="w-5 h-5 text-primary group-hover:scale-110 transition-transform" />
-                      <span className="text-[10px] font-black uppercase tracking-widest">Branding</span>
+                    <Link href="/settings?tab=team">
+                      <Users className="w-5 h-5 text-primary group-hover:scale-110 transition-transform" />
+                      <span className="text-[10px] font-black uppercase tracking-widest">Team</span>
                     </Link>
                   </Button>
                   <Button variant="outline" asChild className="h-20 flex-col gap-2 rounded-2xl border-primary/10 hover:bg-primary/5 hover:border-primary/30 transition-all group">
-                    <Link href="/settings?tab=alerts">
-                      <Bell className="w-5 h-5 text-primary group-hover:scale-110 transition-transform" />
-                      <span className="text-[10px] font-black uppercase tracking-widest">Alerts</span>
+                    <Link href="/accounting">
+                      <Banknote className="w-5 h-5 text-primary group-hover:scale-110 transition-transform" />
+                      <span className="text-[10px] font-black uppercase tracking-widest">Finance</span>
                     </Link>
                   </Button>
                   <Button variant="outline" asChild className="h-20 flex-col gap-2 rounded-2xl border-primary/10 hover:bg-primary/5 hover:border-primary/30 transition-all group">
@@ -264,8 +269,8 @@ export default function Dashboard() {
                   {stats.churnRisks > 0 ? `${stats.churnRisks} high-risk members detected in current MARx poll. Triggering pre-emptive loyalty flows.` : "Roster fully protected. No disenrollment risks detected in latest snapshot."}
                 </div>
                 <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/10 text-[11px] leading-relaxed text-emerald-700 font-medium shadow-sm">
-                  <span className="font-black text-emerald-600 uppercase text-[10px] block mb-1">LIS BOT ANALYTICS</span> 
-                  {members.filter(m => m.medicareMedicaidStatus === 'Medicare' || m.medicareMedicaidStatus === 'Both').length} members currently benefit from Extra Help. Scanning for gaps in Zip Code clusters.
+                  <span className="font-black text-emerald-600 uppercase text-[10px] block mb-1">PROFITABILITY ALERT</span> 
+                  Agency retention ROI is currently at <strong>92%</strong>. Projected commission savings for Q4: <strong>${(stats.totalMembers * 150).toLocaleString()}</strong>.
                 </div>
                 <Button className="w-full text-[10px] h-10 font-black uppercase tracking-widest bg-primary hover:bg-primary/90 text-white rounded-2xl shadow-lg shadow-primary/20" asChild>
                   <Link href="/ai">

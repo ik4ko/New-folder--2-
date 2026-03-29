@@ -1,3 +1,4 @@
+
 import { create } from 'zustand';
 
 export interface Medication {
@@ -42,6 +43,26 @@ export interface MemberRecord {
   pharmacyName?: string;
 }
 
+export interface BrokerAccount {
+  id: string;
+  name: string;
+  email: string;
+  role: 'owner' | 'broker' | 'admin';
+  status: 'active' | 'inactive';
+  npn: string;
+  avatar?: string;
+}
+
+export interface FinancialTransaction {
+  id: string;
+  memberId: string;
+  memberName: string;
+  date: string;
+  amount: number;
+  type: 'commission' | 'bonus' | 'renewal';
+  status: 'paid' | 'pending';
+}
+
 export interface GHLSettings {
   locationId: string;
   apiKey: string;
@@ -70,30 +91,40 @@ export interface AgencyProfile {
   isSolo: boolean;
   logoUrl?: string;
   primaryColor?: string;
+  billingPlan: 'starter' | 'pro' | 'enterprise';
 }
 
 interface AppState {
   members: MemberRecord[];
+  brokers: BrokerAccount[];
+  ledger: FinancialTransaction[];
   isSynced: boolean;
   isGHLConnected: boolean;
   isSidebarOpen: boolean;
   ghlSettings: GHLSettings;
   agencyProfile: AgencyProfile;
+  currentUser: BrokerAccount | null;
   addMember: (member: Partial<MemberRecord>) => void;
   updateMember: (id: string, updates: Partial<MemberRecord>) => void;
   setMembers: (members: MemberRecord[]) => void;
+  setBrokers: (brokers: BrokerAccount[]) => void;
+  setLedger: (ledger: FinancialTransaction[]) => void;
   triggerSync: () => void;
   toggleGHL: () => void;
   toggleSidebar: () => void;
   updateGHLSettings: (updates: Partial<GHLSettings>) => void;
   updateAgencyProfile: (updates: Partial<AgencyProfile>) => void;
+  addBroker: (broker: Partial<BrokerAccount>) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
   members: [],
+  brokers: [],
+  ledger: [],
   isSynced: true,
   isGHLConnected: false,
   isSidebarOpen: true,
+  currentUser: null,
   ghlSettings: {
     locationId: 'loc_99201_sf',
     apiKey: '',
@@ -118,8 +149,9 @@ export const useAppStore = create<AppState>((set) => ({
     licenseNumber: 'NPN-12345678',
     email: 'admin@medistay-demo.com',
     phone: '415-555-0100',
-    isSolo: true,
+    isSolo: false,
     primaryColor: '#B08627',
+    billingPlan: 'pro',
   },
   addMember: (memberData) => set((state) => {
     const newMember: MemberRecord = {
@@ -154,21 +186,19 @@ export const useAppStore = create<AppState>((set) => ({
       ...memberData,
     };
     const updatedMembers = [newMember, ...state.members];
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('medistay_members', JSON.stringify(updatedMembers));
-    }
+    localStorage.setItem('medistay_members', JSON.stringify(updatedMembers));
     return { members: updatedMembers, isSynced: false };
   }),
   updateMember: (id, updates) => set((state) => {
     const updatedMembers = state.members.map(m => 
       m.id === id ? { ...m, ...updates, updatedAt: Date.now() } : m
     );
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('medistay_members', JSON.stringify(updatedMembers));
-    }
+    localStorage.setItem('medistay_members', JSON.stringify(updatedMembers));
     return { members: updatedMembers, isSynced: false };
   }),
   setMembers: (members) => set({ members }),
+  setBrokers: (brokers) => set({ brokers }),
+  setLedger: (ledger) => set({ ledger }),
   triggerSync: () => {
     set({ isSynced: false });
     setTimeout(() => set({ isSynced: true }), 1500);
@@ -181,16 +211,29 @@ export const useAppStore = create<AppState>((set) => ({
   updateAgencyProfile: (updates) => set((state) => ({
     agencyProfile: { ...state.agencyProfile, ...updates }
   })),
+  addBroker: (brokerData) => set((state) => {
+    const newBroker: BrokerAccount = {
+      id: Math.random().toString(36).substr(2, 9),
+      name: brokerData.name || 'New Broker',
+      email: brokerData.email || '',
+      role: brokerData.role || 'broker',
+      status: 'active',
+      npn: brokerData.npn || '00000000',
+    };
+    const updated = [...state.brokers, newBroker];
+    localStorage.setItem('medistay_brokers', JSON.stringify(updated));
+    return { brokers: updated };
+  }),
 }));
 
 export const initializeStore = () => {
   if (typeof window === 'undefined') return;
   try {
-    const saved = localStorage.getItem('medistay_members');
-    if (saved) {
-      useAppStore.getState().setMembers(JSON.parse(saved));
+    const savedMembers = localStorage.getItem('medistay_members');
+    if (savedMembers) {
+      useAppStore.getState().setMembers(JSON.parse(savedMembers));
     } else {
-      const seed: MemberRecord[] = [
+      const seedMembers: MemberRecord[] = [
         { 
           id: '1', 
           fullName: 'Robert Miller', 
@@ -263,11 +306,36 @@ export const initializeStore = () => {
           pharmacyName: 'Walgreens #110'
         }
       ];
-      localStorage.setItem('medistay_members', JSON.stringify(seed));
-      useAppStore.getState().setMembers(seed);
+      localStorage.setItem('medistay_members', JSON.stringify(seedMembers));
+      useAppStore.getState().setMembers(seedMembers);
+    }
+
+    const savedBrokers = localStorage.getItem('medistay_brokers');
+    if (savedBrokers) {
+      useAppStore.getState().setBrokers(JSON.parse(savedBrokers));
+    } else {
+      const seedBrokers: BrokerAccount[] = [
+        { id: 'agent-123', name: 'John Doe', email: 'john@agency.com', role: 'owner', status: 'active', npn: '12345678' },
+        { id: 'agent-456', name: 'Sarah Smith', email: 'sarah@agency.com', role: 'broker', status: 'active', npn: '87654321' },
+        { id: 'admin-789', name: 'Mike Admin', email: 'admin@agency.com', role: 'admin', status: 'active', npn: '00000000' }
+      ];
+      localStorage.setItem('medistay_brokers', JSON.stringify(seedBrokers));
+      useAppStore.getState().setBrokers(seedBrokers);
+    }
+
+    const savedLedger = localStorage.getItem('medistay_ledger');
+    if (savedLedger) {
+      useAppStore.getState().setLedger(JSON.parse(savedLedger));
+    } else {
+      const seedLedger: FinancialTransaction[] = [
+        { id: 't1', memberId: '1', memberName: 'Robert Miller', date: '2024-11-01', amount: 50.00, type: 'renewal', status: 'paid' },
+        { id: 't2', memberId: '2', memberName: 'Alice Johnson', date: '2024-11-05', amount: 600.00, type: 'commission', status: 'paid' },
+        { id: 't3', memberId: '1', memberName: 'Robert Miller', date: '2024-12-01', amount: 50.00, type: 'renewal', status: 'pending' }
+      ];
+      localStorage.setItem('medistay_ledger', JSON.stringify(seedLedger));
+      useAppStore.getState().setLedger(seedLedger);
     }
   } catch (e) {
     console.error("Failed to initialize store", e);
-    localStorage.removeItem('medistay_members');
   }
 };

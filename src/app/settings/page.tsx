@@ -1,7 +1,8 @@
+
 "use client"
 
 import { CollectionSidebar } from "@/components/collection-sidebar"
-import { useAppStore } from "@/lib/store"
+import { useAppStore, type BrokerAccount } from "@/lib/store"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -11,28 +12,35 @@ import { Switch } from "@/components/ui/switch"
 import { 
   Settings, Building2, User, ShieldCheck, Bell, 
   Palette, Smartphone, Mail, Globe, Save, 
-  Briefcase, Fingerprint, Lock
+  Briefcase, Fingerprint, Lock, Users2, Plus, 
+  MoreVertical, ShieldAlert, BadgeCheck
 } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import { useSearchParams } from "next/navigation"
 import { useState, useEffect, Suspense } from "react"
+import { Badge } from "@/components/ui/badge"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 
 function SettingsContent() {
   const searchParams = useSearchParams()
   const [activeTab, setActiveTab] = useState("identity")
   
-  const agencyProfile = useAppStore(s => s.agencyProfile)
-  const updateAgencyProfile = useAppStore(s => s.updateAgencyProfile)
+  const { agencyProfile, updateAgencyProfile, brokers, addBroker } = useAppStore()
 
   useEffect(() => {
     const tab = searchParams.get("tab")
-    if (tab && ["identity", "branding", "alerts", "compliance"].includes(tab)) {
+    if (tab && ["identity", "branding", "alerts", "compliance", "team"].includes(tab)) {
       setActiveTab(tab)
     }
   }, [searchParams])
 
   const handleSave = () => {
     toast({ title: "Settings Saved", description: "Your preferences have been updated and synced locally." })
+  }
+
+  const handleAddUser = () => {
+    addBroker({ name: "New Broker", role: "broker", email: "", npn: "" })
+    toast({ title: "User Placeholder Added", description: "Edit the details in the team list below." })
   }
 
   return (
@@ -54,20 +62,19 @@ function SettingsContent() {
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="bg-muted p-1 rounded-2xl border shadow-sm mb-8 flex flex-wrap h-auto gap-1">
             <TabsTrigger value="identity" className="rounded-xl flex-1 min-w-[120px] py-2.5 text-xs font-black uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <Building2 className="w-4 h-4 mr-2" />
-              Identity
+              <Building2 className="w-4 h-4 mr-2" /> Identity
+            </TabsTrigger>
+            <TabsTrigger value="team" className="rounded-xl flex-1 min-w-[120px] py-2.5 text-xs font-black uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
+              <Users2 className="w-4 h-4 mr-2" /> Team
             </TabsTrigger>
             <TabsTrigger value="branding" className="rounded-xl flex-1 min-w-[120px] py-2.5 text-xs font-black uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <Palette className="w-4 h-4 mr-2" />
-              Branding
+              <Palette className="w-4 h-4 mr-2" /> Branding
             </TabsTrigger>
             <TabsTrigger value="alerts" className="rounded-xl flex-1 min-w-[120px] py-2.5 text-xs font-black uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <Bell className="w-4 h-4 mr-2" />
-              Alerts
+              <Bell className="w-4 h-4 mr-2" /> Alerts
             </TabsTrigger>
             <TabsTrigger value="compliance" className="rounded-xl flex-1 min-w-[120px] py-2.5 text-xs font-black uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-primary-foreground">
-              <ShieldCheck className="w-4 h-4 mr-2" />
-              Compliance
+              <ShieldCheck className="w-4 h-4 mr-2" /> Compliance
             </TabsTrigger>
           </TabsList>
 
@@ -101,173 +108,111 @@ function SettingsContent() {
                     <Label className="text-[10px] font-black uppercase tracking-widest text-foreground ml-1">
                       {agencyProfile.isSolo ? "Broker Name" : "Agency Name"}
                     </Label>
-                    <div className="relative group">
-                      <Building2 className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                      <Input 
-                        value={agencyProfile.name}
-                        onChange={(e) => updateAgencyProfile({ name: e.target.value })}
-                        className="rounded-xl pl-11 h-12 bg-background border-border/60 focus-visible:ring-primary text-foreground font-black"
-                      />
-                    </div>
+                    <Input 
+                      value={agencyProfile.name}
+                      onChange={(e) => updateAgencyProfile({ name: e.target.value })}
+                      className="rounded-xl h-12 bg-background border-border/60 text-foreground font-black pl-4"
+                    />
                   </div>
                   <div className="space-y-3">
                     <Label className="text-[10px] font-black uppercase tracking-widest text-foreground ml-1">License (NPN)</Label>
-                    <div className="relative group">
-                      <Briefcase className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                      <Input 
-                        value={agencyProfile.licenseNumber}
-                        onChange={(e) => updateAgencyProfile({ licenseNumber: e.target.value })}
-                        className="rounded-xl pl-11 h-12 bg-background border-border/60 font-mono text-foreground font-black"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-3">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-foreground ml-1">Public Phone</Label>
-                    <div className="relative group">
-                      <Smartphone className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                      <Input 
-                        value={agencyProfile.phone}
-                        onChange={(e) => updateAgencyProfile({ phone: e.target.value })}
-                        className="rounded-xl pl-11 h-12 bg-background border-border/60 text-foreground font-black"
-                      />
-                    </div>
-                  </div>
-                  <div className="space-y-3">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-foreground ml-1">Admin Email</Label>
-                    <div className="relative group">
-                      <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground group-focus-within:text-primary transition-colors" />
-                      <Input 
-                        value={agencyProfile.email}
-                        onChange={(e) => updateAgencyProfile({ email: e.target.value })}
-                        className="rounded-xl pl-11 h-12 bg-background border-border/60 text-foreground font-black"
-                      />
-                    </div>
+                    <Input 
+                      value={agencyProfile.licenseNumber}
+                      onChange={(e) => updateAgencyProfile({ licenseNumber: e.target.value })}
+                      className="rounded-xl h-12 bg-background border-border/60 font-mono text-foreground font-black pl-4"
+                    />
                   </div>
                 </div>
               </CardContent>
             </Card>
           </TabsContent>
 
-          <TabsContent value="branding" className="space-y-6 animate-in fade-in duration-300">
-            <Card className="rounded-3xl border shadow-sm bg-card">
-              <CardHeader>
-                <CardTitle className="text-sm font-black uppercase tracking-widest text-foreground flex items-center gap-2">
-                  <Palette className="w-4 h-4 text-primary" />
-                  White-Label Customization
-                </CardTitle>
-                <CardDescription className="text-xs font-bold text-muted-foreground/80">
-                  Customize the appearance of member notifications and the benefits summary mailers.
-                </CardDescription>
+          <TabsContent value="team" className="space-y-6 animate-in fade-in duration-300">
+            <Card className="rounded-3xl border shadow-sm bg-card overflow-hidden">
+              <CardHeader className="flex flex-row items-center justify-between border-b bg-muted/10">
+                <div>
+                  <CardTitle className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
+                    <Users2 className="w-4 h-4 text-primary" />
+                    Individualized Team Accounts
+                  </CardTitle>
+                  <CardDescription className="text-xs font-bold text-muted-foreground/80">Manage access levels and NPNs for your brokers.</CardDescription>
+                </div>
+                <Button onClick={handleAddUser} size="sm" className="rounded-xl font-bold bg-primary hover:bg-primary/90 text-white">
+                  <Plus className="w-4 h-4 mr-2" /> Add User
+                </Button>
               </CardHeader>
-              <CardContent className="space-y-8">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-                  <div className="space-y-4">
-                    <Label className="text-xs font-black uppercase tracking-widest text-foreground">Primary Branding Color</Label>
-                    <div className="flex gap-4 items-center">
-                      <div 
-                        className="w-16 h-16 rounded-2xl border-4 border-background shadow-xl shrink-0" 
-                        style={{ backgroundColor: agencyProfile.primaryColor || '#B08627' }}
-                      />
-                      <div className="flex-1 space-y-2">
-                        <Input 
-                          type="text" 
-                          placeholder="#B08627" 
-                          className="h-10 rounded-xl font-mono text-xs text-foreground font-black" 
-                          value={agencyProfile.primaryColor}
-                          onChange={(e) => updateAgencyProfile({ primaryColor: e.target.value })}
-                        />
-                        <p className="text-[10px] text-muted-foreground font-bold">Used for PDF headers and button highlights.</p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="space-y-4">
-                    <Label className="text-xs font-black uppercase tracking-widest text-foreground">Agency Logo (High Res)</Label>
-                    <div className="border-2 border-dashed border-muted rounded-2xl p-8 flex flex-col items-center justify-center gap-3 bg-muted/5 cursor-pointer hover:bg-muted/10 transition-all">
-                      <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center text-muted-foreground">
-                        <Globe className="w-6 h-6" />
-                      </div>
-                      <span className="text-[10px] font-black uppercase tracking-widest text-primary">Upload SVG or PNG</span>
-                    </div>
+              <CardContent className="p-0">
+                <Table>
+                  <TableHeader>
+                    <TableRow className="bg-muted/30 border-none">
+                      <TableHead className="font-black text-[10px] uppercase px-8">Account</TableHead>
+                      <TableHead className="font-black text-[10px] uppercase">Role</TableHead>
+                      <TableHead className="font-black text-[10px] uppercase">NPN (Individual)</TableHead>
+                      <TableHead className="font-black text-[10px] uppercase">Status</TableHead>
+                      <TableHead className="text-right px-8 font-black text-[10px] uppercase">Action</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {brokers.map((broker) => (
+                      <TableRow key={broker.id} className="border-border/50">
+                        <TableCell className="px-8 font-bold text-sm">
+                          <div className="flex flex-col">
+                            <span>{broker.name}</span>
+                            <span className="text-[10px] text-muted-foreground lowercase">{broker.email}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="text-[9px] uppercase font-black tracking-tighter">
+                            {broker.role}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="font-mono text-[11px] font-bold">{broker.npn || 'N/A'}</TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-1.5 text-emerald-600">
+                            <BadgeCheck className="w-3.5 h-3.5" />
+                            <span className="text-[10px] font-black uppercase">Active</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-right px-8">
+                          <Button variant="ghost" size="icon" className="rounded-xl h-8 w-8">
+                            <MoreVertical className="w-4 h-4" />
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="branding" className="space-y-6">
+            <Card className="rounded-3xl border shadow-sm bg-card p-6">
+              <CardTitle className="text-sm font-black uppercase mb-4">White-Label Customization</CardTitle>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div className="space-y-4">
+                  <Label className="text-xs font-black uppercase">Primary Branding Color</Label>
+                  <div className="flex gap-4 items-center">
+                    <div className="w-12 h-12 rounded-xl bg-primary shadow-inner" />
+                    <Input className="font-mono text-xs" value={agencyProfile.primaryColor} readOnly />
                   </div>
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="alerts" className="space-y-6 animate-in fade-in duration-300">
-            <Card className="rounded-3xl border shadow-sm bg-card">
-              <CardHeader>
-                <CardTitle className="text-sm font-black uppercase tracking-widest text-foreground flex items-center gap-2">
-                  <Bell className="w-4 h-4 text-primary" />
-                  Global Alert Routing
-                </CardTitle>
-                <CardDescription className="text-xs font-bold text-muted-foreground/80">
-                  Configure how and when your team receives automated retention notifications.
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {[
-                  { label: "Module 1: CMS Switch SMS", desc: "Text the owner/broker the second a switch is detected." },
-                  { label: "Module 2: Call Escalation Email", desc: "Send admin email if Maya AI detects dissatisfaction." },
-                  { label: "Module 3: Chronic Fax Confirmation", desc: "Notify when physician returns signed SSBCI form." },
-                  { label: "Daily Retention Summary", desc: "Morning briefing email with at-risk member counts." }
-                ].map((notif, i) => (
-                  <div key={i} className="flex items-center justify-between p-5 rounded-2xl border bg-muted/10">
-                    <div className="space-y-1">
-                      <Label className="text-sm font-black text-foreground">{notif.label}</Label>
-                      <p className="text-[11px] text-muted-foreground font-bold leading-relaxed">{notif.desc}</p>
-                    </div>
-                    <Switch defaultChecked />
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="compliance" className="space-y-6 animate-in fade-in duration-300">
-            <Card className="rounded-3xl border shadow-sm bg-slate-900 text-white overflow-hidden relative group">
-              <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
-                <Lock className="w-32 h-32" />
               </div>
-              <CardHeader className="relative z-10">
-                <CardTitle className="text-sm font-black uppercase tracking-widest text-white flex items-center gap-2">
-                  <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                  Security & BAA Status
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-8 relative z-10">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="p-5 rounded-2xl bg-white/5 border border-white/10 space-y-3">
-                    <div className="flex justify-between items-start">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">AWS Bedrock BAA</span>
-                      <div className="px-2 py-0.5 bg-emerald-500/20 text-emerald-400 rounded text-[8px] font-bold">SIGNED</div>
-                    </div>
-                    <p className="text-[11px] text-slate-200 font-bold leading-relaxed">
-                      Covers all Claude 3.5 Sonnet processing of PHI data under HIPAA Business Associate standards.
-                    </p>
-                  </div>
-                  <div className="p-5 rounded-2xl bg-white/5 border border-white/10 space-y-3">
-                    <div className="flex justify-between items-start">
-                      <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">MFA Status</span>
-                      <div className="px-2 py-0.5 bg-amber-500/20 text-amber-400 rounded text-[8px] font-bold">REQUIRED</div>
-                    </div>
-                    <p className="text-[11px] text-slate-200 font-bold leading-relaxed">
-                      Agency-wide biometric MFA is enforced for all broker logins to protect member health records.
-                    </p>
-                  </div>
-                </div>
+            </Card>
+          </TabsContent>
 
-                <div className="pt-6 flex flex-col md:flex-row md:items-center justify-between border-t border-white/10 gap-4">
-                  <div className="flex items-center gap-3">
-                    <Fingerprint className="w-5 h-5 text-primary" />
-                    <span className="text-xs font-black uppercase tracking-widest text-slate-300">Encryption Key:</span>
-                    <code className="text-[10px] bg-white/10 px-3 py-1.5 rounded-lg font-mono text-emerald-400">MS-AES-256-***-B9</code>
-                  </div>
-                  <Button variant="link" className="text-xs font-black uppercase tracking-widest text-slate-400 hover:text-white p-0 h-auto">
-                    Review Audit History
-                  </Button>
+          <TabsContent value="compliance" className="space-y-6">
+            <Card className="rounded-3xl border shadow-sm bg-slate-900 text-white p-8 overflow-hidden relative">
+              <div className="absolute top-0 right-0 p-6 opacity-10"><Lock className="w-32 h-32" /></div>
+              <CardTitle className="text-sm font-black uppercase tracking-widest text-emerald-400 flex items-center gap-2 mb-6">
+                <ShieldCheck className="w-5 h-5" /> HIPAA BAA Compliance Lock
+              </CardTitle>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative z-10">
+                <div className="p-5 rounded-2xl bg-white/5 border border-white/10">
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Team MFA</span>
+                  <p className="text-[11px] text-slate-200 mt-2">Enforced for all individualized broker accounts.</p>
                 </div>
-              </CardContent>
+              </div>
             </Card>
           </TabsContent>
         </Tabs>
