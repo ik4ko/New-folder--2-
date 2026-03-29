@@ -8,11 +8,10 @@ import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { 
   Activity, TrendingUp, Users, ShieldCheck, Printer, 
-  Zap, PhoneCall, ArrowUpRight, Building2, Clock,
-  DollarSign, Banknote, Settings, ShieldAlert, Calendar
+  Zap, PhoneCall, ArrowUpRight, Clock,
+  DollarSign, Sparkles
 } from "lucide-react"
 import Link from "next/link"
-import { Progress } from "@/components/ui/progress"
 import { Button } from "@/components/ui/button"
 
 export default function Dashboard() {
@@ -30,15 +29,11 @@ export default function Dashboard() {
       : 0
     const pendingFaxes = members.filter(m => m.ssbciStatus === 'pending-fax').length
     
-    // Revenue simulation
-    const atRiskRevenue = churnRisks.length * 600
-    
     return {
       totalMembers,
       avgRetention,
       churnRisks: churnRisks.length,
-      pendingFaxes,
-      atRiskRevenue
+      pendingFaxes
     }
   }, [members])
 
@@ -48,267 +43,163 @@ export default function Dashboard() {
       .slice(0, 5)
   }, [members])
 
-  const botTasks = useMemo(() => {
-    const tasks = []
-    
-    const faxPending = members.filter(m => m.ssbciStatus === 'pending-fax').length
-    if (faxPending > 0) tasks.push({ label: "Module 3: Chronic Fax", detail: `${faxPending} packages ready`, icon: Printer, color: "text-primary", status: "Queue" })
-    
-    const callsScheduled = members.filter(m => m.checkInStatus === 'scheduled').length
-    if (callsScheduled > 0) tasks.push({ label: "Module 2: Maya Call", detail: `${callsScheduled} check-ins queued`, icon: PhoneCall, color: "text-secondary", status: "Active" })
-    
-    const riskAlerts = members.filter(m => m.status === 'churn-risk').length
-    if (riskAlerts > 0) tasks.push({ label: "Module 1: MARx Sync", detail: `${riskAlerts} alerts detected`, icon: Activity, color: "text-destructive", status: "Alert" })
-    
-    return tasks.slice(0, 3)
-  }, [members])
-
   return (
-    <div className="flex h-full w-full bg-background">
+    <div className="flex h-full w-full bg-background overflow-hidden">
       <CollectionSidebar />
       
-      <div className="flex-1 overflow-y-auto p-8 space-y-8 bg-background">
-        <div className="flex items-end justify-between">
-          <div>
-            <h1 className="text-3xl font-black tracking-tight text-foreground uppercase">Retention Command Center</h1>
-            <p className="text-muted-foreground mt-1 font-bold italic">Autonomous Medicare Monitoring & Member Protection</p>
-          </div>
-          <div className="flex gap-3">
-            <div className="flex items-center gap-2 px-4 py-1.5 bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full text-[10px] font-black uppercase tracking-widest shadow-sm">
-              <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-              CMS MARx: ONLINE
-            </div>
-            <div className="flex items-center gap-2 px-4 py-1.5 bg-primary text-white rounded-full text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/20">
-              <Zap className="w-3 h-3" />
-              CLAUDE 3.5: ACTIVE
-            </div>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <Card className="shadow-sm border-border bg-card rounded-3xl overflow-hidden">
-            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-              <CardTitle className="text-[10px] font-black uppercase tracking-widest text-foreground">Book of Business</CardTitle>
-              <Users className="w-4 h-4 text-primary" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-black text-foreground">{stats.totalMembers}</div>
-              <p className="text-[10px] text-emerald-700 flex items-center gap-1 mt-1 font-black uppercase tracking-tight">
-                <TrendingUp className="w-3 h-3" />
-                Live Roster Connected
+      <div className="flex-1 flex flex-col h-full bg-background overflow-hidden">
+        <div className="flex-1 overflow-y-auto p-10 space-y-10">
+          {/* Header */}
+          <div className="flex items-start justify-between">
+            <div className="space-y-1.5">
+              <h1 className="text-4xl font-black tracking-tight text-foreground">Retention Command Center</h1>
+              <p className="text-muted-foreground font-medium text-lg max-w-2xl">
+                Autonomous Medicare Monitoring & Member Protection
               </p>
-            </CardContent>
-          </Card>
-          
-          <Card className="shadow-sm border-border bg-card rounded-3xl overflow-hidden">
-            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-              <CardTitle className="text-[10px] font-black uppercase tracking-widest text-foreground">Avg. Retention Score</CardTitle>
-              <ShieldCheck className="w-4 h-4 text-primary" />
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <div className="text-3xl font-black text-foreground">{stats.avgRetention}%</div>
-              <Progress value={stats.avgRetention} className="h-1.5 bg-muted" />
-            </CardContent>
-          </Card>
+            </div>
+            <div className="flex gap-3">
+              <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 px-4 py-1.5 h-10 gap-2 font-black uppercase tracking-widest">
+                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                CMS MARx: Active
+              </Badge>
+              <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 px-4 py-1.5 h-10 gap-2 font-black uppercase tracking-widest">
+                <Zap className="w-3.5 h-3.5" />
+                GHL Sync: Enabled
+              </Badge>
+            </div>
+          </div>
 
-          <Card className="shadow-sm border-destructive/20 bg-destructive/5 rounded-3xl overflow-hidden">
-            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-              <CardTitle className="text-[10px] font-black uppercase text-destructive tracking-widest">Revenue at Risk</CardTitle>
-              <DollarSign className="w-4 h-4 text-destructive" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-black text-destructive">-${stats.atRiskRevenue.toLocaleString()}</div>
-              <p className="text-[10px] text-destructive font-black uppercase tracking-widest animate-pulse">
-                Projected Churn Impact
-              </p>
-            </CardContent>
-          </Card>
-
-          <Card className="shadow-sm border-border bg-card rounded-3xl overflow-hidden">
-            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-              <CardTitle className="text-[10px] font-black uppercase tracking-widest text-foreground">SSBCI Fax Queue</CardTitle>
-              <Printer className="w-4 h-4 text-primary" />
-            </CardHeader>
-            <CardContent>
-              <div className="text-3xl font-black text-foreground">
-                {stats.pendingFaxes}
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+            {/* Stats Cards */}
+            <Card className="bg-muted/30 border-none rounded-[2rem] p-4 flex flex-col justify-between min-h-[200px]">
+              <div className="flex justify-between items-start">
+                <span className="text-xs font-black uppercase tracking-widest text-muted-foreground">Book of <br />Business</span>
+                <Users className="w-4 h-4 text-primary opacity-50" />
               </div>
-              <p className="text-[10px] text-muted-foreground mt-1 font-black uppercase tracking-tight">
-                Module 3: chronic SNPs
-              </p>
-            </CardContent>
-          </Card>
-        </div>
+              <div>
+                <div className="text-5xl font-black mb-2">{stats.totalMembers}</div>
+                <div className="text-[10px] font-black uppercase text-emerald-500">+4% growth this month</div>
+              </div>
+            </Card>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-6">
-            <Card className="shadow-sm border-border bg-card overflow-hidden rounded-3xl">
-              <CardHeader className="bg-muted/30 border-b border-border py-4">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary">
-                      <Activity className="w-4 h-4" />
-                    </div>
-                    <CardTitle className="text-sm font-black uppercase tracking-tight text-foreground">
-                      Monitoring Queue
-                    </CardTitle>
-                  </div>
-                  <Button variant="ghost" size="sm" asChild className="text-primary font-black text-[10px] uppercase tracking-widest hover:bg-primary/5">
-                    <Link href="/members">View Full Roster <ArrowUpRight className="w-3 h-3 ml-1" /></Link>
-                  </Button>
+            <Card className="bg-muted/30 border-none rounded-[2rem] p-4 flex flex-col justify-between min-h-[200px]">
+              <div className="flex justify-between items-start">
+                <span className="text-xs font-black uppercase tracking-widest text-muted-foreground">Avg <br />Retention Score</span>
+                <ShieldCheck className="w-4 h-4 text-emerald-500 opacity-50" />
+              </div>
+              <div>
+                <div className="text-5xl font-black mb-2">{stats.avgRetention}%</div>
+                <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden mt-4">
+                  <div className="h-full bg-emerald-500" style={{ width: `${stats.avgRetention}%` }} />
                 </div>
-              </CardHeader>
-              <CardContent className="p-0">
+              </div>
+            </Card>
+
+            <Card className="bg-muted/30 border-none rounded-[2rem] p-4 flex flex-col justify-between min-h-[200px]">
+              <div className="flex justify-between items-start">
+                <span className="text-xs font-black uppercase tracking-widest text-destructive">CMS <br />Switch Alerts</span>
+                <Activity className="w-4 h-4 text-destructive opacity-50" />
+              </div>
+              <div>
+                <div className="text-5xl font-black text-destructive mb-2">{stats.churnRisks}</div>
+                <div className="text-[10px] font-black uppercase text-destructive">Action Required (24h Window)</div>
+              </div>
+            </Card>
+
+            <Card className="bg-muted/30 border-none rounded-[2rem] p-4 flex flex-col justify-between min-h-[200px]">
+              <div className="flex justify-between items-start">
+                <span className="text-xs font-black uppercase tracking-widest text-muted-foreground">Pending <br />SSBCI Faxes</span>
+                <Printer className="w-4 h-4 text-primary opacity-50" />
+              </div>
+              <div>
+                <div className="text-5xl font-black mb-2">{stats.pendingFaxes}</div>
+                <div className="text-[10px] font-black uppercase text-muted-foreground">Auto-generation active</div>
+              </div>
+            </Card>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
+            {/* Change Detection Table */}
+            <div className="lg:col-span-2 space-y-6">
+              <div className="flex items-end justify-between px-2">
+                <h3 className="text-2xl font-black tracking-tight">Active Change Detection</h3>
+                <Button variant="link" className="text-primary font-bold text-sm uppercase tracking-widest h-auto p-0" asChild>
+                  <Link href="/members">View All <ArrowUpRight className="ml-1 w-4 h-4" /></Link>
+                </Button>
+              </div>
+              <div className="rounded-[2rem] bg-muted/20 border-none overflow-hidden">
                 <Table>
                   <TableHeader>
-                    <TableRow className="bg-muted/50 hover:bg-muted/50 border-none">
-                      <TableHead className="font-black text-[10px] uppercase tracking-widest text-foreground h-10 px-6">Member</TableHead>
-                      <TableHead className="font-black text-[10px] uppercase tracking-widest text-foreground h-10">Active Plan</TableHead>
-                      <TableHead className="font-black text-[10px] uppercase tracking-widest text-foreground h-10 text-center">Module 1</TableHead>
-                      <TableHead className="font-black text-[10px] uppercase tracking-widest text-foreground h-10 text-center">Health</TableHead>
-                      <TableHead className="text-right font-black text-[10px] uppercase tracking-widest text-foreground h-10 px-6">Action</TableHead>
+                    <TableRow className="border-none hover:bg-transparent">
+                      <TableHead className="font-black uppercase tracking-widest text-[10px] py-6 px-8">Member</TableHead>
+                      <TableHead className="font-black uppercase tracking-widest text-[10px]">Current Carrier</TableHead>
+                      <TableHead className="font-black uppercase tracking-widest text-[10px]">Status</TableHead>
+                      <TableHead className="font-black uppercase tracking-widest text-[10px]">Protection</TableHead>
+                      <TableHead className="text-right font-black uppercase tracking-widest text-[10px] px-8">Act</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {recentActivity.map((member) => (
-                      <TableRow key={member.id} className="hover:bg-primary/5 transition-colors border-border/50">
-                        <TableCell className="px-6 py-4">
-                          <div className="flex flex-col">
-                            <span className="font-black text-foreground text-sm">{member.fullName}</span>
-                            <span className="text-[9px] text-muted-foreground font-mono font-bold uppercase">{member.medicareId}</span>
-                          </div>
-                        </TableCell>
+                      <TableRow key={member.id} className="border-border/50 hover:bg-muted/30 transition-colors">
+                        <TableCell className="font-bold py-5 px-8">{member.fullName}</TableCell>
+                        <TableCell className="text-xs font-medium text-muted-foreground">{member.carrier}</TableCell>
                         <TableCell>
-                          <div className="flex flex-col">
-                            <span className="text-[11px] text-foreground font-black uppercase tracking-tight">{member.carrier}</span>
-                            <span className="text-[9px] text-muted-foreground font-bold truncate max-w-[120px]">{member.planName}</span>
-                          </div>
-                        </TableCell>
-                        <TableCell className="text-center">
                           <Badge 
-                            variant={member.status === 'churn-risk' ? 'destructive' : 'secondary'} 
-                            className="rounded-md uppercase text-[8px] px-2 py-0.5 font-black tracking-widest"
+                            variant={member.status === 'churn-risk' ? 'destructive' : 'outline'} 
+                            className="rounded-md uppercase text-[9px] font-black px-2"
                           >
                             {member.status === 'churn-risk' ? 'Switch Detected' : 'Shielded'}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-center">
-                          <div className="flex items-center justify-center gap-2">
-                            <div className={`w-1.5 h-1.5 rounded-full ${member.retentionScore > 80 ? 'bg-emerald-500' : member.retentionScore > 50 ? 'bg-amber-500' : 'bg-destructive'}`} />
-                            <span className="text-[10px] font-black text-foreground">{member.retentionScore}%</span>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <div className={`w-1.5 h-1.5 rounded-full ${member.retentionScore > 80 ? 'bg-emerald-500' : 'bg-amber-500'}`} />
+                            <span className="text-xs font-black">{member.retentionScore}%</span>
                           </div>
                         </TableCell>
-                        <TableCell className="text-right px-6">
-                          <Button variant="outline" size="sm" asChild className="h-7 px-3 text-[9px] font-black uppercase tracking-tighter border-border text-foreground hover:bg-primary/5 rounded-xl transition-all shadow-sm">
-                            <Link href={`/members/${member.id}`}>Details</Link>
+                        <TableCell className="text-right px-8">
+                          <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-primary/10 hover:text-primary transition-all" asChild>
+                            <Link href={`/members/${member.id}`}><ArrowUpRight className="w-4 h-4" /></Link>
                           </Button>
                         </TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
                 </Table>
-              </CardContent>
-            </Card>
-
-            <Card className="shadow-sm border-border bg-card rounded-3xl overflow-hidden">
-              <CardHeader className="bg-muted/30 border-b border-border py-4">
-                <CardTitle className="text-sm font-black uppercase tracking-tight flex items-center gap-2 text-foreground">
-                  <Settings className="w-4 h-4 text-primary" />
-                  System Management
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="p-6">
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <Button variant="outline" asChild className="h-20 flex-col gap-2 rounded-2xl border-border hover:bg-primary/5 hover:border-primary/30 transition-all group">
-                    <Link href="/settings?tab=identity">
-                      <Building2 className="w-5 h-5 text-primary group-hover:scale-110 transition-transform" />
-                      <span className="text-[10px] font-black uppercase tracking-widest">Identity</span>
-                    </Link>
-                  </Button>
-                  <Button variant="outline" asChild className="h-20 flex-col gap-2 rounded-2xl border-border hover:bg-primary/5 hover:border-primary/30 transition-all group">
-                    <Link href="/settings?tab=team">
-                      <Users className="w-5 h-5 text-primary group-hover:scale-110 transition-transform" />
-                      <span className="text-[10px] font-black uppercase tracking-widest">Team</span>
-                    </Link>
-                  </Button>
-                  <Button variant="outline" asChild className="h-20 flex-col gap-2 rounded-2xl border-border hover:bg-primary/5 hover:border-primary/30 transition-all group">
-                    <Link href="/accounting">
-                      <Banknote className="w-5 h-5 text-primary group-hover:scale-110 transition-transform" />
-                      <span className="text-[10px] font-black uppercase tracking-widest">Finance</span>
-                    </Link>
-                  </Button>
-                  <Button variant="outline" asChild className="h-20 flex-col gap-2 rounded-2xl border-border hover:bg-primary/5 hover:border-primary/30 transition-all group">
-                    <Link href="/settings?tab=compliance">
-                      <ShieldAlert className="w-5 h-5 text-primary group-hover:scale-110 transition-transform" />
-                      <span className="text-[10px] font-black uppercase tracking-widest">Compliance</span>
-                    </Link>
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          <div className="space-y-6">
-            <Card className="shadow-sm border-border bg-primary/5 relative overflow-hidden group rounded-3xl border-none">
-              <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
-                <Zap className="w-24 h-24 text-primary" />
               </div>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-[10px] font-black uppercase tracking-widest text-primary flex items-center gap-2">
-                  <Zap className="w-4 h-4 text-primary" />
-                  MediStay AI Insights
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="p-4 rounded-2xl bg-white border border-primary/10 text-[11px] leading-relaxed text-foreground font-bold shadow-sm">
-                  <span className="font-black text-primary uppercase text-[10px] block mb-1 underline decoration-primary/20 underline-offset-4">Module 5: AEP SHIELD</span> 
-                  {stats.churnRisks > 0 ? `${stats.churnRisks} high-risk members detected in current MARx poll. Triggering pre-emptive loyalty flows.` : "Roster fully protected. No disenrollment risks detected in latest snapshot."}
-                </div>
-                <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-100 text-[11px] leading-relaxed text-emerald-800 font-bold shadow-sm">
-                  <span className="font-black text-emerald-700 uppercase text-[10px] block mb-1">PROFITABILITY ALERT</span> 
-                  Agency retention ROI is currently at <strong>92%</strong>. Projected commission savings for Q4: <strong>${(stats.totalMembers * 150).toLocaleString()}</strong>.
-                </div>
-                <Button className="w-full text-[10px] font-black uppercase tracking-widest bg-primary hover:bg-primary/90 text-white rounded-2xl shadow-lg shadow-primary/20" asChild>
-                  <Link href="/ai">
-                    <Calendar className="w-3 h-3 mr-2" /> Launch Retention AI
-                  </Link>
-                </Button>
-              </CardContent>
-            </Card>
+            </div>
 
-            <Card className="shadow-sm border-border bg-card rounded-3xl overflow-hidden">
-              <CardHeader className="pb-2 bg-muted/30 border-b border-border">
-                <CardTitle className="text-[10px] font-black uppercase tracking-widest text-foreground">Active Bot Task Queue</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4 p-6">
-                {botTasks.length > 0 ? botTasks.map((act, i) => (
-                  <div key={i} className="flex items-center justify-between text-[11px] border-b border-border pb-3 last:border-0 last:pb-0">
-                    <div className="flex items-center gap-3">
-                      <div className="w-7 h-7 rounded-lg bg-muted flex items-center justify-center border border-border/50">
-                        <act.icon className={`w-3.5 h-3.5 ${act.color}`} />
-                      </div>
-                      <div>
-                        <p className="text-foreground font-black uppercase tracking-tight">{act.label}</p>
-                        <p className="text-[9px] text-muted-foreground font-black uppercase tracking-tighter italic">{act.detail}</p>
-                      </div>
-                    </div>
-                    <Badge variant="outline" className="text-[8px] font-black uppercase py-0 px-1.5 border-border text-foreground">
-                      {act.status}
-                    </Badge>
+            {/* AI Insights Sidebar */}
+            <div className="space-y-6">
+              <div className="flex items-center gap-3 px-2">
+                <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+                  <Sparkles className="w-5 h-5" />
+                </div>
+                <h3 className="text-lg font-black tracking-tight text-primary">Retention AI <br />Insights</h3>
+              </div>
+              
+              <div className="space-y-4">
+                <Card className="bg-primary/5 border border-primary/10 rounded-[2rem] p-6 space-y-4">
+                  <div className="space-y-2">
+                    <div className="text-xs font-black uppercase text-primary tracking-widest">AEP Shield Ready:</div>
+                    <p className="text-xs text-muted-foreground leading-relaxed font-medium">
+                      September pre-emptive campaign is scheduled for {stats.totalMembers} members. High-risk segments identified based on market volatility.
+                    </p>
                   </div>
-                )) : (
-                  <div className="py-4 text-center text-muted-foreground italic text-[10px] font-black uppercase tracking-widest">
-                    All bots idle (100% Sync)
+                  <div className="h-px bg-primary/10" />
+                  <div className="space-y-2">
+                    <div className="text-xs font-black uppercase text-emerald-500 tracking-widest">LIS Opportunity:</div>
+                    <p className="text-xs text-muted-foreground leading-relaxed font-medium">
+                      {members.filter(m => m.medicareMedicaidStatus === 'Medicare').length} members likely eligible for Extra Help based on local income markers.
+                    </p>
                   </div>
-                )}
-                {botTasks.length > 0 && (
-                  <div className="flex items-center gap-2 text-[9px] text-muted-foreground font-black pt-2 italic uppercase opacity-60">
-                    <Clock className="w-3 h-3" />
-                    Last MARx polling: Just now
-                  </div>
-                )}
-              </CardContent>
-            </Card>
+                </Card>
+
+                <Button className="w-full h-14 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest shadow-lg shadow-primary/20" asChild>
+                  <Link href="/ai">Run Strategy Agent</Link>
+                </Button>
+              </div>
+            </div>
           </div>
         </div>
       </div>
