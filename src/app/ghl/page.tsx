@@ -80,7 +80,7 @@ export default function GHLIntegrationPage() {
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-8 max-w-5xl mx-auto w-full space-y-8 bg-[#F7F4F0]/30 dark:bg-background">
+        <div className="flex-1 overflow-y-auto p-8 max-w-5xl mx-auto w-full space-y-8 bg-slate-50/30 dark:bg-background">
           <Card className="rounded-3xl border shadow-sm overflow-hidden bg-card">
             <CardHeader className="bg-muted/30 border-b pb-6">
               <div className="flex items-center justify-between">
@@ -136,7 +136,7 @@ export default function GHLIntegrationPage() {
                           </button>
                         </div>
                         <div className="flex items-center justify-between px-1">
-                          <p className="text-[10px] text-muted-foreground italic">Found in GHL Settings &gt; Business Profile &gt; API Key</p>
+                          <p className="text-[10px] text-muted-foreground italic">Found in GHL Settings {' > '} Business Profile {' > '} API Key</p>
                           <Button variant="link" className="h-auto p-0 text-[10px] font-bold">Where is this?</Button>
                         </div>
                       </div>

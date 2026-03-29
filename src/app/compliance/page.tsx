@@ -74,7 +74,7 @@ export default function ComplianceVaultPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-black text-emerald-700">99.2%</div>
-                <p className="text-[10px] text-emerald-600/70 mt-1 font-bold">Audit Target: >95%</p>
+                <p className="text-[10px] text-emerald-600/70 mt-1 font-bold">Audit Target: &gt;95%</p>
               </CardContent>
             </Card>
             <Card className="rounded-3xl border-none shadow-sm bg-primary/5">
