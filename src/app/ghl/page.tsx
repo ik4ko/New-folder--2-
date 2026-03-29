@@ -6,9 +6,8 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { 
-  Link2, RefreshCw, CircleCheck, History, Database, 
-  Key, Webhook, Settings2, Copy, 
-  ShieldCheck, Search, Calendar, Smartphone, 
+  Link2, RefreshCw, CircleCheck, Webhook, Settings2, Copy, 
+  ShieldCheck, Database, Key, Calendar, Smartphone, 
   ChevronRight, Briefcase, ListFilter
 } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
@@ -27,7 +26,6 @@ export default function GHLIntegrationPage() {
   
   const [loading, setLoading] = useState(false)
   const [verifying, setVerifying] = useState(false)
-  const [showKey, setShowKey] = useState(false)
 
   const handleManualSync = () => {
     setLoading(true)
@@ -82,7 +80,7 @@ export default function GHLIntegrationPage() {
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-black uppercase tracking-tight text-foreground underline decoration-primary/30 underline-offset-4">01. Connection Status</h2>
-                <p className="text-xs text-muted-foreground font-bold mt-1">Manage the handshake between your agency CRM and MediStay Intelligence.</p>
+                <p className="text-xs text-muted-foreground font-black mt-1 uppercase opacity-70">Manage the handshake between your agency CRM and MediStay Intelligence.</p>
               </div>
               <div className="flex items-center gap-3 bg-card p-2 rounded-2xl border border-border shadow-sm px-4">
                 <span className="text-[10px] font-black uppercase text-foreground tracking-widest">Live Link</span>
@@ -101,22 +99,20 @@ export default function GHLIntegrationPage() {
                 <CardContent className="space-y-6">
                   <div className="grid gap-3">
                     <Label className="text-[10px] font-black uppercase tracking-widest text-foreground ml-1">API V2 Location Key</Label>
-                    <div className="relative group">
-                      <Input 
-                        type={showKey ? "text" : "password"}
-                        placeholder="ghl_loc_xxxxxxxxxxxxxxxxxxxx" 
-                        className="rounded-xl pl-4 pr-12 font-mono text-xs border-border h-12 bg-background shadow-inner focus-visible:ring-primary font-bold text-foreground"
-                        value={ghlSettings.apiKey || (isGHLConnected ? "pit_live_key_managed_by_medistay" : "")}
-                        onChange={(e) => updateGHLSettings({ apiKey: e.target.value })}
-                      />
-                    </div>
+                    <Input 
+                      type="password"
+                      placeholder="ghl_loc_xxxxxxxxxxxxxxxxxxxx" 
+                      className="rounded-xl pl-4 pr-12 font-mono text-xs border-border h-12 bg-background shadow-inner focus-visible:ring-primary font-black text-foreground"
+                      value={ghlSettings.apiKey || (isGHLConnected ? "pit_live_key_managed_by_medistay" : "")}
+                      onChange={(e) => updateGHLSettings({ apiKey: e.target.value })}
+                    />
                   </div>
 
                   <div className="grid gap-3">
                     <Label className="text-[10px] font-black uppercase tracking-widest text-foreground ml-1">Location ID</Label>
                     <Input 
                       placeholder="e.g. zXy992011Lk..." 
-                      className="rounded-xl px-4 font-mono text-xs border-border h-12 bg-background shadow-inner font-bold text-foreground"
+                      className="rounded-xl px-4 font-mono text-xs border-border h-12 bg-background shadow-inner font-black text-foreground"
                       value={ghlSettings.locationId}
                       onChange={(e) => updateGHLSettings({ locationId: e.target.value })}
                     />
@@ -125,7 +121,7 @@ export default function GHLIntegrationPage() {
                   <Button 
                     onClick={handleVerify} 
                     disabled={verifying}
-                    className="w-full rounded-xl h-12 font-black uppercase tracking-widest bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20"
+                    className="w-full rounded-xl h-12 font-black uppercase tracking-widest bg-primary hover:bg-primary/90 text-white shadow-lg shadow-primary/20 text-[10px]"
                   >
                     {verifying ? <RefreshCw className="w-4 h-4 animate-spin mr-2" /> : <ShieldCheck className="w-4 h-4 mr-2" />}
                     {isGHLConnected ? "Re-verify Connection" : "Initiate Connection"}
@@ -141,7 +137,7 @@ export default function GHLIntegrationPage() {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <p className="text-[11px] text-foreground font-bold leading-relaxed">
+                  <p className="text-[11px] text-foreground font-black leading-relaxed uppercase opacity-80">
                     To detect plan changes instantly as they are typed into GHL, create a <strong>GHL Workflow</strong> triggered by 'Contact Changed' and use this URL.
                   </p>
                   <div className="flex gap-2">
@@ -171,7 +167,7 @@ export default function GHLIntegrationPage() {
           <section id="field-mapping" className="space-y-6">
             <div>
               <h2 className="text-lg font-black uppercase tracking-tight text-foreground underline decoration-primary/30 underline-offset-4">02. CRM Field Mapping</h2>
-              <p className="text-xs text-muted-foreground font-bold mt-1">Map MediStay retention logic to your specific GoHighLevel Custom Field keys.</p>
+              <p className="text-xs text-muted-foreground font-black mt-1 uppercase opacity-70">Map MediStay retention logic to your specific GoHighLevel Custom Field keys.</p>
             </div>
 
             <Card className="rounded-3xl border border-border shadow-sm bg-card overflow-hidden">
@@ -205,7 +201,7 @@ export default function GHLIntegrationPage() {
                       <div className="flex items-center gap-3">
                         <Input 
                           placeholder={field.placeholder}
-                          className="rounded-xl text-xs h-12 bg-background shadow-inner border-border font-black text-foreground focus-visible:ring-primary"
+                          className="rounded-xl text-xs h-12 bg-background shadow-inner border-border font-black text-foreground focus-visible:ring-primary uppercase tracking-tight"
                           value={ghlSettings.fieldMapping[field.key as keyof typeof ghlSettings.fieldMapping]}
                           onChange={(e) => {
                             const newMapping = { ...ghlSettings.fieldMapping, [field.key]: e.target.value };
@@ -220,44 +216,6 @@ export default function GHLIntegrationPage() {
                   ))}
                 </div>
               </CardContent>
-            </Card>
-          </section>
-
-          <Separator className="opacity-50" />
-
-          {/* Section 3: Automations */}
-          <section id="automations" className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-black uppercase tracking-tight text-foreground underline decoration-primary/30 underline-offset-4">03. Event Automations</h2>
-                <p className="text-xs text-muted-foreground font-bold mt-1">Configure what actions MediStay triggers in your CRM when risk is detected.</p>
-              </div>
-              <div className="flex items-center gap-4">
-                <span className="text-[10px] font-black uppercase text-foreground">Sync Frequency</span>
-                <Select value={ghlSettings.syncFrequency} onValueChange={(val: any) => updateGHLSettings({ syncFrequency: val })}>
-                  <SelectTrigger className="h-10 w-40 rounded-xl bg-card border border-border shadow-sm text-[10px] font-black uppercase">
-                    <SelectValue placeholder="Frequency" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="hourly">Hourly Poll</SelectItem>
-                    <SelectItem value="daily">Daily Morning</SelectItem>
-                    <SelectItem value="manual">Manual Only</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-
-            <Card className="rounded-3xl border border-border bg-card p-10 text-center space-y-4">
-              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center mx-auto text-primary shadow-inner">
-                <History className="w-8 h-8" />
-              </div>
-              <div className="max-w-md mx-auto space-y-2">
-                <h3 className="text-sm font-black text-foreground uppercase tracking-widest">Automation Logs</h3>
-                <p className="text-[11px] text-muted-foreground font-bold leading-relaxed">
-                  Every field update, status change, and webhook event is logged for compliance.
-                </p>
-                <Button variant="link" className="text-xs font-black text-primary uppercase tracking-widest" onClick={() => toast({ title: "Opening Logs", description: "Loading immutable sync history..." })}>View Full Audit Trail</Button>
-              </div>
             </Card>
           </section>
         </div>

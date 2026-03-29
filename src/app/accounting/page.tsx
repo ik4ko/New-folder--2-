@@ -1,4 +1,3 @@
-
 "use client"
 
 import { CollectionSidebar } from "@/components/collection-sidebar"
@@ -25,7 +24,7 @@ export default function AccountingPage() {
     const totalPaid = ledger.filter(t => t.status === 'paid').reduce((acc, t) => acc + t.amount, 0)
     const pending = ledger.filter(t => t.status === 'pending').reduce((acc, t) => acc + t.amount, 0)
     
-    // Medicare Economics simulation
+    // Medicare Economics simulation: $600/yr per member commission
     const bookValue = members.length * 600
     const churnRiskValue = members.filter(m => m.status === 'churn-risk').length * 600
     
@@ -219,7 +218,7 @@ export default function AccountingPage() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <p className="text-[11px] text-muted-foreground leading-relaxed font-bold">
-                    Commissions are auto-split based on broker assignment rules defined in <strong>Settings {"&gt;"} Team</strong>.
+                    Commissions are auto-split based on broker assignment rules defined in <strong>Settings &gt; Team</strong>.
                   </p>
                   <div className="space-y-3">
                     {brokers.slice(0, 3).map((broker, i) => (

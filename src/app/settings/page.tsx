@@ -12,9 +12,9 @@ import {
   Settings, Building2, User, ShieldCheck, Bell, 
   Palette, Save, Lock, Users2, Plus, 
   MoreVertical, BadgeCheck,
-  CreditCard, History, Download,
+  CreditCard, History,
   Fingerprint, ExternalLink as LinkIcon,
-  ShoppingBag, Shield
+  ShoppingBag
 } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import { useSearchParams } from "next/navigation"
@@ -64,7 +64,7 @@ function SettingsContent() {
       toast({ 
         title: "Payment Successful", 
         description: "Your $29 Entry Plan is now active.",
-        className: "bg-emerald-50 border-emerald-200 text-emerald-900 font-bold"
+        className: "bg-emerald-50 border-emerald-200 text-emerald-900 font-black"
       })
     } else {
       toast({ 
@@ -84,7 +84,7 @@ function SettingsContent() {
             {agencyProfile.isSolo ? "Broker Settings" : "Agency Settings"}
           </h1>
         </div>
-        <Button onClick={handleSave} className="rounded-xl h-10 font-black uppercase tracking-widest bg-primary hover:bg-primary/90 px-6 shadow-lg shadow-primary/20 text-white">
+        <Button onClick={handleSave} className="rounded-xl h-10 font-black uppercase tracking-widest bg-primary hover:bg-primary/90 px-6 shadow-lg shadow-primary/20 text-white text-[10px]">
           <Save className="w-4 h-4 mr-2" />
           Save Changes
         </Button>
@@ -120,15 +120,15 @@ function SettingsContent() {
                   <User className="w-4 h-4 text-primary" />
                   Management Mode
                 </CardTitle>
-                <CardDescription className="text-xs font-bold text-muted-foreground">
+                <CardDescription className="text-xs font-black text-muted-foreground uppercase opacity-70">
                   Configure whether you are operating as a solo broker or a full agency.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
                 <div className="flex items-center justify-between p-6 rounded-2xl bg-muted/20 border border-border">
                   <div className="space-y-1">
-                    <Label className="text-sm font-black text-foreground">Solo Broker Mode</Label>
-                    <p className="text-[11px] text-muted-foreground font-bold leading-relaxed max-w-sm">
+                    <Label className="text-sm font-black text-foreground uppercase">Solo Broker Mode</Label>
+                    <p className="text-[11px] text-muted-foreground font-black leading-relaxed max-w-sm uppercase opacity-60">
                       Optimized for individual agents with no subordinates. Removes team management UI.
                     </p>
                   </div>
@@ -146,7 +146,7 @@ function SettingsContent() {
                     <Input 
                       value={agencyProfile.name}
                       onChange={(e) => updateAgencyProfile({ name: e.target.value })}
-                      className="rounded-xl h-12 bg-background border-border text-foreground font-black pl-4 shadow-inner"
+                      className="rounded-xl h-12 bg-background border-border text-foreground font-black pl-4 shadow-inner uppercase"
                     />
                   </div>
                   <div className="space-y-3">
@@ -170,7 +170,7 @@ function SettingsContent() {
                     <Users2 className="w-4 h-4 text-primary" />
                     Individualized Accounts
                   </CardTitle>
-                  <CardDescription className="text-xs font-bold">Manage access levels and NPNs for your brokers.</CardDescription>
+                  <CardDescription className="text-xs font-black uppercase opacity-60">Manage access levels and NPNs for your brokers.</CardDescription>
                 </div>
                 <Button onClick={handleAddUser} size="sm" className="rounded-xl font-black uppercase tracking-widest bg-primary hover:bg-primary/90 text-white text-[10px] h-9 px-4">
                   <Plus className="w-4 h-4 mr-2" /> Add User
@@ -193,7 +193,7 @@ function SettingsContent() {
                         <TableCell className="px-8 font-black text-sm text-foreground">
                           <div className="flex flex-col">
                             <span className="uppercase tracking-tight">{broker.name}</span>
-                            <span className="text-[10px] text-muted-foreground lowercase font-bold italic">{broker.email || 'no-email@agency.com'}</span>
+                            <span className="text-[10px] text-muted-foreground lowercase font-black italic">{broker.email || 'no-email@agency.com'}</span>
                           </div>
                         </TableCell>
                         <TableCell>
@@ -235,7 +235,7 @@ function SettingsContent() {
                       <p className="text-[10px] font-black text-primary uppercase tracking-widest">Entry-Level Member Protection</p>
                     </div>
                   </div>
-                  <p className="text-sm font-bold text-foreground leading-relaxed max-w-lg">
+                  <p className="text-sm font-black text-foreground leading-relaxed max-w-lg uppercase opacity-80">
                     Perfect for new independent brokers. Get full access to Module 1 (MARx Monitoring) and basic CRM sync.
                   </p>
                 </div>
@@ -247,7 +247,7 @@ function SettingsContent() {
                   
                   <AlertDialog open={isCheckoutOpen} onOpenChange={setIsCheckoutOpen}>
                     <AlertDialogTrigger asChild>
-                      <Button className="w-full h-12 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest shadow-xl shadow-primary/20">
+                      <Button className="w-full h-14 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest shadow-xl shadow-primary/20 text-[10px]">
                         Stripe Checkout <LinkIcon className="ml-2 w-4 h-4" />
                       </Button>
                     </AlertDialogTrigger>
@@ -255,7 +255,7 @@ function SettingsContent() {
                       <div className="bg-[#635BFF] p-8 text-white flex flex-col items-center justify-center space-y-4">
                         <ShoppingBag className="w-10 h-10" />
                         <h2 className="text-2xl font-black uppercase tracking-tight">Stripe Checkout</h2>
-                        <p className="text-sm font-medium opacity-80">Payment for MediStay Entry Plan</p>
+                        <p className="text-sm font-black uppercase opacity-80">Payment for MediStay Entry Plan</p>
                       </div>
                       <div className="p-10 space-y-8 bg-white">
                         <div className="flex justify-between items-center border-b border-border pb-6 text-foreground font-black uppercase tracking-widest text-xs">
@@ -263,10 +263,10 @@ function SettingsContent() {
                           <span>$29.00</span>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
-                          <Button variant="outline" className="h-14 rounded-2xl font-black uppercase border-2 border-border" onClick={() => handleStripeCheckout('decline')}>
+                          <Button variant="outline" className="h-14 rounded-2xl font-black uppercase border-2 border-border text-[10px]" onClick={() => handleStripeCheckout('decline')}>
                             Cancel
                           </Button>
-                          <Button className="h-14 rounded-2xl bg-[#635BFF] hover:bg-[#534be5] text-white font-black uppercase" onClick={() => handleStripeCheckout('confirm')}>
+                          <Button className="h-14 rounded-2xl bg-[#635BFF] hover:bg-[#534be5] text-white font-black uppercase text-[10px]" onClick={() => handleStripeCheckout('confirm')}>
                             Pay $29.00
                           </Button>
                         </div>
@@ -292,7 +292,7 @@ function SettingsContent() {
                     <Input className="font-mono text-xs font-black h-12 rounded-xl bg-background border-border text-foreground pl-4" value={agencyProfile.primaryColor} readOnly />
                   </div>
                 </div>
-                <div className="p-6 rounded-2xl bg-primary/5 border border-primary/10 space-y-2 text-[11px] text-foreground font-bold leading-relaxed italic">
+                <div className="p-6 rounded-2xl bg-primary/5 border border-primary/10 space-y-2 text-[11px] text-foreground font-black leading-relaxed italic uppercase opacity-70">
                   "This color is used for member-facing PDF summaries, SSBCI cover sheets, and the broker dashboard accents."
                 </div>
               </div>
@@ -317,7 +317,7 @@ function SettingsContent() {
                   <div key={i} className="flex items-center justify-between p-5 rounded-2xl bg-muted/20 border border-border">
                     <div className="space-y-1">
                       <p className="text-sm font-black text-foreground uppercase tracking-tight">{alert.title}</p>
-                      <p className="text-[11px] text-muted-foreground font-bold">{alert.desc}</p>
+                      <p className="text-[11px] text-muted-foreground font-black uppercase opacity-60">{alert.desc}</p>
                     </div>
                     <Switch defaultChecked />
                   </div>
@@ -337,7 +337,7 @@ function SettingsContent() {
                   <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
                     <Fingerprint className="w-3 h-3" /> Team MFA Enforced
                   </span>
-                  <p className="text-[11px] text-slate-200 font-bold leading-relaxed">
+                  <p className="text-[11px] text-slate-200 font-black uppercase leading-relaxed opacity-80">
                     Biometric or Token-based Multi-Factor Authentication is enforced for all individualized broker accounts.
                   </p>
                 </div>
@@ -345,7 +345,7 @@ function SettingsContent() {
                   <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
                     <History className="w-3 h-3" /> Data Retention
                   </span>
-                  <p className="text-[11px] text-slate-200 font-bold leading-relaxed">
+                  <p className="text-[11px] text-slate-200 font-black uppercase leading-relaxed opacity-80">
                     Member data and call recordings are retained for the HIPAA-required period of 6-10 years.
                   </p>
                 </div>
