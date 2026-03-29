@@ -48,8 +48,8 @@ export default function AccountingPage() {
   const getPlanCost = () => {
     switch (agencyProfile.billingPlan) {
       case 'entry': return '29'
-      case 'starter': return '499'
-      case 'pro': return '899'
+      case 'starter': return '199'
+      case 'pro': return '499'
       case 'enterprise': return '1499'
       default: return '0'
     }

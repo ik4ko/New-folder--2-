@@ -237,9 +237,10 @@ export default function LandingPage() {
                     <Badge className="bg-white/20 text-white border-white/30 mb-4 font-black uppercase text-[9px] tracking-widest">Most Popular</Badge>
                     <h4 className="text-xs font-black uppercase tracking-widest text-primary-foreground/70">Pro Agency</h4>
                     <div className="flex items-baseline gap-1 mt-2">
-                      <span className="text-5xl font-black tracking-tighter">$899</span>
+                      <span className="text-5xl font-black tracking-tighter">$499</span>
                       <span className="text-xs font-black text-primary-foreground/70">/MO</span>
                     </div>
+                    <p className="text-[10px] font-black uppercase text-accent mt-1 tracking-widest">$4,999 Billed Annually</p>
                   </div>
                   <div className="space-y-3">
                     {["Unlimited Members", "Maya AI Voice (500m/mo)", "Spruce Fax Center", "White-Label PDFs", "Priority Support"].map((item, i) => (
