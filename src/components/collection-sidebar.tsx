@@ -1,7 +1,7 @@
 "use client"
 
 import { Input } from "@/components/ui/input"
-import { Search, UserPlus, Filter, AlertCircle } from "lucide-react"
+import { Search, UserPlus, Filter, AlertCircle, PanelLeftClose, PanelLeft } from "lucide-react"
 import { useAppStore } from "@/lib/store"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
@@ -11,7 +11,7 @@ import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 
 export function CollectionSidebar() {
-  const { members, isSidebarOpen } = useAppStore()
+  const { members, isSidebarOpen, toggleSidebar } = useAppStore()
   const [search, setSearch] = useState("")
   const pathname = usePathname()
 
@@ -27,16 +27,26 @@ export function CollectionSidebar() {
       "flex flex-col h-full bg-secondary/30 border-r border-sidebar-border shrink-0 z-40 overflow-hidden transition-all duration-300 ease-in-out",
       isSidebarOpen ? "w-[240px]" : "w-0 border-r-0"
     )}>
-      {/* Header Area (Channel Category Header Style) */}
+      {/* Header Area */}
       <div className="h-16 flex items-center justify-between px-4 border-b border-sidebar-border bg-sidebar/50 backdrop-blur-sm shrink-0">
         <h2 className="text-xs font-black uppercase tracking-widest text-muted-foreground flex items-center gap-2 whitespace-nowrap">
           Member Roster
         </h2>
-        <Button variant="ghost" size="icon" asChild className="h-7 w-7 rounded-lg hover:bg-primary/10 hover:text-primary transition-colors">
-          <Link href="/members/new">
-            <UserPlus className="h-4 w-4" />
-          </Link>
-        </Button>
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="icon" asChild className="h-7 w-7 rounded-lg hover:bg-primary/10 hover:text-primary transition-colors">
+            <Link href="/members/new">
+              <UserPlus className="h-4 w-4" />
+            </Link>
+          </Button>
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={toggleSidebar}
+            className="h-7 w-7 rounded-lg hover:bg-primary/10 hover:text-primary transition-colors"
+          >
+            <PanelLeftClose className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       {/* Search Area */}
