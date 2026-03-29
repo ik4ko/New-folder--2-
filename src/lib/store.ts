@@ -91,7 +91,8 @@ export interface AgencyProfile {
   isSolo: boolean;
   logoUrl?: string;
   primaryColor?: string;
-  billingPlan: 'starter' | 'pro' | 'enterprise';
+  billingPlan: 'entry' | 'starter' | 'pro' | 'enterprise';
+  isSubscriptionActive: boolean;
 }
 
 interface AppState {
@@ -115,6 +116,7 @@ interface AppState {
   updateGHLSettings: (updates: Partial<GHLSettings>) => void;
   updateAgencyProfile: (updates: Partial<AgencyProfile>) => void;
   addBroker: (broker: Partial<BrokerAccount>) => void;
+  toggleSidebarOpen: () => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -152,6 +154,7 @@ export const useAppStore = create<AppState>((set) => ({
     isSolo: false,
     primaryColor: '#B08627',
     billingPlan: 'pro',
+    isSubscriptionActive: true,
   },
   addMember: (memberData) => set((state) => {
     const newMember: MemberRecord = {
@@ -205,6 +208,7 @@ export const useAppStore = create<AppState>((set) => ({
   },
   toggleGHL: () => set((state) => ({ isGHLConnected: !state.isGHLConnected })),
   toggleSidebar: () => set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
+  toggleSidebarOpen: () => set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
   updateGHLSettings: (updates) => set((state) => ({
     ghlSettings: { ...state.ghlSettings, ...updates }
   })),

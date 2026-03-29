@@ -1,3 +1,4 @@
+
 "use client"
 
 import { CollectionSidebar } from "@/components/collection-sidebar"
@@ -43,6 +44,16 @@ export default function AccountingPage() {
 
   const navigateToBilling = () => {
     router.push('/settings?tab=billing')
+  }
+
+  const getPlanCost = () => {
+    switch (agencyProfile.billingPlan) {
+      case 'entry': return '29'
+      case 'starter': return '499'
+      case 'pro': return '899'
+      case 'enterprise': return '1499'
+      default: return '0'
+    }
   }
 
   return (
@@ -106,7 +117,7 @@ export default function AccountingPage() {
               </CardHeader>
               <CardContent>
                 <div className="text-3xl font-black text-foreground">
-                  ${agencyProfile.billingPlan === 'starter' ? '499' : agencyProfile.billingPlan === 'pro' ? '899' : '1499'}
+                  ${getPlanCost()}
                 </div>
                 <p className="text-[10px] text-muted-foreground mt-1 font-bold uppercase tracking-tight">{agencyProfile.billingPlan.toUpperCase()} Plan (Monthly)</p>
               </CardContent>

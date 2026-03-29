@@ -1,3 +1,4 @@
+
 "use client"
 
 import { CollectionSidebar } from "@/components/collection-sidebar"
@@ -13,17 +14,30 @@ import {
   Palette, Save, Lock, Users2, Plus, 
   MoreVertical, ShieldAlert, BadgeCheck,
   CreditCard, CheckCircle2, History, Download,
-  ExternalLink, Fingerprint
+  ExternalLink, Fingerprint, ExternalLink as LinkIcon,
+  ShoppingBag, Shield
 } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import { useSearchParams } from "next/navigation"
 import { useState, useEffect, Suspense } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { 
+  AlertDialog, 
+  AlertDialogAction, 
+  AlertDialogCancel, 
+  AlertDialogContent, 
+  AlertDialogDescription, 
+  AlertDialogFooter, 
+  AlertDialogHeader, 
+  AlertDialogTitle, 
+  AlertDialogTrigger 
+} from "@/components/ui/alert-dialog"
 
 function SettingsContent() {
   const searchParams = useSearchParams()
   const [activeTab, setActiveTab] = useState("identity")
+  const [isCheckoutOpen, setIsCheckoutOpen] = useState(false)
   
   const { agencyProfile, updateAgencyProfile, brokers, addBroker } = useAppStore()
 
@@ -43,9 +57,27 @@ function SettingsContent() {
     toast({ title: "User Placeholder Added", description: "Edit the details in the team list below." })
   }
 
-  const handleUpdatePlan = (plan: 'starter' | 'pro' | 'enterprise') => {
-    updateAgencyProfile({ billingPlan: plan })
+  const handleUpdatePlan = (plan: 'entry' | 'starter' | 'pro' | 'enterprise') => {
+    updateAgencyProfile({ billingPlan: plan, isSubscriptionActive: true })
     toast({ title: "Plan Updated", description: `Agency successfully switched to the ${plan.toUpperCase()} tier.` })
+  }
+
+  const handleStripeCheckout = (action: 'confirm' | 'decline') => {
+    setIsCheckoutOpen(false)
+    if (action === 'confirm') {
+      handleUpdatePlan('entry')
+      toast({ 
+        title: "Payment Successful", 
+        description: "Your $29 Entry Plan is now active. BAA records updated.",
+        className: "bg-emerald-50 border-emerald-200 text-emerald-900 font-bold"
+      })
+    } else {
+      toast({ 
+        variant: "destructive",
+        title: "Payment Cancelled", 
+        description: "Your subscription request was declined or cancelled." 
+      })
+    }
   }
 
   return (
@@ -195,6 +227,77 @@ function SettingsContent() {
           </TabsContent>
 
           <TabsContent value="billing" className="space-y-8 animate-in fade-in duration-300">
+            {/* Stripe Promo Section */}
+            <Card className="rounded-3xl border-2 border-primary bg-primary/5 shadow-xl overflow-hidden relative group">
+              <div className="absolute top-0 right-0 p-8 opacity-10"><ShoppingBag className="w-32 h-32" /></div>
+              <CardContent className="p-10 flex flex-col md:flex-row items-center justify-between gap-8 relative z-10">
+                <div className="space-y-4 text-center md:text-left">
+                  <div className="flex items-center justify-center md:justify-start gap-3">
+                    <div className="w-12 h-12 rounded-2xl bg-primary flex items-center justify-center text-white shadow-lg">
+                      <CreditCard className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h3 className="text-2xl font-black text-foreground uppercase tracking-tight">Stripe Entry Plan</h3>
+                      <p className="text-[10px] font-black text-primary uppercase tracking-widest">Entry-Level Member Protection</p>
+                    </div>
+                  </div>
+                  <p className="text-sm font-bold text-muted-foreground leading-relaxed max-w-lg">
+                    Perfect for new independent brokers. Get full access to Module 1 (MARx Monitoring) and basic CRM sync without attaching a permanent payment method.
+                  </p>
+                </div>
+                <div className="text-center md:text-right space-y-4 bg-white dark:bg-slate-900 p-8 rounded-3xl shadow-lg border border-primary/20 min-w-[240px]">
+                  <div className="flex items-baseline justify-center md:justify-end gap-1">
+                    <span className="text-4xl font-black text-foreground">$29</span>
+                    <span className="text-xs font-bold text-muted-foreground uppercase">/mo</span>
+                  </div>
+                  
+                  <AlertDialog open={isCheckoutOpen} onOpenChange={setIsCheckoutOpen}>
+                    <AlertDialogTrigger asChild>
+                      <Button className="w-full h-12 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest shadow-xl shadow-primary/20">
+                        Stripe Checkout <LinkIcon className="ml-2 w-4 h-4" />
+                      </Button>
+                    </AlertDialogTrigger>
+                    <AlertDialogContent className="max-w-2xl rounded-3xl p-0 overflow-hidden border-none shadow-2xl">
+                      <div className="bg-[#635BFF] p-8 text-white flex flex-col items-center justify-center space-y-4">
+                        <div className="w-16 h-16 rounded-full bg-white/20 flex items-center justify-center">
+                          <ShoppingBag className="w-8 h-8" />
+                        </div>
+                        <h2 className="text-2xl font-black uppercase tracking-tight">Stripe Checkout</h2>
+                        <p className="text-sm font-medium opacity-80">Payment for MediStay Entry Plan</p>
+                      </div>
+                      <div className="p-10 space-y-8 bg-white dark:bg-slate-900">
+                        <div className="flex justify-between items-center border-b pb-6">
+                          <div className="space-y-1">
+                            <p className="text-xs font-black uppercase tracking-widest text-muted-foreground">Order Summary</p>
+                            <p className="text-lg font-black text-foreground">Entry Plan (Monthly)</p>
+                          </div>
+                          <p className="text-2xl font-black text-foreground">$29.00</p>
+                        </div>
+                        <div className="space-y-4">
+                          <div className="p-4 rounded-2xl bg-muted/30 border border-border flex items-center gap-4">
+                            <Shield className="w-5 h-5 text-emerald-600" />
+                            <p className="text-xs font-bold leading-relaxed">
+                              MediStay is BAA-compliant. Your payment information is encrypted via Stripe and processed in a PCI-DSS Level 1 environment.
+                            </p>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                          <Button variant="outline" className="h-14 rounded-2xl font-black uppercase tracking-widest border-2" onClick={() => handleStripeCheckout('decline')}>
+                            Cancel
+                          </Button>
+                          <Button className="h-14 rounded-2xl bg-[#635BFF] hover:bg-[#534be5] text-white font-black uppercase tracking-widest shadow-xl shadow-[#635bff]/20" onClick={() => handleStripeCheckout('confirm')}>
+                            Pay $29.00
+                          </Button>
+                        </div>
+                      </div>
+                    </AlertDialogContent>
+                  </AlertDialog>
+                  
+                  <p className="text-[9px] font-black text-muted-foreground uppercase text-center md:text-right">No Credit Card Required Now</p>
+                </div>
+              </CardContent>
+            </Card>
+
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
               {[
                 { id: 'starter', name: 'Starter', price: '$499', features: ['Up to 500 Members', 'Module 1 & 2 Access', 'Basic CRM Sync'], desc: 'For independent brokers.' },
@@ -244,18 +347,27 @@ function SettingsContent() {
                   <CardDescription className="text-xs font-bold">Encrypted payment methods managed via BAA-signed processor.</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="p-4 rounded-2xl bg-muted/20 border border-border flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div className="w-10 h-7 bg-slate-800 rounded flex items-center justify-center">
-                        <CreditCard className="w-5 h-5 text-white" />
-                      </div>
-                      <div>
-                        <p className="text-xs font-black uppercase">Visa Ending in 4242</p>
-                        <p className="text-[10px] text-muted-foreground font-bold">Expires 12/26</p>
-                      </div>
+                  {agencyProfile.billingPlan === 'entry' ? (
+                    <div className="p-6 rounded-2xl bg-amber-50 border border-amber-100 space-y-2">
+                      <p className="text-xs font-black text-amber-900 uppercase">One-Time Stripe Session Active</p>
+                      <p className="text-[10px] font-medium text-amber-800 leading-relaxed">
+                        You are currently on the Entry Plan via Stripe Checkout. No permanent payment method is stored. To upgrade to higher tiers, please attach a formal Agency BAA payment method.
+                      </p>
                     </div>
-                    <Button variant="ghost" size="sm" className="text-[10px] font-black text-primary uppercase">Edit</Button>
-                  </div>
+                  ) : (
+                    <div className="p-4 rounded-2xl bg-muted/20 border border-border flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="w-10 h-7 bg-slate-800 rounded flex items-center justify-center">
+                          <CreditCard className="w-5 h-5 text-white" />
+                        </div>
+                        <div>
+                          <p className="text-xs font-black uppercase">Visa Ending in 4242</p>
+                          <p className="text-[10px] text-muted-foreground font-bold">Expires 12/26</p>
+                        </div>
+                      </div>
+                      <Button variant="ghost" size="sm" className="text-[10px] font-black text-primary uppercase">Edit</Button>
+                    </div>
+                  )}
                   <Button variant="outline" className="w-full rounded-xl border-dashed h-10 text-[10px] font-black uppercase tracking-widest">
                     <Plus className="w-3 h-3 mr-2" /> Add Backup Method
                   </Button>
@@ -271,7 +383,7 @@ function SettingsContent() {
                 </CardHeader>
                 <div className="divide-y">
                   {[
-                    { date: 'Nov 01, 2024', amount: '$899.00', status: 'Paid', inv: 'INV-MS-99201' },
+                    { date: 'Nov 01, 2024', amount: agencyProfile.billingPlan === 'entry' ? '$29.00' : '$899.00', status: 'Paid', inv: 'INV-MS-99201' },
                     { date: 'Oct 01, 2024', amount: '$899.00', status: 'Paid', inv: 'INV-MS-99188' }
                   ].map((row, i) => (
                     <div key={i} className="px-6 py-4 flex items-center justify-between hover:bg-slate-50/50">
