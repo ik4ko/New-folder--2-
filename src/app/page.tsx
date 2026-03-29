@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge"
 import { 
   ShieldCheck, Zap, Activity, Users, 
   ArrowRight, CheckCircle2, Globe, Lock, 
-  Sparkles, Calendar, MousePointerClick
+  Sparkles, Calendar, Scale, FileText, Eye
 } from "lucide-react"
 import Link from "next/link"
 import { ModeToggle } from "@/components/mode-toggle"
@@ -79,38 +79,8 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* High-DPI Visual Proof */}
-        <section className="px-8 pb-32">
-          <div className="max-w-6xl mx-auto rounded-[3rem] overflow-hidden border border-border shadow-2xl bg-muted/20 relative aspect-[2/1]">
-            {heroImage && (
-              <Image 
-                src={heroImage.imageUrl}
-                alt={heroImage.description}
-                fill
-                className="object-cover opacity-40 grayscale group-hover:opacity-100 transition-opacity"
-                data-ai-hint="modern office"
-              />
-            )}
-            <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
-            <div className="absolute bottom-12 left-12 right-12 flex items-end justify-between">
-              <div className="space-y-2">
-                <Badge className="bg-emerald-500 text-white border-none font-black uppercase text-[10px]">Live Data</Badge>
-                <h3 className="text-2xl font-black uppercase tracking-tighter">Command Center Preview</h3>
-              </div>
-              <div className="flex gap-2">
-                <div className="w-12 h-12 rounded-2xl bg-background/80 backdrop-blur-md border border-border flex items-center justify-center">
-                  <ShieldCheck className="w-6 h-6 text-primary" />
-                </div>
-                <div className="w-12 h-12 rounded-2xl bg-background/80 backdrop-blur-md border border-border flex items-center justify-center">
-                  <Zap className="w-6 h-6 text-accent" />
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
         {/* Features */}
-        <section id="features" className="py-32 px-8">
+        <section id="features" className="py-24 px-8">
           <div className="max-w-6xl mx-auto space-y-20">
             <div className="text-center space-y-4">
               <h2 className="text-4xl font-black uppercase tracking-tighter">The Retention <span className="text-accent">OS</span></h2>
@@ -161,8 +131,76 @@ export default function LandingPage() {
           </div>
         </section>
 
+        {/* Compliance Guarantee Section */}
+        <section id="compliance" className="py-24 px-8 bg-slate-950 text-white overflow-hidden relative">
+          <div className="absolute top-0 right-0 p-20 opacity-5 -z-0">
+            <ShieldCheck className="w-96 h-96" />
+          </div>
+          
+          <div className="max-w-6xl mx-auto space-y-16 relative z-10">
+            <div className="text-center space-y-4">
+              <Badge className="bg-emerald-500/20 text-emerald-400 border-emerald-500/30 px-4 py-1.5 font-black uppercase tracking-widest text-[10px]">Clinical Integrity</Badge>
+              <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter leading-tight">The Clinical <span className="text-primary">Compliance Guarantee</span>.</h2>
+              <p className="text-lg text-slate-400 font-bold uppercase tracking-tight max-w-3xl mx-auto">
+                MediStay was built from the ground up to exceed the security requirements of the Medicare market. We don't just store data; we seal it.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+              {/* Privacy Summary */}
+              <div className="p-10 rounded-[3rem] bg-white/5 border border-white/10 space-y-6 hover:bg-white/10 transition-all">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-primary/20 flex items-center justify-center text-primary">
+                    <Eye className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-xl font-black uppercase tracking-tight">Privacy Policy Summary</h3>
+                </div>
+                <p className="text-sm text-slate-300 leading-relaxed font-medium uppercase opacity-80">
+                  Member PHI is encrypted at rest using AES-256 and protected via TLS 1.3 in transit. We maintain a strict 10-year retention policy for all audit logs and SOA records to satisfy CMS requirements. We never sell data to third parties.
+                </p>
+                <Button variant="link" className="text-primary font-black uppercase text-xs p-0 h-auto underline-offset-4" asChild>
+                  <Link href="/privacy">View Full Privacy Policy <ArrowRight className="ml-2 w-4 h-4" /></Link>
+                </Button>
+              </div>
+
+              {/* Terms Summary */}
+              <div className="p-10 rounded-[3rem] bg-white/5 border border-white/10 space-y-6 hover:bg-white/10 transition-all">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-accent/20 flex items-center justify-center text-accent">
+                    <Scale className="w-6 h-6" />
+                  </div>
+                  <h3 className="text-xl font-black uppercase tracking-tight">Terms of Service Summary</h3>
+                </div>
+                <p className="text-sm text-slate-300 leading-relaxed font-medium uppercase opacity-80">
+                  Access to MediStay is reserved for licensed insurance agents. A signed Business Associate Agreement (BAA) is required for all active agency accounts. Agencies remain responsible for the clinical accuracy of automated check-ins and faxes.
+                </p>
+                <Button variant="link" className="text-accent font-black uppercase text-xs p-0 h-auto underline-offset-4" asChild>
+                  <Link href="/terms">View Full Terms of Service <ArrowRight className="ml-2 w-4 h-4" /></Link>
+                </Button>
+              </div>
+            </div>
+
+            <div className="pt-8 text-center">
+              <div className="inline-flex items-center gap-8 px-8 py-4 rounded-full bg-white/5 border border-white/10">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">HIPAA Compliant</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">BAA Ready</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">AES-256 Sealed</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
         {/* Pricing */}
-        <section id="pricing" className="py-32 px-8 bg-muted/30">
+        <section id="pricing" className="py-24 px-8 bg-muted/30">
           <div className="max-w-6xl mx-auto space-y-16">
             <div className="text-center space-y-4">
               <h2 className="text-4xl font-black uppercase tracking-tighter">Scalable <span className="text-primary">Protection</span></h2>
