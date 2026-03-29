@@ -1,4 +1,3 @@
-
 import { create } from 'zustand';
 
 export interface Medication {
@@ -151,7 +150,7 @@ export const useAppStore = create<AppState>((set) => ({
     email: 'admin@medistay-demo.com',
     phone: '415-555-0100',
     isSolo: false,
-    primaryColor: '#B08627',
+    primaryColor: '#0F4C81', /* Classic Blue */
     billingPlan: 'pro',
     isSubscriptionActive: true,
   },

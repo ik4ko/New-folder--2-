@@ -10,66 +10,66 @@
     --card-foreground: 0 0% 0%;
     --popover: 0 0% 100%;
     --popover-foreground: 0 0% 0%;
-    --primary: 42 63% 30%; /* Deepened gold for absolute contrast */
+    --primary: 221.2 83.2% 35%; /* Deep Professional Blue */
     --primary-foreground: 0 0% 100%;
-    --secondary: 0 0% 96%;
+    --secondary: 210 20% 96%; /* Very light blue-gray */
     --secondary-foreground: 0 0% 0%;
-    --muted: 0 0% 94%;
-    --muted-foreground: 0 0% 5%; /* Practically Black for readability */
-    --accent: 0 0% 96%;
-    --accent-foreground: 0 0% 0%;
+    --muted: 210 20% 94%;
+    --muted-foreground: 0 0% 5%; /* High contrast near-black */
+    --accent: 188.7 94.5% 42.7%; /* Clinical Cyan */
+    --accent-foreground: 0 0% 100%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 100%;
-    --border: 0 0% 85%;
+    --border: 214.3 31.8% 91.4%;
     --input: 0 0% 0%; /* Pure black text for inputs */
-    --ring: 42 63% 30%;
+    --ring: 221.2 83.2% 35%;
     --radius: 1rem;
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 0 0% 0%;
-    --sidebar-primary: 42 63% 30%;
+    --sidebar-primary: 221.2 83.2% 35%;
     --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 0% 96%;
+    --sidebar-accent: 210 20% 96%;
     --sidebar-accent-foreground: 0 0% 0%;
-    --sidebar-border: 0 0% 90%;
-    --sidebar-ring: 42 63% 30%;
+    --sidebar-border: 214.3 31.8% 91.4%;
+    --sidebar-ring: 221.2 83.2% 35%;
   }
 
   .dark {
-    --background: 0 0% 4%; /* Near Black */
-    --foreground: 0 0% 100%; /* Pure White */
-    --card: 0 0% 6%;
-    --card-foreground: 0 0% 100%;
-    --popover: 0 0% 6%;
-    --popover-foreground: 0 0% 100%;
-    --primary: 42 63% 50%;
-    --primary-foreground: 0 0% 0%;
-    --secondary: 0 0% 12%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 12%;
-    --muted-foreground: 0 0% 85%;
-    --accent: 0 0% 12%;
-    --accent-foreground: 0 0% 98%;
+    --background: 222.2 84% 4.9%; /* Deep Blue-Black */
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 217.2 91.2% 59.8%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 188.7 94.5% 42.7%;
+    --accent-foreground: 210 40% 98%;
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 15%;
-    --input: 0 0% 100%;
-    --ring: 42 63% 50%;
-    --sidebar-background: 0 0% 5%;
-    --sidebar-foreground: 0 0% 98%;
-    --sidebar-primary: 42 63% 50%;
-    --sidebar-primary-foreground: 0 0% 100%;
-    --sidebar-accent: 0 0% 10%;
-    --sidebar-accent-foreground: 0 0% 98%;
-    --sidebar-border: 0 0% 15%;
-    --sidebar-ring: 42 63% 50%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 224.3 76.3% 48%;
+    --sidebar-background: 222.2 84% 4.9%;
+    --sidebar-foreground: 210 40% 98%;
+    --sidebar-primary: 217.2 91.2% 59.8%;
+    --sidebar-primary-foreground: 222.2 47.4% 11.2%;
+    --sidebar-accent: 217.2 32.6% 17.5%;
+    --sidebar-accent-foreground: 210 40% 98%;
+    --sidebar-border: 217.2 32.6% 17.5%;
+    --sidebar-ring: 224.3 76.3% 48%;
   }
 
   [data-theme='blue'] { --primary: 221.2 83.2% 35%; --ring: 221.2 83.2% 35%; --sidebar-primary: 221.2 83.2% 35%; }
+  [data-theme='cyan'] { --primary: 188.7 94.5% 42.7%; --ring: 188.7 94.5% 42.7%; --sidebar-primary: 188.7 94.5% 42.7%; }
   [data-theme='green'] { --primary: 142.1 76.2% 25%; --ring: 142.1 76.2% 25%; --sidebar-primary: 142.1 76.2% 25%; }
   [data-theme='purple'] { --primary: 262.1 83.3% 40%; --ring: 262.1 83.3% 40%; --sidebar-primary: 262.1 83.3% 40%; }
   [data-theme='red'] { --primary: 0 72.2% 35%; --ring: 0 72.2% 35%; --sidebar-primary: 0 72.2% 35%; }
   [data-theme='orange'] { --primary: 24.6 95% 35%; --ring: 24.6 95% 35%; --sidebar-primary: 24.6 95% 35%; }
-  [data-theme='gold'] { --primary: 42 63% 30%; --ring: 42 63% 30%; --sidebar-primary: 42 63% 30%; }
 }
 
 @layer base {

@@ -15,8 +15,8 @@ import {
 } from "@/components/ui/dropdown-menu"
 
 const colors = [
-  { name: "Gold", value: "gold", class: "bg-[#B08627]" },
   { name: "Blue", value: "blue", class: "bg-blue-600" },
+  { name: "Cyan", value: "cyan", class: "bg-cyan-500" },
   { name: "Green", value: "green", class: "bg-emerald-600" },
   { name: "Purple", value: "purple", class: "bg-purple-600" },
   { name: "Red", value: "red", class: "bg-red-600" },
@@ -25,12 +25,12 @@ const colors = [
 
 export function ModeToggle() {
   const { setTheme, resolvedTheme } = useTheme()
-  const [accentColor, setAccentColor] = React.useState<string>("gold")
+  const [accentColor, setAccentColor] = React.useState<string>("blue")
   const [mounted, setMounted] = React.useState(false)
 
   React.useEffect(() => {
     setMounted(true)
-    const savedColor = localStorage.getItem("medistay-accent-color") || "gold"
+    const savedColor = localStorage.getItem("medistay-accent-color") || "blue"
     setAccentColor(savedColor)
     document.documentElement.setAttribute("data-theme", savedColor)
   }, [])
