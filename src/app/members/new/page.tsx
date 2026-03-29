@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Camera, Save, Wand2 } from "lucide-react"
+import { Camera, Save, Wand2, User, ShieldCheck, Briefcase, Heart, MapPin, Phone, Mail, FileCheck, Stethoscope } from "lucide-react"
 import { useState, useRef } from "react"
 import { useAppStore, type MemberRecord } from "@/lib/store"
 import { useRouter } from "next/navigation"
@@ -23,9 +23,23 @@ export default function NewMemberPage() {
   const [formData, setFormData] = useState<Partial<MemberRecord>>({
     fullName: "",
     age: 0,
+    dob: "",
+    ssnLast4: "",
+    email: "",
+    phone: "",
+    address: "",
+    medicareId: "",
+    carrier: "",
+    planName: "",
+    monthlyPremium: "$0.00",
     healthConditions: [],
     medicareMedicaidStatus: "None",
-    lastReviewDate: new Date().toISOString().split('T')[0],
+    enrollmentPeriod: "IEP",
+    soaStatus: "Not Started",
+    pcpName: "",
+    pharmacyName: "",
+    partAEffective: "",
+    partBEffective: "",
   })
 
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -46,8 +60,10 @@ export default function NewMemberPage() {
           ...prev,
           fullName: data.fullName || (data.firstName && data.lastName ? `${data.firstName} ${data.lastName}` : prev.fullName),
           medicareId: data.documentNumber || prev.medicareId,
+          dob: data.dateOfBirth || prev.dob,
+          address: data.address || prev.address,
         }))
-        toast({ title: "OCR Success", description: "Data extracted from document." })
+        toast({ title: "OCR Success", description: "Identity data extracted and pre-filled." })
       } catch (err) {
         toast({ title: "OCR Failed", description: "Could not read document data.", variant: "destructive" })
       } finally {
@@ -59,159 +75,323 @@ export default function NewMemberPage() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    if (!formData.fullName || !formData.age) {
-      toast({ title: "Error", description: "Please fill required fields.", variant: "destructive" })
+    if (!formData.fullName || !formData.medicareId) {
+      toast({ title: "Missing Data", description: "Please fill legal name and Medicare ID.", variant: "destructive" })
       return
     }
     addMember(formData as any)
-    toast({ title: "Success", description: "Member record created and stored locally." })
-    router.push('/')
+    toast({ title: "Enrollment Successful", description: "Member record has been added to the local roster." })
+    router.push('/members')
   }
 
   return (
-    <div className="flex h-full w-full">
+    <div className="flex h-full w-full bg-background">
       <CollectionSidebar />
       
-      <div className="flex-1 flex flex-col h-full bg-background">
+      <div className="flex-1 flex flex-col h-full overflow-hidden">
         <header className="h-16 border-b border-border px-8 flex items-center justify-between bg-white/50 backdrop-blur-md sticky top-0 z-10">
           <div className="flex items-center gap-4">
-            <h1 className="text-xl font-headline font-semibold text-primary">New Member Intake</h1>
+            <h1 className="text-xl font-bold text-foreground">Member Enrollment</h1>
             <div className="h-4 w-[1px] bg-border" />
             <div className="flex items-center gap-2">
-                <div className="h-2 w-2 rounded-full bg-green-500" />
-                <span className="text-xs font-medium text-muted-foreground">Draft Mode (Autosave enabled)</span>
+                <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Draft Mode</span>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" className="rounded-xl h-9 text-xs" onClick={() => router.push('/')}>Discard</Button>
-            <Button className="rounded-xl h-9 text-xs bg-accent hover:bg-accent/90" onClick={handleSubmit}>
+          <div className="flex items-center gap-3">
+            <Button variant="outline" className="rounded-xl h-10 text-xs font-bold" onClick={() => router.push('/members')}>Discard</Button>
+            <Button className="rounded-xl h-10 text-xs font-black uppercase tracking-widest bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20" onClick={handleSubmit}>
               <Save className="w-4 h-4 mr-2" />
-              Store Record
+              Store Member Record
             </Button>
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-8 max-w-4xl mx-auto w-full space-y-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 items-start">
-             <div className="space-y-4">
-                <h2 className="text-lg font-headline font-semibold">Biometric Capture</h2>
-                <p className="text-sm text-muted-foreground">Use OCR to instantly pre-fill data from ID documents.</p>
-                <div 
-                  className="border-2 border-dashed border-primary/20 rounded-2xl p-8 flex flex-col items-center justify-center gap-3 bg-primary/5 hover:bg-primary/10 transition-colors cursor-pointer"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  <Camera className="w-10 h-10 text-primary opacity-60" />
-                  <span className="text-xs font-semibold text-primary">Upload ID or Policy Document</span>
-                  <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleOCR} />
-                </div>
-             </div>
+        <div className="flex-1 overflow-y-auto p-8 max-w-5xl mx-auto w-full space-y-8 pb-32">
+          {/* AI Intake Section */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="md:col-span-2 p-8 rounded-3xl border-2 border-dashed border-primary/20 bg-primary/5 flex flex-col items-center justify-center gap-4 text-center group hover:bg-primary/10 transition-all cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+              <div className="w-16 h-16 rounded-2xl bg-white shadow-sm flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                <Camera className="w-8 h-8" />
+              </div>
+              <div className="space-y-1">
+                <h3 className="text-sm font-bold text-foreground">Biometric Data Capture</h3>
+                <p className="text-xs text-muted-foreground font-medium">Upload ID, Medicare Card, or Policy Document to pre-fill 70% of this form.</p>
+              </div>
+              <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleOCR} />
+              {loading && <div className="flex items-center gap-2 text-[10px] font-black uppercase text-primary animate-pulse"><Wand2 className="w-3 h-3" /> Analyzing...</div>}
+            </div>
 
-             <div className="p-6 rounded-2xl bg-sidebar-accent/10 border border-primary/10 space-y-4">
-                <div className="flex items-center gap-2 text-primary">
-                  <Wand2 className="w-4 h-4" />
-                  <span className="text-sm font-bold">Smart Intake</span>
-                </div>
-                <p className="text-[11px] leading-relaxed text-muted-foreground">
-                  The form dynamically adapts based on the data provided. SSNs are zero-knowledge hashed locally before cloud sync.
-                </p>
-             </div>
+            <div className="p-6 rounded-3xl bg-slate-900 text-white space-y-4 shadow-xl">
+               <div className="flex items-center gap-2 text-primary">
+                 <ShieldCheck className="w-4 h-4" />
+                 <span className="text-[10px] font-black uppercase tracking-widest">Compliance Mode</span>
+               </div>
+               <p className="text-[11px] leading-relaxed text-slate-300 font-medium italic">
+                 "Zero-knowledge encryption active. All member PII is hashed before syncing. CMS cross-check occurs during nightly poll."
+               </p>
+            </div>
           </div>
 
-          <form onSubmit={handleSubmit} className="space-y-8 pb-20">
-            <Accordion type="multiple" defaultValue={["personal"]} className="space-y-4">
-              <AccordionItem value="personal" className="border rounded-2xl bg-card px-6 py-2 shadow-sm">
+          <form onSubmit={handleSubmit} className="space-y-6">
+            <Accordion type="multiple" defaultValue={["identity", "medicare", "coverage"]} className="space-y-4">
+              {/* Identity & Contact */}
+              <AccordionItem value="identity" className="border rounded-2xl bg-card px-6 py-2 shadow-sm">
                 <AccordionTrigger className="hover:no-underline py-4">
                   <div className="flex items-center gap-4">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold">01</div>
-                    <span className="font-headline font-semibold">Member Identity</span>
+                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
+                      <User className="w-4 h-4" />
+                    </div>
+                    <span className="font-bold text-sm uppercase tracking-widest">Personal Identity</span>
                   </div>
                 </AccordionTrigger>
-                <AccordionContent className="pt-2 pb-6 space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
+                <AccordionContent className="pt-2 pb-6 space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="space-y-2">
-                      <Label className="text-xs uppercase tracking-wider text-muted-foreground">Full Legal Name</Label>
+                      <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Full Legal Name</Label>
                       <Input 
-                        placeholder="e.g. Christopher Smith" 
+                        placeholder="e.g. Johnathan Smith" 
                         value={formData.fullName}
                         onChange={e => setFormData(p => ({...p, fullName: e.target.value}))}
-                        className="rounded-xl border-border/60"
+                        className="rounded-xl h-11 border-border/60 bg-white"
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label className="text-xs uppercase tracking-wider text-muted-foreground">Date of Birth</Label>
-                      <Input type="date" className="rounded-xl border-border/60" />
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">DOB</Label>
+                        <Input 
+                          type="date"
+                          value={formData.dob}
+                          onChange={e => setFormData(p => ({...p, dob: e.target.value}))}
+                          className="rounded-xl h-11 border-border/60 bg-white"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">SSN (Last 4)</Label>
+                        <Input 
+                          placeholder="0000"
+                          maxLength={4}
+                          value={formData.ssnLast4}
+                          onChange={e => setFormData(p => ({...p, ssnLast4: e.target.value}))}
+                          className="rounded-xl h-11 border-border/60 bg-white font-mono"
+                        />
+                      </div>
                     </div>
                   </div>
-                  <div className="grid grid-cols-3 gap-4">
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div className="space-y-2">
-                      <Label className="text-xs uppercase tracking-wider text-muted-foreground">Current Age</Label>
+                      <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1 flex items-center gap-1.5"><Phone className="w-3 h-3" /> Phone</Label>
                       <Input 
-                        type="number" 
-                        value={formData.age || ""}
-                        onChange={e => setFormData(p => ({...p, age: parseInt(e.target.value)}))}
-                        className="rounded-xl border-border/60"
+                        placeholder="415-555-0100"
+                        value={formData.phone}
+                        onChange={e => setFormData(p => ({...p, phone: e.target.value}))}
+                        className="rounded-xl h-11 border-border/60 bg-white"
                       />
                     </div>
-                    <div className="col-span-2 space-y-2">
-                      <Label className="text-xs uppercase tracking-wider text-muted-foreground">Medicare ID (MBI)</Label>
+                    <div className="space-y-2 md:col-span-2">
+                      <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1 flex items-center gap-1.5"><Mail className="w-3 h-3" /> Email Address</Label>
                       <Input 
-                        placeholder="e.g. 1EG4-TE5-MK22" 
-                        value={formData.medicareId || ""}
-                        onChange={e => setFormData(p => ({...p, medicareId: e.target.value}))}
-                        className="rounded-xl border-border/60 font-mono"
+                        type="email"
+                        placeholder="j.smith@example.com"
+                        value={formData.email}
+                        onChange={e => setFormData(p => ({...p, email: e.target.value}))}
+                        className="rounded-xl h-11 border-border/60 bg-white"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1 flex items-center gap-1.5"><MapPin className="w-3 h-3" /> Physical Address</Label>
+                    <Input 
+                      placeholder="Street, City, State, ZIP"
+                      value={formData.address}
+                      onChange={e => setFormData(p => ({...p, address: e.target.value}))}
+                      className="rounded-xl h-11 border-border/60 bg-white"
+                    />
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+
+              {/* Medicare Credentials */}
+              <AccordionItem value="medicare" className="border rounded-2xl bg-card px-6 py-2 shadow-sm">
+                <AccordionTrigger className="hover:no-underline py-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-8 h-8 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-600">
+                      <FileCheck className="w-4 h-4" />
+                    </div>
+                    <span className="font-bold text-sm uppercase tracking-widest">Medicare Credentials</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="pt-2 pb-6 space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Medicare ID (MBI)</Label>
+                      <Input 
+                        placeholder="1EG4-TE5-MK22"
+                        value={formData.medicareId}
+                        onChange={e => setFormData(p => ({...p, medicareId: e.target.value.toUpperCase()}))}
+                        className="rounded-xl h-11 border-border/60 bg-white font-mono"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Part A Effective</Label>
+                      <Input 
+                        type="date"
+                        value={formData.partAEffective}
+                        onChange={e => setFormData(p => ({...p, partAEffective: e.target.value}))}
+                        className="rounded-xl h-11 border-border/60 bg-white"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Part B Effective</Label>
+                      <Input 
+                        type="date"
+                        value={formData.partBEffective}
+                        onChange={e => setFormData(p => ({...p, partBEffective: e.target.value}))}
+                        className="rounded-xl h-11 border-border/60 bg-white"
                       />
                     </div>
                   </div>
                 </AccordionContent>
               </AccordionItem>
 
+              {/* Policy & Coverage */}
+              <AccordionItem value="coverage" className="border rounded-2xl bg-card px-6 py-2 shadow-sm">
+                <AccordionTrigger className="hover:no-underline py-4">
+                  <div className="flex items-center gap-4">
+                    <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-600">
+                      <Briefcase className="w-4 h-4" />
+                    </div>
+                    <span className="font-bold text-sm uppercase tracking-widest">Policy & Coverage</span>
+                  </div>
+                </AccordionTrigger>
+                <AccordionContent className="pt-2 pb-6 space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Carrier / Payer</Label>
+                      <Select 
+                        value={formData.carrier}
+                        onValueChange={(val) => setFormData(p => ({...p, carrier: val}))}
+                      >
+                        <SelectTrigger className="rounded-xl h-11 border-border/60 bg-white">
+                          <SelectValue placeholder="Select Carrier" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Humana">Humana</SelectItem>
+                          <SelectItem value="UnitedHealthcare">UnitedHealthcare</SelectItem>
+                          <SelectItem value="Blue Shield">Blue Shield</SelectItem>
+                          <SelectItem value="Clover Health">Clover Health</SelectItem>
+                          <SelectItem value="Aetna">Aetna</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Plan Name</Label>
+                      <Input 
+                        placeholder="e.g. Choice PPO Plus"
+                        value={formData.planName}
+                        onChange={e => setFormData(p => ({...p, planName: e.target.value}))}
+                        className="rounded-xl h-11 border-border/60 bg-white"
+                      />
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Enrollment Period</Label>
+                      <Select 
+                        value={formData.enrollmentPeriod}
+                        onValueChange={(val: any) => setFormData(p => ({...p, enrollmentPeriod: val}))}
+                      >
+                        <SelectTrigger className="rounded-xl h-11 border-border/60 bg-white">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="IEP">Initial Enrollment (IEP)</SelectItem>
+                          <SelectItem value="AEP">Annual Enrollment (AEP)</SelectItem>
+                          <SelectItem value="SEP">Special Enrollment (SEP)</SelectItem>
+                          <SelectItem value="OE">Open Enrollment (OE)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Monthly Premium</Label>
+                      <Input 
+                        placeholder="$0.00"
+                        value={formData.monthlyPremium}
+                        onChange={e => setFormData(p => ({...p, monthlyPremium: e.target.value}))}
+                        className="rounded-xl h-11 border-border/60 bg-white"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Federal Benefits</Label>
+                      <Select 
+                        value={formData.medicareMedicaidStatus}
+                        onValueChange={(val: any) => setFormData(p => ({...p, medicareMedicaidStatus: val}))}
+                      >
+                        <SelectTrigger className="rounded-xl h-11 border-border/60 bg-white">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="None">None</SelectItem>
+                          <SelectItem value="Medicare">Medicare Only</SelectItem>
+                          <SelectItem value="Medicaid">Medicaid Only</SelectItem>
+                          <SelectItem value="Both">Dual-Eligible (Both)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+                </AccordionContent>
+              </AccordionItem>
+
+              {/* Health & Providers */}
               <AccordionItem value="health" className="border rounded-2xl bg-card px-6 py-2 shadow-sm">
                 <AccordionTrigger className="hover:no-underline py-4">
                   <div className="flex items-center gap-4">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary text-xs font-bold">02</div>
-                    <span className="font-headline font-semibold">Health & Coverage Metadata</span>
+                    <div className="w-8 h-8 rounded-full bg-red-500/10 flex items-center justify-center text-red-600">
+                      <Heart className="w-4 h-4" />
+                    </div>
+                    <span className="font-bold text-sm uppercase tracking-widest">Health & Providers</span>
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="pt-2 pb-6 space-y-6">
                   <div className="space-y-3">
-                    <Label className="text-xs uppercase tracking-wider text-muted-foreground">Medical History Flags</Label>
-                    <div className="grid grid-cols-2 gap-3">
-                      {["Diabetes", "Hypertension", "Heart Condition", "Smoker", "Respiratory Issue", "Mobility Assistance"].map(cond => (
-                        <div key={cond} className="flex items-center space-x-2">
-                          <Checkbox 
-                            id={cond} 
-                            checked={formData.healthConditions?.includes(cond)}
-                            onCheckedChange={(checked) => {
-                              const current = formData.healthConditions || []
-                              setFormData(p => ({
-                                ...p, 
-                                healthConditions: checked ? [...current, cond] : current.filter(c => c !== cond)
-                              }))
-                            }}
-                          />
-                          <Label htmlFor={cond} className="text-sm font-medium">{cond}</Label>
+                    <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Chronic Care Identifiers (Module 3 Prep)</Label>
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      {["Diabetes", "Hypertension", "Heart Condition", "Respiratory Issue", "Mobility Issues"].map(cond => (
+                        <div key={cond} className="flex items-center space-x-3 p-3 rounded-xl border bg-white hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => {
+                          const current = formData.healthConditions || []
+                          setFormData(p => ({
+                            ...p, 
+                            healthConditions: current.includes(cond) ? current.filter(c => c !== cond) : [...current, cond]
+                          }))
+                        }}>
+                          <Checkbox id={cond} checked={formData.healthConditions?.includes(cond)} className="rounded-full" />
+                          <Label htmlFor={cond} className="text-xs font-bold cursor-pointer">{cond}</Label>
                         </div>
                       ))}
                     </div>
                   </div>
 
-                  <div className="space-y-3">
-                    <Label className="text-xs uppercase tracking-wider text-muted-foreground">Federal Benefit Status</Label>
-                    <div className="grid grid-cols-1 gap-4">
-                        <Select 
-                          value={formData.medicareMedicaidStatus}
-                          onValueChange={(val: any) => setFormData(p => ({...p, medicareMedicaidStatus: val}))}
-                        >
-                          <SelectTrigger className="rounded-xl border-border/60">
-                            <SelectValue placeholder="Select Status" />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="None">No Federal Benefits</SelectItem>
-                            <SelectItem value="Medicare">Medicare Recipient</SelectItem>
-                            <SelectItem value="Medicaid">Medicaid Recipient</SelectItem>
-                            <SelectItem value="Both">Dual-Eligible (Both)</SelectItem>
-                          </SelectContent>
-                        </Select>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1 flex items-center gap-1.5"><Stethoscope className="w-3 h-3" /> PCP Name</Label>
+                      <Input 
+                        placeholder="Dr. Alexander Wright"
+                        value={formData.pcpName}
+                        onChange={e => setFormData(p => ({...p, pcpName: e.target.value}))}
+                        className="rounded-xl h-11 border-border/60 bg-white"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Preferred Pharmacy</Label>
+                      <Input 
+                        placeholder="CVS #1204 / Walgreens"
+                        value={formData.pharmacyName}
+                        onChange={e => setFormData(p => ({...p, pharmacyName: e.target.value}))}
+                        className="rounded-xl h-11 border-border/60 bg-white"
+                      />
                     </div>
                   </div>
                 </AccordionContent>
