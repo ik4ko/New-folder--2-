@@ -17,7 +17,7 @@ import {
   ShoppingBag
 } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
-import { useSearchParams } from "next/navigation"
+import { useSearchParams, useRouter } from "next/navigation"
 import { useState, useEffect, Suspense } from "react"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -31,6 +31,7 @@ import {
 
 function SettingsContent() {
   const searchParams = useSearchParams()
+  const router = useRouter()
   const [activeTab, setActiveTab] = useState("identity")
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false)
   
@@ -42,6 +43,11 @@ function SettingsContent() {
       setActiveTab(tab)
     }
   }, [searchParams])
+
+  const handleTabChange = (val: string) => {
+    setActiveTab(val)
+    router.push(`/settings?tab=${val}`)
+  }
 
   const handleSave = () => {
     toast({ title: "Settings Saved", description: "Your preferences have been updated and synced locally." })
@@ -91,7 +97,7 @@ function SettingsContent() {
       </header>
 
       <div className="flex-1 overflow-y-auto p-8 max-w-5xl mx-auto w-full space-y-8 bg-background">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
+        <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
           <TabsList className="bg-muted p-1 rounded-2xl border border-border mb-8 flex flex-wrap h-auto gap-1 shadow-inner">
             <TabsTrigger value="identity" className="rounded-xl flex-1 min-w-[120px] py-2.5 text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white">
               <Building2 className="w-4 h-4 mr-2" /> Identity

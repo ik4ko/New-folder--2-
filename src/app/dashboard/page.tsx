@@ -1,4 +1,3 @@
-
 "use client"
 
 import { CollectionSidebar } from "@/components/collection-sidebar"
@@ -86,18 +85,20 @@ export default function Dashboard() {
               {/* Stats Cards */}
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Card className="bg-muted/30 border-none rounded-[2rem] p-6 flex flex-col justify-between min-h-[200px] shadow-sm hover:bg-muted/40 transition-colors cursor-default">
-                    <div className="flex justify-between items-start">
-                      <span className="text-xs font-black uppercase tracking-widest text-muted-foreground">Book of <br />Business</span>
-                      <Users className="w-5 h-5 text-primary opacity-50" />
-                    </div>
-                    <div>
-                      <div className="text-5xl font-black mb-2 tracking-tighter">{stats.totalMembers}</div>
-                      <div className="text-[10px] font-black uppercase text-emerald-500 tracking-widest">+4% growth this month</div>
-                    </div>
-                  </Card>
+                  <Link href="/members" className="block">
+                    <Card className="bg-muted/30 border-none rounded-[2rem] p-6 flex flex-col justify-between min-h-[200px] shadow-sm hover:bg-muted/40 transition-colors cursor-pointer group">
+                      <div className="flex justify-between items-start">
+                        <span className="text-xs font-black uppercase tracking-widest text-muted-foreground">Book of <br />Business</span>
+                        <Users className="w-5 h-5 text-primary opacity-50 group-hover:scale-110 transition-transform" />
+                      </div>
+                      <div>
+                        <div className="text-5xl font-black mb-2 tracking-tighter">{stats.totalMembers}</div>
+                        <div className="text-[10px] font-black uppercase text-emerald-500 tracking-widest">+4% growth this month</div>
+                      </div>
+                    </Card>
+                  </Link>
                 </TooltipTrigger>
-                <TooltipContent>Total active Medicare Advantage and Supplement members</TooltipContent>
+                <TooltipContent>View full member roster</TooltipContent>
               </Tooltip>
 
               <Tooltip>
@@ -120,34 +121,38 @@ export default function Dashboard() {
 
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Card className="bg-muted/30 border-none rounded-[2rem] p-6 flex flex-col justify-between min-h-[200px] shadow-sm hover:bg-destructive/5 transition-colors cursor-default border-2 border-transparent hover:border-destructive/20">
-                    <div className="flex justify-between items-start">
-                      <span className="text-xs font-black uppercase tracking-widest text-destructive">CMS <br />Switch Alerts</span>
-                      <Activity className="w-5 h-5 text-destructive opacity-50" />
-                    </div>
-                    <div>
-                      <div className="text-5xl font-black text-destructive mb-2 tracking-tighter">{stats.churnRisks}</div>
-                      <div className="text-[10px] font-black uppercase text-destructive tracking-widest">Action Required (24h Window)</div>
-                    </div>
-                  </Card>
+                  <Link href="/members?filter=risk" className="block">
+                    <Card className="bg-muted/30 border-none rounded-[2rem] p-6 flex flex-col justify-between min-h-[200px] shadow-sm hover:bg-destructive/5 transition-colors cursor-pointer border-2 border-transparent hover:border-destructive/20 group">
+                      <div className="flex justify-between items-start">
+                        <span className="text-xs font-black uppercase tracking-widest text-destructive">CMS <br />Switch Alerts</span>
+                        <Activity className="w-5 h-5 text-destructive opacity-50 group-hover:scale-110 transition-transform" />
+                      </div>
+                      <div>
+                        <div className="text-5xl font-black text-destructive mb-2 tracking-tighter">{stats.churnRisks}</div>
+                        <div className="text-[10px] font-black uppercase text-destructive tracking-widest">Action Required (24h Window)</div>
+                      </div>
+                    </Card>
+                  </Link>
                 </TooltipTrigger>
-                <TooltipContent>Detected disenrollments requiring immediate retention outreach</TooltipContent>
+                <TooltipContent>Address identified churn risks immediately</TooltipContent>
               </Tooltip>
 
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Card className="bg-muted/30 border-none rounded-[2rem] p-6 flex flex-col justify-between min-h-[200px] shadow-sm hover:bg-muted/40 transition-colors cursor-default">
-                    <div className="flex justify-between items-start">
-                      <span className="text-xs font-black uppercase tracking-widest text-muted-foreground">Pending <br />SSBCI Faxes</span>
-                      <Printer className="w-5 h-5 text-primary opacity-50" />
-                    </div>
-                    <div>
-                      <div className="text-5xl font-black mb-2 tracking-tighter">{stats.pendingFaxes}</div>
-                      <div className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Auto-generation active</div>
-                    </div>
-                  </Card>
+                  <Link href="/fax" className="block">
+                    <Card className="bg-muted/30 border-none rounded-[2rem] p-6 flex flex-col justify-between min-h-[200px] shadow-sm hover:bg-muted/40 transition-colors cursor-pointer group">
+                      <div className="flex justify-between items-start">
+                        <span className="text-xs font-black uppercase tracking-widest text-muted-foreground">Pending <br />SSBCI Faxes</span>
+                        <Printer className="w-5 h-5 text-primary opacity-50 group-hover:scale-110 transition-transform" />
+                      </div>
+                      <div>
+                        <div className="text-5xl font-black mb-2 tracking-tighter">{stats.pendingFaxes}</div>
+                        <div className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Auto-generation active</div>
+                      </div>
+                    </Card>
+                  </Link>
                 </TooltipTrigger>
-                <TooltipContent>Clinical packages awaiting physician signature via Spruce Health</TooltipContent>
+                <TooltipContent>Go to Spruce Fax Agent</TooltipContent>
               </Tooltip>
             </div>
 
@@ -266,18 +271,20 @@ export default function Dashboard() {
 
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <div className="p-6 rounded-2xl border border-border bg-card flex items-center justify-between group cursor-pointer hover:border-primary/30 transition-all" onClick={() => {}}>
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-all">
-                            <Calendar className="w-5 h-5" />
+                      <Link href="/settings?tab=compliance" className="block">
+                        <div className="p-6 rounded-2xl border border-border bg-card flex items-center justify-between group cursor-pointer hover:border-primary/30 transition-all">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-all">
+                              <Calendar className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Next Compliance Audit</p>
+                              <p className="text-xs font-black text-foreground uppercase tracking-tight">Oct 12, 2025</p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Next Compliance Audit</p>
-                            <p className="text-xs font-black text-foreground uppercase tracking-tight">Oct 12, 2025</p>
-                          </div>
+                          <ArrowUpRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-all" />
                         </div>
-                        <ArrowUpRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-all" />
-                      </div>
+                      </Link>
                     </TooltipTrigger>
                     <TooltipContent side="left">Annual agency compliance deadline</TooltipContent>
                   </Tooltip>

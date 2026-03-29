@@ -11,283 +11,291 @@ import Link from "next/link"
 import { ModeToggle } from "@/components/mode-toggle"
 import Image from "next/image"
 import { PlaceHolderImages } from "@/lib/placeholder-images"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 export default function LandingPage() {
   const heroImage = PlaceHolderImages.find(img => img.id === 'branding-header')
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
-      {/* Nav */}
-      <header className="h-20 border-b border-border/50 px-8 flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur-xl z-50">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-primary flex items-center justify-center text-white font-black text-xl shadow-lg shadow-primary/20">
-            M
+      <TooltipProvider delayDuration={0}>
+        {/* Nav */}
+        <header className="h-20 border-b border-border/50 px-8 flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur-xl z-50">
+          <div className="flex items-center gap-3">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="w-10 h-10 rounded-2xl bg-primary flex items-center justify-center text-white font-black text-xl shadow-lg shadow-primary/20 cursor-default">
+                  M
+                </div>
+              </TooltipTrigger>
+              <TooltipContent>MediStay Intelligence Inc.</TooltipContent>
+            </Tooltip>
+            <span className="text-xl font-black tracking-tighter uppercase">MediStay</span>
           </div>
-          <span className="text-xl font-black tracking-tighter uppercase">MediStay</span>
-        </div>
-        <nav className="hidden md:flex items-center gap-8">
-          <Link href="#features" className="text-xs font-black uppercase tracking-widest hover:text-primary transition-colors">Features</Link>
-          <Link href="#pricing" className="text-xs font-black uppercase tracking-widest hover:text-primary transition-colors">Pricing</Link>
-          <Link href="#compliance" className="text-xs font-black uppercase tracking-widest hover:text-primary transition-colors">Compliance</Link>
-        </nav>
-        <div className="flex items-center gap-4">
-          <ModeToggle />
-          <Button variant="ghost" className="hidden sm:flex text-xs font-black uppercase tracking-widest" asChild>
-            <Link href="/dashboard">Log In</Link>
-          </Button>
-          <Button className="rounded-xl h-11 px-6 bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest text-[10px] shadow-xl shadow-primary/20" asChild>
-            <Link href="/dashboard">Launch Command Center</Link>
-          </Button>
-        </div>
-      </header>
-
-      {/* Hero */}
-      <section className="relative py-24 md:py-32 px-8 overflow-hidden">
-        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-6xl h-full -z-10">
-          <div className="absolute top-0 left-0 w-96 h-96 bg-primary/10 rounded-full blur-[120px] animate-pulse" />
-          <div className="absolute bottom-0 right-0 w-96 h-96 bg-accent/10 rounded-full blur-[120px] animate-pulse delay-700" />
-        </div>
-
-        <div className="max-w-5xl mx-auto text-center space-y-8">
-          <Badge className="bg-primary/10 text-primary border-primary/20 px-4 py-1.5 h-auto gap-2 font-black uppercase tracking-widest text-[10px] rounded-full">
-            <Sparkles className="w-3.5 h-3.5" />
-            Autonomous Medicare Retention is Here
-          </Badge>
-          <h1 className="text-5xl md:text-7xl font-black tracking-tighter uppercase leading-[0.9]">
-            Shield Your <span className="text-primary">Book of Business</span> From Competitors.
-          </h1>
-          <p className="text-lg md:text-xl text-muted-foreground font-bold max-w-2xl mx-auto uppercase tracking-tight opacity-80">
-            Real-time CMS switch detection, automated SSBCI faxes via Spruce Health, and AI-driven member check-ins. Built for enterprise Medicare agencies.
-          </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
-            <Button size="lg" className="w-full sm:w-auto h-16 px-10 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest shadow-2xl shadow-primary/30 text-xs gap-3" asChild>
-              <Link href="/dashboard">
-                Start 14-Day Free Trial <ArrowRight className="w-5 h-5" />
-              </Link>
+          <nav className="hidden md:flex items-center gap-8">
+            <Link href="#features" className="text-xs font-black uppercase tracking-widest hover:text-primary transition-colors">Features</Link>
+            <Link href="#pricing" className="text-xs font-black uppercase tracking-widest hover:text-primary transition-colors">Pricing</Link>
+            <Link href="#compliance" className="text-xs font-black uppercase tracking-widest hover:text-primary transition-colors">Compliance</Link>
+          </nav>
+          <div className="flex items-center gap-4">
+            <ModeToggle />
+            <Button variant="ghost" className="hidden sm:flex text-xs font-black uppercase tracking-widest" asChild>
+              <Link href="/dashboard">Log In</Link>
             </Button>
-            <Button size="lg" variant="outline" className="w-full sm:w-auto h-16 px-10 rounded-2xl border-2 border-border font-black uppercase tracking-widest text-xs" asChild>
-              <Link href="#features">See How it Works</Link>
+            <Button className="rounded-xl h-11 px-6 bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest text-[10px] shadow-xl shadow-primary/20" asChild>
+              <Link href="/dashboard">Launch Command Center</Link>
             </Button>
           </div>
-        </div>
-      </section>
+        </header>
 
-      {/* High-DPI Visual Proof */}
-      <section className="px-8 pb-32">
-        <div className="max-w-6xl mx-auto rounded-[3rem] overflow-hidden border border-border shadow-2xl bg-muted/20 relative aspect-[2/1]">
-          {heroImage && (
-            <Image 
-              src={heroImage.imageUrl}
-              alt={heroImage.description}
-              fill
-              className="object-cover opacity-40 grayscale group-hover:opacity-100 transition-opacity"
-              data-ai-hint="modern office"
-            />
-          )}
-          <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
-          <div className="absolute bottom-12 left-12 right-12 flex items-end justify-between">
-            <div className="space-y-2">
-              <Badge className="bg-emerald-500 text-white border-none font-black uppercase text-[10px]">Live Data</Badge>
-              <h3 className="text-2xl font-black uppercase tracking-tighter">Command Center Preview</h3>
-            </div>
-            <div className="flex gap-2">
-              <div className="w-12 h-12 rounded-2xl bg-background/80 backdrop-blur-md border border-border flex items-center justify-center">
-                <ShieldCheck className="w-6 h-6 text-primary" />
-              </div>
-              <div className="w-12 h-12 rounded-2xl bg-background/80 backdrop-blur-md border border-border flex items-center justify-center">
-                <Zap className="w-6 h-6 text-accent" />
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Features */}
-      <section id="features" className="py-32 px-8">
-        <div className="max-w-6xl mx-auto space-y-20">
-          <div className="text-center space-y-4">
-            <h2 className="text-4xl font-black uppercase tracking-tighter">The Retention <span className="text-accent">OS</span></h2>
-            <p className="text-muted-foreground font-black uppercase tracking-widest text-xs">Four modules of absolute member protection.</p>
+        {/* Hero */}
+        <section className="relative py-24 md:py-32 px-8 overflow-hidden">
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full max-w-6xl h-full -z-10">
+            <div className="absolute top-0 left-0 w-96 h-96 bg-primary/10 rounded-full blur-[120px] animate-pulse" />
+            <div className="absolute bottom-0 right-0 w-96 h-96 bg-accent/10 rounded-full blur-[120px] animate-pulse delay-700" />
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="p-10 rounded-[2.5rem] bg-card border border-border space-y-6 hover:border-primary/30 transition-all group">
-              <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
-                <Activity className="w-7 h-7" />
-              </div>
-              <h3 className="text-2xl font-black uppercase tracking-tight">Module 1: CMS Switch Detection</h3>
-              <p className="text-sm font-bold text-muted-foreground uppercase leading-relaxed opacity-70">
-                Instantly detect when a member switches carriers via nightly MARx snapshot polls. Catch churn before the disenrollment window closes.
-              </p>
-            </div>
-
-            <div className="p-10 rounded-[2.5rem] bg-card border border-border space-y-6 hover:border-accent/30 transition-all group">
-              <div className="w-14 h-14 rounded-2xl bg-accent/10 flex items-center justify-center text-accent group-hover:scale-110 transition-transform">
-                <Sparkles className="w-7 h-7" />
-              </div>
-              <h3 className="text-2xl font-black uppercase tracking-tight">Module 2: Maya AI Check-ins</h3>
-              <p className="text-sm font-bold text-muted-foreground uppercase leading-relaxed opacity-70">
-                Autonomous voice check-ins at critical policy milestones. Maya identifies dissatisfaction and escalates high-risk cases to brokers in real-time.
-              </p>
-            </div>
-
-            <div className="p-10 rounded-[2.5rem] bg-card border border-border space-y-6 hover:border-primary/30 transition-all group">
-              <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
-                <Lock className="w-7 h-7" />
-              </div>
-              <h3 className="text-2xl font-black uppercase tracking-tight">Module 3: Spruce Health Fax Agent</h3>
-              <p className="text-sm font-bold text-muted-foreground uppercase leading-relaxed opacity-70">
-                Automated chronic condition verification. MediStay faxes PCP offices directly via Spruce Health to activate specialized benefits, locking in member loyalty.
-              </p>
-            </div>
-
-            <div className="p-10 rounded-[2.5rem] bg-card border border-border space-y-6 hover:border-accent/30 transition-all group">
-              <div className="w-14 h-14 rounded-2xl bg-accent/10 flex items-center justify-center text-accent group-hover:scale-110 transition-transform">
-                <Globe className="w-7 h-7" />
-              </div>
-              <h3 className="text-2xl font-black uppercase tracking-tight">Module 4: GHL Data Sync</h3>
-              <p className="text-sm font-bold text-muted-foreground uppercase leading-relaxed opacity-70">
-                Two-way sync with GoHighLevel. Map Medicare fields directly to your CRM and trigger workflows automatically based on retention logic.
-              </p>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Pricing */}
-      <section id="pricing" className="py-32 px-8 bg-muted/30">
-        <div className="max-w-6xl mx-auto space-y-16">
-          <div className="text-center space-y-4">
-            <h2 className="text-4xl font-black uppercase tracking-tighter">Scalable <span className="text-primary">Protection</span></h2>
-            <p className="text-muted-foreground font-black uppercase tracking-widest text-xs">Plans for solo brokers and global agencies.</p>
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-            <div className="p-10 rounded-[2.5rem] bg-background border border-border space-y-8 flex flex-col justify-between shadow-sm">
-              <div className="space-y-6">
-                <div>
-                  <h4 className="text-xs font-black uppercase tracking-widest text-muted-foreground">Entry Tier</h4>
-                  <div className="flex items-baseline gap-1 mt-2">
-                    <span className="text-5xl font-black tracking-tighter">$29</span>
-                    <span className="text-xs font-black text-muted-foreground">/MO</span>
-                  </div>
-                </div>
-                <div className="space-y-3">
-                  {["100 Members", "MARx Switch Alerts", "Standard GHL Sync", "Email Alerts"].map((item, i) => (
-                    <div key={i} className="flex items-center gap-2 text-xs font-black uppercase tracking-tight">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-500" /> {item}
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <Button className="w-full h-14 rounded-2xl border-2 border-primary text-primary bg-transparent hover:bg-primary/5 font-black uppercase text-xs" asChild>
-                <Link href="/dashboard">Get Started</Link>
-              </Button>
-            </div>
-
-            <div className="p-10 rounded-[2.5rem] bg-primary text-white space-y-8 flex flex-col justify-between shadow-2xl shadow-primary/40 relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-6 opacity-10"><Zap className="w-32 h-32" /></div>
-              <div className="space-y-6 relative z-10">
-                <div>
-                  <Badge className="bg-white/20 text-white border-white/30 mb-4 font-black uppercase text-[9px] tracking-widest">Most Popular</Badge>
-                  <h4 className="text-xs font-black uppercase tracking-widest text-primary-foreground/70">Pro Agency</h4>
-                  <div className="flex items-baseline gap-1 mt-2">
-                    <span className="text-5xl font-black tracking-tighter">$899</span>
-                    <span className="text-xs font-black text-primary-foreground/70">/MO</span>
-                  </div>
-                </div>
-                <div className="space-y-3">
-                  {["Unlimited Members", "Maya AI Voice (500m/mo)", "Spruce Fax Center", "White-Label PDFs", "Priority Support"].map((item, i) => (
-                    <div key={i} className="flex items-center gap-2 text-xs font-black uppercase tracking-tight">
-                      <CheckCircle2 className="w-4 h-4 text-accent" /> {item}
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <Button className="w-full h-14 rounded-2xl bg-white text-primary hover:bg-white/90 font-black uppercase text-xs relative z-10" asChild>
-                <Link href="/dashboard">Go Pro Now</Link>
-              </Button>
-            </div>
-
-            <div className="p-10 rounded-[2.5rem] bg-background border border-border space-y-8 flex flex-col justify-between shadow-sm">
-              <div className="space-y-6">
-                <div>
-                  <h4 className="text-xs font-black uppercase tracking-widest text-muted-foreground">Enterprise</h4>
-                  <div className="flex items-baseline gap-1 mt-2">
-                    <span className="text-5xl font-black tracking-tighter">Custom</span>
-                  </div>
-                </div>
-                <div className="space-y-3">
-                  {["Full BAA Ownership", "On-Prem Deployment", "Custom AI Training", "API Endpoint Access", "Account Manager"].map((item, i) => (
-                    <div key={i} className="flex items-center gap-2 text-xs font-black uppercase tracking-tight">
-                      <CheckCircle2 className="w-4 h-4 text-emerald-500" /> {item}
-                    </div>
-                  ))}
-                </div>
-              </div>
-              <Button className="w-full h-14 rounded-2xl border-2 border-border text-foreground bg-transparent hover:bg-muted font-black uppercase text-xs" asChild>
-                <Link href="/dashboard">Contact Sales</Link>
-              </Button>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="py-20 px-8 border-t border-border/50">
-        <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12">
-          <div className="space-y-6">
-            <div className="flex items-center gap-3">
-              <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-white font-black text-lg">
-                M
-              </div>
-              <span className="text-lg font-black tracking-tighter uppercase">MediStay</span>
-            </div>
-            <p className="text-[10px] font-bold text-muted-foreground uppercase leading-relaxed max-w-xs">
-              The world's first autonomous retention system designed specifically for the Medicare market.
+          <div className="max-w-5xl mx-auto text-center space-y-8">
+            <Badge className="bg-primary/10 text-primary border-primary/20 px-4 py-1.5 h-auto gap-2 font-black uppercase tracking-widest text-[10px] rounded-full">
+              <Sparkles className="w-3.5 h-3.5" />
+              Autonomous Medicare Retention is Here
+            </Badge>
+            <h1 className="text-5xl md:text-7xl font-black tracking-tighter uppercase leading-[0.9]">
+              Shield Your <span className="text-primary">Book of Business</span> From Competitors.
+            </h1>
+            <p className="text-lg md:text-xl text-muted-foreground font-bold max-w-2xl mx-auto uppercase tracking-tight opacity-80">
+              Real-time CMS switch detection, automated SSBCI faxes via Spruce Health, and AI-driven member check-ins. Built for enterprise Medicare agencies.
             </p>
-          </div>
-          
-          <div className="space-y-4">
-            <h5 className="text-[10px] font-black uppercase tracking-widest">Modules</h5>
-            <ul className="space-y-2 text-[10px] font-black text-muted-foreground uppercase tracking-tight">
-              <li><Link href="#" className="hover:text-primary transition-colors">CMS Switch Detection</Link></li>
-              <li><Link href="#" className="hover:text-primary transition-colors">Maya AI Voice</Link></li>
-              <li><Link href="#" className="hover:text-primary transition-colors">Spruce Health Fax</Link></li>
-              <li><Link href="#" className="hover:text-primary transition-colors">GHL Integration</Link></li>
-            </ul>
-          </div>
-
-          <div className="space-y-4">
-            <h5 className="text-[10px] font-black uppercase tracking-widest">Agency</h5>
-            <ul className="space-y-2 text-[10px] font-black text-muted-foreground uppercase tracking-tight">
-              <li><Link href="#" className="hover:text-primary transition-colors">About Us</Link></li>
-              <li><Link href="#" className="hover:text-primary transition-colors">Careers</Link></li>
-              <li><Link href="#" className="hover:text-primary transition-colors">Compliance Vault</Link></li>
-              <li><Link href="#" className="hover:text-primary transition-colors">BAA Agreement</Link></li>
-            </ul>
-          </div>
-
-          <div className="space-y-6">
-            <div className="p-4 rounded-2xl bg-muted/50 border border-border/50">
-              <div className="flex items-center gap-2 text-muted-foreground mb-1">
-                <Lock className="w-3 h-3" />
-                <span className="text-[9px] font-black uppercase tracking-widest">HIPAA SECURE</span>
-              </div>
-              <p className="text-[9px] text-muted-foreground leading-relaxed font-bold uppercase tracking-tight opacity-60">
-                BAA Active: AWS/Twilio/Spruce Health. Records encrypted at rest.
-              </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
+              <Button size="lg" className="w-full sm:w-auto h-16 px-10 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest shadow-2xl shadow-primary/30 text-xs gap-3" asChild>
+                <Link href="/dashboard">
+                  Start 14-Day Free Trial <ArrowRight className="w-5 h-5" />
+                </Link>
+              </Button>
+              <Button size="lg" variant="outline" className="w-full sm:w-auto h-16 px-10 rounded-2xl border-2 border-border font-black uppercase tracking-widest text-xs" asChild>
+                <Link href="#features">See How it Works</Link>
+              </Button>
             </div>
           </div>
-        </div>
-        <div className="max-w-6xl mx-auto mt-20 pt-8 border-t border-border/50 flex flex-col md:flex-row items-center justify-between gap-4">
-          <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">© 2025 MediStay Intelligence Inc. All rights reserved.</p>
-          <div className="flex items-center gap-6">
-            <Link href="#" className="text-[9px] font-black text-muted-foreground uppercase tracking-widest hover:text-primary">Privacy Policy</Link>
-            <Link href="#" className="text-[9px] font-black text-muted-foreground uppercase tracking-widest hover:text-primary">Terms of Service</Link>
+        </section>
+
+        {/* High-DPI Visual Proof */}
+        <section className="px-8 pb-32">
+          <div className="max-w-6xl mx-auto rounded-[3rem] overflow-hidden border border-border shadow-2xl bg-muted/20 relative aspect-[2/1]">
+            {heroImage && (
+              <Image 
+                src={heroImage.imageUrl}
+                alt={heroImage.description}
+                fill
+                className="object-cover opacity-40 grayscale group-hover:opacity-100 transition-opacity"
+                data-ai-hint="modern office"
+              />
+            )}
+            <div className="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent" />
+            <div className="absolute bottom-12 left-12 right-12 flex items-end justify-between">
+              <div className="space-y-2">
+                <Badge className="bg-emerald-500 text-white border-none font-black uppercase text-[10px]">Live Data</Badge>
+                <h3 className="text-2xl font-black uppercase tracking-tighter">Command Center Preview</h3>
+              </div>
+              <div className="flex gap-2">
+                <div className="w-12 h-12 rounded-2xl bg-background/80 backdrop-blur-md border border-border flex items-center justify-center">
+                  <ShieldCheck className="w-6 h-6 text-primary" />
+                </div>
+                <div className="w-12 h-12 rounded-2xl bg-background/80 backdrop-blur-md border border-border flex items-center justify-center">
+                  <Zap className="w-6 h-6 text-accent" />
+                </div>
+              </div>
+            </div>
           </div>
-        </div>
-      </footer>
+        </section>
+
+        {/* Features */}
+        <section id="features" className="py-32 px-8">
+          <div className="max-w-6xl mx-auto space-y-20">
+            <div className="text-center space-y-4">
+              <h2 className="text-4xl font-black uppercase tracking-tighter">The Retention <span className="text-accent">OS</span></h2>
+              <p className="text-muted-foreground font-black uppercase tracking-widest text-xs">Four modules of absolute member protection.</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              <div className="p-10 rounded-[2.5rem] bg-card border border-border space-y-6 hover:border-primary/30 transition-all group">
+                <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                  <Activity className="w-7 h-7" />
+                </div>
+                <h3 className="text-2xl font-black uppercase tracking-tight">Module 1: CMS Switch Detection</h3>
+                <p className="text-sm font-bold text-muted-foreground uppercase leading-relaxed opacity-70">
+                  Instantly detect when a member switches carriers via nightly MARx snapshot polls. Catch churn before the disenrollment window closes.
+                </p>
+              </div>
+
+              <div className="p-10 rounded-[2.5rem] bg-card border border-border space-y-6 hover:border-accent/30 transition-all group">
+                <div className="w-14 h-14 rounded-2xl bg-accent/10 flex items-center justify-center text-accent group-hover:scale-110 transition-transform">
+                  <Sparkles className="w-7 h-7" />
+                </div>
+                <h3 className="text-2xl font-black uppercase tracking-tight">Module 2: Maya AI Check-ins</h3>
+                <p className="text-sm font-bold text-muted-foreground uppercase leading-relaxed opacity-70">
+                  Autonomous voice check-ins at critical policy milestones. Maya identifies dissatisfaction and escalates high-risk cases to brokers in real-time.
+                </p>
+              </div>
+
+              <div className="p-10 rounded-[2.5rem] bg-card border border-border space-y-6 hover:border-primary/30 transition-all group">
+                <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                  <Lock className="w-7 h-7" />
+                </div>
+                <h3 className="text-2xl font-black uppercase tracking-tight">Module 3: Spruce Health Fax Agent</h3>
+                <p className="text-sm font-bold text-muted-foreground uppercase leading-relaxed opacity-70">
+                  Automated chronic condition verification. MediStay faxes PCP offices directly via Spruce Health to activate specialized benefits, locking in member loyalty.
+                </p>
+              </div>
+
+              <div className="p-10 rounded-[2.5rem] bg-card border border-border space-y-6 hover:border-accent/30 transition-all group">
+                <div className="w-14 h-14 rounded-2xl bg-accent/10 flex items-center justify-center text-accent group-hover:scale-110 transition-transform">
+                  <Globe className="w-7 h-7" />
+                </div>
+                <h3 className="text-2xl font-black uppercase tracking-tight">Module 4: GHL Data Sync</h3>
+                <p className="text-sm font-bold text-muted-foreground uppercase leading-relaxed opacity-70">
+                  Two-way sync with GoHighLevel. Map Medicare fields directly to your CRM and trigger workflows automatically based on retention logic.
+                </p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Pricing */}
+        <section id="pricing" className="py-32 px-8 bg-muted/30">
+          <div className="max-w-6xl mx-auto space-y-16">
+            <div className="text-center space-y-4">
+              <h2 className="text-4xl font-black uppercase tracking-tighter">Scalable <span className="text-primary">Protection</span></h2>
+              <p className="text-muted-foreground font-black uppercase tracking-widest text-xs">Plans for solo brokers and global agencies.</p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+              <div className="p-10 rounded-[2.5rem] bg-background border border-border space-y-8 flex flex-col justify-between shadow-sm">
+                <div className="space-y-6">
+                  <div>
+                    <h4 className="text-xs font-black uppercase tracking-widest text-muted-foreground">Entry Tier</h4>
+                    <div className="flex items-baseline gap-1 mt-2">
+                      <span className="text-5xl font-black tracking-tighter">$29</span>
+                      <span className="text-xs font-black text-muted-foreground">/MO</span>
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    {["100 Members", "MARx Switch Alerts", "Standard GHL Sync", "Email Alerts"].map((item, i) => (
+                      <div key={i} className="flex items-center gap-2 text-xs font-black uppercase tracking-tight">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-500" /> {item}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <Button className="w-full h-14 rounded-2xl border-2 border-primary text-primary bg-transparent hover:bg-primary/5 font-black uppercase text-xs" asChild>
+                  <Link href="/dashboard">Get Started</Link>
+                </Button>
+              </div>
+
+              <div className="p-10 rounded-[2.5rem] bg-primary text-white space-y-8 flex flex-col justify-between shadow-2xl shadow-primary/40 relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-6 opacity-10"><Zap className="w-32 h-32" /></div>
+                <div className="space-y-6 relative z-10">
+                  <div>
+                    <Badge className="bg-white/20 text-white border-white/30 mb-4 font-black uppercase text-[9px] tracking-widest">Most Popular</Badge>
+                    <h4 className="text-xs font-black uppercase tracking-widest text-primary-foreground/70">Pro Agency</h4>
+                    <div className="flex items-baseline gap-1 mt-2">
+                      <span className="text-5xl font-black tracking-tighter">$899</span>
+                      <span className="text-xs font-black text-primary-foreground/70">/MO</span>
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    {["Unlimited Members", "Maya AI Voice (500m/mo)", "Spruce Fax Center", "White-Label PDFs", "Priority Support"].map((item, i) => (
+                      <div key={i} className="flex items-center gap-2 text-xs font-black uppercase tracking-tight">
+                        <CheckCircle2 className="w-4 h-4 text-accent" /> {item}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <Button className="w-full h-14 rounded-2xl bg-white text-primary hover:bg-white/90 font-black uppercase text-xs relative z-10" asChild>
+                  <Link href="/dashboard">Go Pro Now</Link>
+                </Button>
+              </div>
+
+              <div className="p-10 rounded-[2.5rem] bg-background border border-border space-y-8 flex flex-col justify-between shadow-sm">
+                <div className="space-y-6">
+                  <div>
+                    <h4 className="text-xs font-black uppercase tracking-widest text-muted-foreground">Enterprise</h4>
+                    <div className="flex items-baseline gap-1 mt-2">
+                      <span className="text-5xl font-black tracking-tighter">Custom</span>
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    {["Full BAA Ownership", "On-Prem Deployment", "Custom AI Training", "API Endpoint Access", "Account Manager"].map((item, i) => (
+                      <div key={i} className="flex items-center gap-2 text-xs font-black uppercase tracking-tight">
+                        <CheckCircle2 className="w-4 h-4 text-emerald-500" /> {item}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <Button className="w-full h-14 rounded-2xl border-2 border-border text-foreground bg-transparent hover:bg-muted font-black uppercase text-xs" asChild>
+                  <Link href="/dashboard">Contact Sales</Link>
+                </Button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Footer */}
+        <footer className="py-20 px-8 border-t border-border/50">
+          <div className="max-w-6xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-12">
+            <div className="space-y-6">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-white font-black text-lg">
+                  M
+                </div>
+                <span className="text-lg font-black tracking-tighter uppercase">MediStay</span>
+              </div>
+              <p className="text-[10px] font-bold text-muted-foreground uppercase leading-relaxed max-w-xs">
+                The world's first autonomous retention system designed specifically for the Medicare market.
+              </p>
+            </div>
+            
+            <div className="space-y-4">
+              <h5 className="text-[10px] font-black uppercase tracking-widest">Modules</h5>
+              <ul className="space-y-2 text-[10px] font-black text-muted-foreground uppercase tracking-tight">
+                <li><Link href="#" className="hover:text-primary transition-colors">CMS Switch Detection</Link></li>
+                <li><Link href="#" className="hover:text-primary transition-colors">Maya AI Voice</Link></li>
+                <li><Link href="#" className="hover:text-primary transition-colors">Spruce Health Fax</Link></li>
+                <li><Link href="#" className="hover:text-primary transition-colors">GHL Integration</Link></li>
+              </ul>
+            </div>
+
+            <div className="space-y-4">
+              <h5 className="text-[10px] font-black uppercase tracking-widest">Agency</h5>
+              <ul className="space-y-2 text-[10px] font-black text-muted-foreground uppercase tracking-tight">
+                <li><Link href="/about" className="hover:text-primary transition-colors">About Us</Link></li>
+                <li><Link href="#" className="hover:text-primary transition-colors">Careers</Link></li>
+                <li><Link href="/compliance" className="hover:text-primary transition-colors">Compliance Vault</Link></li>
+                <li><Link href="#" className="hover:text-primary transition-colors">BAA Agreement</Link></li>
+              </ul>
+            </div>
+
+            <div className="space-y-6">
+              <div className="p-4 rounded-2xl bg-muted/50 border border-border/50">
+                <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                  <Lock className="w-3 h-3" />
+                  <span className="text-[9px] font-black uppercase tracking-widest">HIPAA SECURE</span>
+                </div>
+                <p className="text-[9px] text-muted-foreground leading-relaxed font-bold uppercase tracking-tight opacity-60">
+                  BAA Active: AWS/Twilio/Spruce Health. Records encrypted at rest.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="max-w-6xl mx-auto mt-20 pt-8 border-t border-border/50 flex flex-col md:flex-row items-center justify-between gap-4">
+            <p className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">© 2025 MediStay Intelligence Inc. All rights reserved.</p>
+            <div className="flex items-center gap-6">
+              <Link href="/privacy" className="text-[9px] font-black text-muted-foreground uppercase tracking-widest hover:text-primary">Privacy Policy</Link>
+              <Link href="/terms" className="text-[9px] font-black text-muted-foreground uppercase tracking-widest hover:text-primary">Terms of Service</Link>
+            </div>
+          </div>
+        </footer>
+      </TooltipProvider>
     </div>
   )
 }
