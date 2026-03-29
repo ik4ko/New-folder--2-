@@ -66,17 +66,17 @@ export default function Dashboard() {
                       CMS MARx: Active
                     </Badge>
                   </TooltipTrigger>
-                  <TooltipContent>Direct bridge to Medicare Enrollment Database</TooltipContent>
+                  <TooltipContent>Direct Bridge to Medicare Enrollment Database</TooltipContent>
                 </Tooltip>
                 
                 <Tooltip>
                   <TooltipTrigger asChild>
                     <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 px-4 py-1.5 h-10 gap-2 font-black uppercase tracking-widest cursor-help">
                       <Zap className="w-3.5 h-3.5" />
-                      GHL Sync: Enabled
+                      GHL Sync: Live
                     </Badge>
                   </TooltipTrigger>
-                  <TooltipContent>Real-time GoHighLevel CRM synchronization</TooltipContent>
+                  <TooltipContent>GoHighLevel CRM Bi-Directional Synchronization</TooltipContent>
                 </Tooltip>
               </div>
             </div>
@@ -93,12 +93,12 @@ export default function Dashboard() {
                       </div>
                       <div>
                         <div className="text-5xl font-black mb-2 tracking-tighter">{stats.totalMembers}</div>
-                        <div className="text-[10px] font-black uppercase text-emerald-500 tracking-widest">+4% growth this month</div>
+                        <div className="text-[10px] font-black uppercase text-emerald-500 tracking-widest">+4% Growth This Period</div>
                       </div>
                     </Card>
                   </Link>
                 </TooltipTrigger>
-                <TooltipContent>View full member roster</TooltipContent>
+                <TooltipContent>View Full Member Roster</TooltipContent>
               </Tooltip>
 
               <Tooltip>
@@ -116,12 +116,12 @@ export default function Dashboard() {
                     </div>
                   </Card>
                 </TooltipTrigger>
-                <TooltipContent>AI-calculated stability score based on interactions and plan satisfaction</TooltipContent>
+                <TooltipContent>AI-Calculated Member Stability Index</TooltipContent>
               </Tooltip>
 
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <Link href="/members?filter=risk" className="block">
+                  <Link href="/members" className="block">
                     <Card className="bg-muted/30 border-none rounded-[2rem] p-6 flex flex-col justify-between min-h-[200px] shadow-sm hover:bg-destructive/5 transition-colors cursor-pointer border-2 border-transparent hover:border-destructive/20 group">
                       <div className="flex justify-between items-start">
                         <span className="text-xs font-black uppercase tracking-widest text-destructive">CMS <br />Switch Alerts</span>
@@ -129,12 +129,12 @@ export default function Dashboard() {
                       </div>
                       <div>
                         <div className="text-5xl font-black text-destructive mb-2 tracking-tighter">{stats.churnRisks}</div>
-                        <div className="text-[10px] font-black uppercase text-destructive tracking-widest">Action Required (24h Window)</div>
+                        <div className="text-[10px] font-black uppercase text-destructive tracking-widest">Immediate Action Required</div>
                       </div>
                     </Card>
                   </Link>
                 </TooltipTrigger>
-                <TooltipContent>Address identified churn risks immediately</TooltipContent>
+                <TooltipContent>Address High-Risk Disenrollment Events</TooltipContent>
               </Tooltip>
 
               <Tooltip>
@@ -147,12 +147,12 @@ export default function Dashboard() {
                       </div>
                       <div>
                         <div className="text-5xl font-black mb-2 tracking-tighter">{stats.pendingFaxes}</div>
-                        <div className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Auto-generation active</div>
+                        <div className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Spruce API Transmission Ready</div>
                       </div>
                     </Card>
                   </Link>
                 </TooltipTrigger>
-                <TooltipContent>Go to Spruce Fax Agent</TooltipContent>
+                <TooltipContent>Manage Chronic care Verification Packages</TooltipContent>
               </Tooltip>
             </div>
 
@@ -164,11 +164,11 @@ export default function Dashboard() {
                     <h3 className="text-2xl font-black tracking-tight uppercase">Active Change Detection</h3>
                     <Tooltip>
                       <TooltipTrigger><Info className="w-4 h-4 text-muted-foreground/50" /></TooltipTrigger>
-                      <TooltipContent>Live polling data from CMS MARx snapshots</TooltipContent>
+                      <TooltipContent>Live Polling Data from CMS MARx Snapshots</TooltipContent>
                     </Tooltip>
                   </div>
                   <Button variant="link" className="text-primary font-black text-xs uppercase tracking-widest h-auto p-0" asChild>
-                    <Link href="/members">View All <ArrowUpRight className="ml-1 w-4 h-4" /></Link>
+                    <Link href="/members">View Full Roster <ArrowUpRight className="ml-1 w-4 h-4" /></Link>
                   </Button>
                 </div>
                 <div className="rounded-[2rem] bg-muted/20 border-none overflow-hidden">
@@ -196,25 +196,15 @@ export default function Dashboard() {
                             </Badge>
                           </TableCell>
                           <TableCell>
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <div className="flex items-center gap-2 cursor-help">
-                                  <div className={`w-1.5 h-1.5 rounded-full ${member.retentionScore > 80 ? 'bg-emerald-500' : member.retentionScore > 50 ? 'bg-amber-500' : 'bg-destructive'}`} />
-                                  <span className="text-xs font-black">{member.retentionScore}%</span>
-                                </div>
-                              </TooltipTrigger>
-                              <TooltipContent>Calculated Retention Score</TooltipContent>
-                            </Tooltip>
+                            <div className="flex items-center gap-2">
+                              <div className={`w-1.5 h-1.5 rounded-full ${member.retentionScore > 80 ? 'bg-emerald-500' : member.retentionScore > 50 ? 'bg-amber-500' : 'bg-destructive'}`} />
+                              <span className="text-xs font-black">{member.retentionScore}%</span>
+                            </div>
                           </TableCell>
                           <TableCell className="text-right px-8">
-                            <Tooltip>
-                              <TooltipTrigger asChild>
-                                <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-primary/10 hover:text-primary transition-all" asChild>
-                                  <Link href={`/members/${member.id}`}><ArrowUpRight className="w-4 h-4" /></Link>
-                                </Button>
-                              </TooltipTrigger>
-                              <TooltipContent>Open Member Intel</TooltipContent>
-                            </Tooltip>
+                            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-primary/10 hover:text-primary transition-all" asChild>
+                              <Link href={`/members/${member.id}`}><ArrowUpRight className="w-4 h-4" /></Link>
+                            </Button>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -234,60 +224,45 @@ export default function Dashboard() {
                 
                 <div className="space-y-4">
                   <Card className="bg-primary/5 border border-primary/10 rounded-[2rem] p-8 space-y-6">
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div className="space-y-2 cursor-help">
-                          <div className="text-[10px] font-black uppercase text-primary tracking-widest flex items-center gap-2">
-                            <ShieldCheck className="w-3 h-3" /> AEP Shield Ready:
-                          </div>
-                          <p className="text-[11px] text-foreground leading-relaxed font-bold uppercase tracking-tight">
-                            September campaign scheduled for {stats.totalMembers} members. High-risk segments detected.
-                          </p>
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent side="left">Automated AEP loyalty campaigns</TooltipContent>
-                    </Tooltip>
+                    <div className="space-y-2">
+                      <div className="text-[10px] font-black uppercase text-primary tracking-widest flex items-center gap-2">
+                        <ShieldCheck className="w-3 h-3" /> AEP Shield Ready:
+                      </div>
+                      <p className="text-[11px] text-foreground leading-relaxed font-bold uppercase tracking-tight">
+                        September campaign scheduled for {stats.totalMembers} members. High-risk segments isolated.
+                      </p>
+                    </div>
                     
                     <div className="h-px bg-primary/10" />
                     
-                    <Tooltip>
-                      <TooltipTrigger asChild>
-                        <div className="space-y-2 cursor-help">
-                          <div className="text-[10px] font-black uppercase text-emerald-600 tracking-widest flex items-center gap-2">
-                            <Banknote className="w-3 h-3" /> LIS Opportunity:
-                          </div>
-                          <p className="text-[11px] text-foreground leading-relaxed font-bold uppercase tracking-tight">
-                            {members.filter(m => m.medicareMedicaidStatus === 'Medicare').length} members likely eligible for Extra Help based on local income markers.
-                          </p>
-                        </div>
-                      </TooltipTrigger>
-                      <TooltipContent side="left">Extra Help / LIS gap analysis</TooltipContent>
-                    </Tooltip>
+                    <div className="space-y-2">
+                      <div className="text-[10px] font-black uppercase text-emerald-600 tracking-widest flex items-center gap-2">
+                        <Banknote className="w-3 h-3" /> LIS Opportunity:
+                      </div>
+                      <p className="text-[11px] text-foreground leading-relaxed font-bold uppercase tracking-tight">
+                        {members.filter(m => m.medicareMedicaidStatus === 'Medicare').length} members likely eligible for LIS / Extra Help.
+                      </p>
+                    </div>
                   </Card>
 
                   <Button className="w-full h-16 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest shadow-lg shadow-primary/20 text-xs" asChild>
                     <Link href="/ai">Run Strategy Agent</Link>
                   </Button>
 
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Link href="/settings?tab=compliance" className="block">
-                        <div className="p-6 rounded-2xl border border-border bg-card flex items-center justify-between group cursor-pointer hover:border-primary/30 transition-all">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-all">
-                              <Calendar className="w-5 h-5" />
-                            </div>
-                            <div>
-                              <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Next Compliance Audit</p>
-                              <p className="text-xs font-black text-foreground uppercase tracking-tight">Oct 12, 2025</p>
-                            </div>
-                          </div>
-                          <ArrowUpRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-all" />
+                  <Link href="/settings?tab=compliance" className="block">
+                    <div className="p-6 rounded-2xl border border-border bg-card flex items-center justify-between group cursor-pointer hover:border-primary/30 transition-all">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-all">
+                          <Calendar className="w-5 h-5" />
                         </div>
-                      </Link>
-                    </TooltipTrigger>
-                    <TooltipContent side="left">Annual agency compliance deadline</TooltipContent>
-                  </Tooltip>
+                        <div>
+                          <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Next Compliance Audit</p>
+                          <p className="text-xs font-black text-foreground uppercase tracking-tight">Oct 12, 2025</p>
+                        </div>
+                      </div>
+                      <ArrowUpRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-all" />
+                    </div>
+                  </Link>
                 </div>
               </div>
             </div>

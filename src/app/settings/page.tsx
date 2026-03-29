@@ -50,17 +50,16 @@ function SettingsContent() {
   }
 
   const handleSave = () => {
-    toast({ title: "Settings Saved", description: "Your preferences have been updated and synced locally." })
+    toast({ title: "Settings Saved", description: "Your agency preferences have been updated." })
   }
 
   const handleAddUser = () => {
-    addBroker({ name: "New Broker", role: "broker", email: "", npn: "" })
-    toast({ title: "User Added", description: "New broker placeholder created." })
+    addBroker({ name: "New Associate", role: "broker", email: "", npn: "" })
+    toast({ title: "Slot Created", description: "New broker placeholder added to team." })
   }
 
   const handleUpdatePlan = (plan: 'entry' | 'starter' | 'pro' | 'enterprise') => {
     updateAgencyProfile({ billingPlan: plan, isSubscriptionActive: true })
-    toast({ title: "Plan Updated", description: `Agency switched to ${plan.toUpperCase()} tier.` })
   }
 
   const handleStripeCheckout = (action: 'confirm' | 'decline') => {
@@ -69,14 +68,14 @@ function SettingsContent() {
       handleUpdatePlan('entry')
       toast({ 
         title: "Payment Successful", 
-        description: "Your $29 Entry Plan is now active.",
+        description: "Your $29 Monthly Entry Plan is now active.",
         className: "bg-emerald-50 border-emerald-200 text-emerald-900 font-black"
       })
     } else {
       toast({ 
         variant: "destructive",
-        title: "Payment Cancelled", 
-        description: "Payment session declined." 
+        title: "Payment Failed", 
+        description: "Transaction was declined by the bank." 
       })
     }
   }
@@ -127,7 +126,7 @@ function SettingsContent() {
                   Management Mode
                 </CardTitle>
                 <CardDescription className="text-xs font-black text-muted-foreground uppercase opacity-70">
-                  Configure whether you are operating as a solo broker or a full agency.
+                  Configure your agency operational structure.
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -135,7 +134,7 @@ function SettingsContent() {
                   <div className="space-y-1">
                     <Label className="text-sm font-black text-foreground uppercase">Solo Broker Mode</Label>
                     <p className="text-[11px] text-muted-foreground font-black leading-relaxed max-w-sm uppercase opacity-60">
-                      Optimized for individual agents with no subordinates. Removes team management UI.
+                      Optimized for independent agents. Removes team management UI modules.
                     </p>
                   </div>
                   <Switch 
@@ -156,7 +155,7 @@ function SettingsContent() {
                     />
                   </div>
                   <div className="space-y-3">
-                    <Label className="text-[10px] font-black uppercase tracking-widest text-foreground ml-1">License (NPN)</Label>
+                    <Label className="text-[10px] font-black uppercase tracking-widest text-foreground ml-1">Agency NPN</Label>
                     <Input 
                       value={agencyProfile.licenseNumber}
                       onChange={(e) => updateAgencyProfile({ licenseNumber: e.target.value })}
@@ -174,22 +173,22 @@ function SettingsContent() {
                 <div>
                   <CardTitle className="text-sm font-black uppercase tracking-widest flex items-center gap-2">
                     <Users2 className="w-4 h-4 text-primary" />
-                    Individualized Accounts
+                    Individualized Broker Splits
                   </CardTitle>
-                  <CardDescription className="text-xs font-black uppercase opacity-60">Manage access levels and NPNs for your brokers.</CardDescription>
+                  <CardDescription className="text-xs font-black uppercase opacity-60">Manage permissions and NPNs for your roster.</CardDescription>
                 </div>
                 <Button onClick={handleAddUser} size="sm" className="rounded-xl font-black uppercase tracking-widest bg-primary hover:bg-primary/90 text-white text-[10px] h-9 px-4">
-                  <Plus className="w-4 h-4 mr-2" /> Add User
+                  <Plus className="w-4 h-4 mr-2" /> Add Broker
                 </Button>
               </CardHeader>
               <CardContent className="p-0">
                 <Table>
                   <TableHeader>
                     <TableRow className="bg-muted/50 border-none">
-                      <TableHead className="font-black text-[10px] uppercase px-8 text-foreground">Account</TableHead>
-                      <TableHead className="font-black text-[10px] uppercase text-foreground">Role</TableHead>
-                      <TableHead className="font-black text-[10px] uppercase text-foreground">NPN (Individual)</TableHead>
-                      <TableHead className="font-black text-[10px] uppercase text-foreground">Status</TableHead>
+                      <TableHead className="font-black text-[10px] uppercase px-8 text-foreground">Broker Account</TableHead>
+                      <TableHead className="font-black text-[10px] uppercase text-foreground">Designation</TableHead>
+                      <TableHead className="font-black text-[10px] uppercase text-foreground">NPN (Licensed)</TableHead>
+                      <TableHead className="font-black text-[10px] uppercase text-foreground">MARx Sync</TableHead>
                       <TableHead className="text-right px-8 font-black text-[10px] uppercase text-foreground">Action</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -199,7 +198,7 @@ function SettingsContent() {
                         <TableCell className="px-8 font-black text-sm text-foreground">
                           <div className="flex flex-col">
                             <span className="uppercase tracking-tight">{broker.name}</span>
-                            <span className="text-[10px] text-muted-foreground lowercase font-black italic">{broker.email || 'no-email@agency.com'}</span>
+                            <span className="text-[10px] text-muted-foreground lowercase font-black italic">{broker.email || 'pending@agency.com'}</span>
                           </div>
                         </TableCell>
                         <TableCell>
@@ -237,12 +236,12 @@ function SettingsContent() {
                       <CreditCard className="w-6 h-6" />
                     </div>
                     <div>
-                      <h3 className="text-2xl font-black text-foreground uppercase tracking-tight">Stripe Entry Plan</h3>
-                      <p className="text-[10px] font-black text-primary uppercase tracking-widest">Entry-Level Member Protection</p>
+                      <h3 className="text-2xl font-black text-foreground uppercase tracking-tight">Stripe Monthly Plan</h3>
+                      <p className="text-[10px] font-black text-primary uppercase tracking-widest">Autonomous Retention Entry</p>
                     </div>
                   </div>
                   <p className="text-sm font-black text-foreground leading-relaxed max-w-lg uppercase opacity-80">
-                    Perfect for new independent brokers. Get full access to Module 1 (MARx Monitoring) and basic CRM sync.
+                    The $29/mo plan provides full access to Module 1 (MARx Monitoring) and secure clinical GHL synchronization.
                   </p>
                 </div>
                 <div className="text-center md:text-right space-y-4 bg-white p-8 rounded-3xl shadow-lg border border-border min-w-[240px]">
@@ -254,26 +253,26 @@ function SettingsContent() {
                   <AlertDialog open={isCheckoutOpen} onOpenChange={setIsCheckoutOpen}>
                     <AlertDialogTrigger asChild>
                       <Button className="w-full h-14 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest shadow-xl shadow-primary/20 text-[10px]">
-                        Stripe Checkout <LinkIcon className="ml-2 w-4 h-4" />
+                        Launch Stripe Checkout <LinkIcon className="ml-2 w-4 h-4" />
                       </Button>
                     </AlertDialogTrigger>
                     <AlertDialogContent className="max-w-2xl rounded-3xl p-0 overflow-hidden border-none shadow-2xl">
                       <div className="bg-[#635BFF] p-8 text-white flex flex-col items-center justify-center space-y-4">
                         <ShoppingBag className="w-10 h-10" />
                         <h2 className="text-2xl font-black uppercase tracking-tight">Stripe Checkout</h2>
-                        <p className="text-sm font-black uppercase opacity-80">Payment for MediStay Entry Plan</p>
+                        <p className="text-sm font-black uppercase opacity-80">Secure BAA Payment Portal</p>
                       </div>
                       <div className="p-10 space-y-8 bg-white">
                         <div className="flex justify-between items-center border-b border-border pb-6 text-foreground font-black uppercase tracking-widest text-xs">
-                          <span>Order Total</span>
-                          <span>$29.00</span>
+                          <span>MediStay Entry Subscription</span>
+                          <span>$29.00 / Month</span>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                           <Button variant="outline" className="h-14 rounded-2xl font-black uppercase border-2 border-border text-[10px]" onClick={() => handleStripeCheckout('decline')}>
                             Cancel
                           </Button>
                           <Button className="h-14 rounded-2xl bg-[#635BFF] hover:bg-[#534be5] text-white font-black uppercase text-[10px]" onClick={() => handleStripeCheckout('confirm')}>
-                            Pay $29.00
+                            Authorize $29.00
                           </Button>
                         </div>
                       </div>
@@ -288,18 +287,18 @@ function SettingsContent() {
             <Card className="rounded-3xl border border-border shadow-sm bg-card p-10">
               <div className="flex items-center gap-4 mb-8">
                 <Palette className="w-6 h-6 text-primary" />
-                <h2 className="text-lg font-black uppercase tracking-tight text-foreground">White-Label Branding</h2>
+                <h2 className="text-lg font-black uppercase tracking-tight text-foreground">Clinical White-Labeling</h2>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
                 <div className="space-y-4">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-foreground">Primary Theme Color</Label>
+                  <Label className="text-[10px] font-black uppercase tracking-widest text-foreground">Branding Primary</Label>
                   <div className="flex gap-4 items-center">
                     <div className="w-16 h-16 rounded-2xl bg-primary shadow-inner border border-black/10" />
                     <Input className="font-mono text-xs font-black h-12 rounded-xl bg-background border-border text-foreground pl-4" value={agencyProfile.primaryColor} readOnly />
                   </div>
                 </div>
                 <div className="p-6 rounded-2xl bg-primary/5 border border-primary/10 space-y-2 text-[11px] text-foreground font-black leading-relaxed italic uppercase opacity-70">
-                  "This color is used for member-facing PDF summaries, SSBCI cover sheets, and the broker dashboard accents."
+                  "This color profile is applied to all member-facing PDFs, clinical fax cover sheets, and HIPAA vault exports."
                 </div>
               </div>
             </Card>
@@ -310,15 +309,15 @@ function SettingsContent() {
               <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-4">
                   <Bell className="w-6 h-6 text-primary" />
-                  <h2 className="text-lg font-black uppercase tracking-tight text-foreground">Real-Time Alerts</h2>
+                  <h2 className="text-lg font-black uppercase tracking-tight text-foreground">Real-Time Sync Alerts</h2>
                 </div>
                 <Switch defaultChecked />
               </div>
               <div className="grid grid-cols-1 gap-4">
                 {[
-                  { title: "Critical Churn Detection", desc: "SMS alert when MARx snapshot detects carrier switch." },
-                  { title: "Daily Sync Summary", desc: "Email summary of overnight CRM and CMS polls." },
-                  { title: "Compliance Expiry", desc: "Nudge when SOAs are approaching the 10-year limit." }
+                  { title: "MARx Switch Detection", desc: "SMS alert upon detection of a carrier disenrollment event." },
+                  { title: "Daily CRM Snapshot", desc: "Overnight summary of all updated GoHighLevel contact records." },
+                  { title: "Spruce Fax Confirmation", desc: "Push notification when a provider confirms chronic condition verification." }
                 ].map((alert, i) => (
                   <div key={i} className="flex items-center justify-between p-5 rounded-2xl bg-muted/20 border border-border">
                     <div className="space-y-1">
@@ -336,23 +335,23 @@ function SettingsContent() {
             <Card className="rounded-3xl border border-border shadow-sm bg-slate-900 text-white p-10 overflow-hidden relative">
               <div className="absolute top-0 right-0 p-6 opacity-10"><Lock className="w-32 h-32 text-white" /></div>
               <CardTitle className="text-sm font-black uppercase tracking-widest text-emerald-400 flex items-center gap-2 mb-8 underline decoration-emerald-400/30 underline-offset-8">
-                <ShieldCheck className="w-5 h-5" /> HIPAA BAA Compliance Lock
+                <ShieldCheck className="w-5 h-5" /> HIPAA BAA Security Lock
               </CardTitle>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
                 <div className="p-6 rounded-2xl bg-white/5 border border-white/10 space-y-3">
                   <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
-                    <Fingerprint className="w-3 h-3" /> Team MFA Enforced
+                    <Fingerprint className="w-3 h-3" /> Biometric MFA
                   </span>
                   <p className="text-[11px] text-slate-200 font-black uppercase leading-relaxed opacity-80">
-                    Biometric or Token-based Multi-Factor Authentication is enforced for all individualized broker accounts.
+                    Multi-Factor Authentication is enforced for all agency roles to ensure immutable PHI access logging.
                   </p>
                 </div>
                 <div className="p-6 rounded-2xl bg-white/5 border border-white/10 space-y-3">
                   <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
-                    <History className="w-3 h-3" /> Data Retention
+                    <History className="w-3 h-3" /> 10-Year Audit Trail
                   </span>
                   <p className="text-[11px] text-slate-200 font-black uppercase leading-relaxed opacity-80">
-                    Member data and call recordings are retained for the HIPAA-required period of 6-10 years.
+                    All document generations and MARx polls are archived for the federally mandated retention period.
                   </p>
                 </div>
               </div>
@@ -368,7 +367,7 @@ export default function AgencySettingsPage() {
   return (
     <div className="flex h-full w-full bg-background">
       <CollectionSidebar />
-      <Suspense fallback={<div className="flex-1 p-20 text-center font-black uppercase tracking-widest opacity-30 text-foreground">Loading Settings...</div>}>
+      <Suspense fallback={<div className="flex-1 p-20 text-center font-black uppercase tracking-widest opacity-30 text-foreground">Initializing HIPAA Workspace...</div>}>
         <SettingsContent />
       </Suspense>
     </div>

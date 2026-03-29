@@ -49,8 +49,6 @@
     --muted-foreground: 215.4 16.3% 56.9%;
     --accent: 188.7 100% 40%;
     --accent-foreground: 210 40% 98%;
-    --destructive: 0 63% 31%;
-    --destructive-foreground: 210 40% 98%;
     --border: 216 34% 17%;
     --input: 216 34% 17%;
     --ring: 224.3 76.3% 48%;
@@ -112,15 +110,6 @@
   scrollbar-width: none;
 }
 
-.high-dpi-border {
-  border-width: 0.5px;
-}
-
-img {
-  image-rendering: -webkit-optimize-contrast;
-}
-
-/* AI Interaction Shimmers */
 .ai-shimmer {
   background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent);
   background-size: 200% 100%;

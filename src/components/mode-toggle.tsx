@@ -15,12 +15,12 @@ import {
 } from "@/components/ui/dropdown-menu"
 
 const colors = [
-  { name: "Blue", value: "blue", class: "bg-blue-600" },
-  { name: "Cyan", value: "cyan", class: "bg-cyan-500" },
-  { name: "Green", value: "green", class: "bg-emerald-600" },
-  { name: "Purple", value: "purple", class: "bg-purple-600" },
-  { name: "Red", value: "red", class: "bg-red-600" },
-  { name: "Orange", value: "orange", class: "bg-orange-600" },
+  { name: "Trust Blue", value: "blue", class: "bg-blue-600" },
+  { name: "Clinical Cyan", value: "cyan", class: "bg-cyan-500" },
+  { name: "Secure Green", value: "green", class: "bg-emerald-600" },
+  { name: "Enterprise Purple", value: "purple", class: "bg-purple-600" },
+  { name: "Alert Red", value: "red", class: "bg-red-600" },
+  { name: "Warning Orange", value: "orange", class: "bg-orange-600" },
 ]
 
 export function ModeToggle() {
@@ -65,19 +65,19 @@ export function ModeToggle() {
             variant={resolvedTheme === 'light' ? 'secondary' : 'ghost'} 
             size="sm" 
             onClick={() => setTheme("light")}
-            className="rounded-xl flex items-center justify-start gap-2 h-9"
+            className="rounded-xl flex items-center justify-start gap-2 h-9 font-bold"
           >
             <Sun className="w-4 h-4" />
-            <span className="text-xs font-bold">Light Mode</span>
+            <span>Light</span>
           </Button>
           <Button 
             variant={resolvedTheme === 'dark' ? 'secondary' : 'ghost'} 
             size="sm" 
             onClick={() => setTheme("dark")}
-            className="rounded-xl flex items-center justify-start gap-2 h-9"
+            className="rounded-xl flex items-center justify-start gap-2 h-9 font-bold"
           >
             <Moon className="w-4 h-4" />
-            <span className="text-xs font-bold">Dark Mode</span>
+            <span>Dark</span>
           </Button>
         </div>
         
@@ -110,8 +110,8 @@ export function ModeToggle() {
             </button>
           ))}
         </div>
-        <div className="mt-3 px-2 py-1.5 rounded-xl bg-muted/50 text-[9px] font-medium text-muted-foreground text-center">
-          Persisted globally across agency modules
+        <div className="mt-3 px-2 py-1.5 rounded-xl bg-muted/50 text-[9px] font-bold text-muted-foreground text-center uppercase tracking-widest">
+          Clinical Grade Palettes
         </div>
       </DropdownMenuContent>
     </DropdownMenu>
