@@ -15,6 +15,7 @@ import { useAppStore, type MemberRecord } from "@/lib/store"
 import { useRouter } from "next/navigation"
 import { toast } from "@/hooks/use-toast"
 import { ocrDocumentDataExtraction } from "@/ai/flows/ocr-document-data-extraction"
+import { ScrollArea } from "@/components/ui/scroll-area"
 
 export default function NewMemberPage() {
   const router = useRouter()
@@ -43,6 +44,39 @@ export default function NewMemberPage() {
   })
 
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const insuranceCarriers = [
+    "UnitedHealthcare (AARP)",
+    "Humana",
+    "Aetna (CVS Health)",
+    "Blue Cross Blue Shield (BCBS)",
+    "Kaiser Permanente",
+    "Cigna",
+    "Wellcare (Centene)",
+    "Molina Healthcare",
+    "Clover Health",
+    "Scan Health Plan",
+    "Alignment Healthcare",
+    "Devoted Health",
+    "Mutual of Omaha",
+    "Anthem Blue Cross",
+    "Highmark Blue Cross",
+    "Independence Blue Cross",
+    "CareSource",
+    "Geisinger Health Plan",
+    "HealthPartners",
+    "UPMC Health Plan",
+    "Oscar Health",
+    "Zing Health",
+    "Imperial Health Plan",
+    "Brand New Day",
+    "Clever Care",
+    "Central Health Plan",
+    "Astiva Health",
+    "Golden State Advantage",
+    "L.A. Care Health Plan",
+    "Providence Health Plan"
+  ].sort()
 
   const handleOCR = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -277,12 +311,14 @@ export default function NewMemberPage() {
                         <SelectTrigger className="rounded-xl h-11 border-border/60 bg-white">
                           <SelectValue placeholder="Select Carrier" />
                         </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Humana">Humana</SelectItem>
-                          <SelectItem value="UnitedHealthcare">UnitedHealthcare</SelectItem>
-                          <SelectItem value="Blue Shield">Blue Shield</SelectItem>
-                          <SelectItem value="Clover Health">Clover Health</SelectItem>
-                          <SelectItem value="Aetna">Aetna</SelectItem>
+                        <SelectContent className="max-h-[300px]">
+                          <ScrollArea className="h-[280px]">
+                            {insuranceCarriers.map((carrier) => (
+                              <SelectItem key={carrier} value={carrier}>
+                                {carrier}
+                              </SelectItem>
+                            ))}
+                          </ScrollArea>
                         </SelectContent>
                       </Select>
                     </div>
