@@ -1,4 +1,3 @@
-
 "use client"
 
 import { CollectionSidebar } from "@/components/collection-sidebar"
@@ -90,7 +89,7 @@ export default function GHLIntegrationPage() {
                     {isGHLConnected && <CircleCheck className="w-5 h-5 text-emerald-500 ml-1" />}
                   </CardTitle>
                   <CardDescription className="text-xs">
-                    Sync your book of business and push retention alerts directly to GoHighLevel pipelines.
+                    Sync your book of business and push retention alerts directly to GHL pipelines.
                   </CardDescription>
                 </div>
                 <div className="flex items-center gap-3 bg-white dark:bg-card p-2 rounded-2xl border shadow-sm px-4">

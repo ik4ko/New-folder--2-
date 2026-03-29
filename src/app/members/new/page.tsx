@@ -398,7 +398,7 @@ export default function NewMemberPage() {
                         <div key={cond} className="flex items-center space-x-3 p-3 rounded-xl border bg-background hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => {
                           const current = formData.healthConditions || []
                           setFormData(p => ({
-                            ...p, 
+                            p, 
                             healthConditions: current.includes(cond) ? current.filter(c => c !== cond) : [...current, cond]
                           }))
                         }}>
