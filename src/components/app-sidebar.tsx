@@ -10,13 +10,16 @@ import {
   PhoneCall,
   Printer,
   Link2,
-  Banknote
+  Banknote,
+  LayoutDashboard,
+  PanelLeft
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { ModeToggle } from "./mode-toggle"
+import { useAppStore } from "@/lib/store"
 
 interface NavItemProps {
   href: string
@@ -59,8 +62,10 @@ function NavItem({ href, icon: Icon, label, isActive, isSpecial }: NavItemProps)
 
 export function AppSidebar() {
   const pathname = usePathname()
+  const toggleSidebar = useAppStore(s => s.toggleSidebar)
 
   const navItems = [
+    { href: '/', icon: LayoutDashboard, label: 'Dashboard' },
     { href: '/members', icon: Users, label: 'Member Roster' },
     { href: '/accounting', icon: Banknote, label: 'Accounting' },
     { href: '/fax', icon: Printer, label: 'SSBCI Fax Center' },
@@ -72,16 +77,19 @@ export function AppSidebar() {
 
   return (
     <div className="w-[72px] flex flex-col items-center py-4 bg-sidebar border-r border-sidebar-border h-full shrink-0 z-50 overflow-y-auto scrollbar-hide">
-      {/* Brand Identity / Home Link */}
+      {/* Panel Toggle / Workspace Management */}
       <TooltipProvider delayDuration={0}>
         <Tooltip>
           <TooltipTrigger asChild>
-            <Link href="/" className="mb-4 h-12 w-12 rounded-[16px] bg-primary flex items-center justify-center text-primary-foreground shadow-lg shadow-primary/20 shrink-0 select-none hover:scale-105 transition-transform active:scale-95">
-              <span className="font-black text-xl">M</span>
-            </Link>
+            <button 
+              onClick={toggleSidebar}
+              className="mb-4 h-12 w-12 rounded-[16px] bg-primary/10 flex items-center justify-center text-primary hover:bg-primary hover:text-white transition-all shadow-sm shrink-0 select-none hover:scale-105 active:scale-95"
+            >
+              <PanelLeft className="w-5 h-5" />
+            </button>
           </TooltipTrigger>
           <TooltipContent side="right" sideOffset={12} className="font-black text-[10px] uppercase tracking-widest">
-            Command Center
+            Toggle Sidebar (⌘B)
           </TooltipContent>
         </Tooltip>
       </TooltipProvider>
