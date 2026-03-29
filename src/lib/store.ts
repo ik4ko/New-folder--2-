@@ -116,7 +116,6 @@ interface AppState {
   updateGHLSettings: (updates: Partial<GHLSettings>) => void;
   updateAgencyProfile: (updates: Partial<AgencyProfile>) => void;
   addBroker: (broker: Partial<BrokerAccount>) => void;
-  toggleSidebarOpen: () => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -208,7 +207,6 @@ export const useAppStore = create<AppState>((set) => ({
   },
   toggleGHL: () => set((state) => ({ isGHLConnected: !state.isGHLConnected })),
   toggleSidebar: () => set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
-  toggleSidebarOpen: () => set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
   updateGHLSettings: (updates) => set((state) => ({
     ghlSettings: { ...state.ghlSettings, ...updates }
   })),
