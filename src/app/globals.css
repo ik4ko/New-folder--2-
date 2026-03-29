@@ -64,6 +64,31 @@
   }
 }
 
+[data-theme='cyan'] {
+  --primary: 188.7 94.5% 42.7%;
+  --ring: 188.7 94.5% 42.7%;
+}
+
+[data-theme='green'] {
+  --primary: 160 84% 39%;
+  --ring: 160 84% 39%;
+}
+
+[data-theme='purple'] {
+  --primary: 262 83% 58%;
+  --ring: 262 83% 58%;
+}
+
+[data-theme='red'] {
+  --primary: 0 84% 60%;
+  --ring: 0 84% 60%;
+}
+
+[data-theme='orange'] {
+  --primary: 24 95% 53%;
+  --ring: 24 95% 53%;
+}
+
 @layer base {
   * {
     @apply border-border transition-colors duration-200;

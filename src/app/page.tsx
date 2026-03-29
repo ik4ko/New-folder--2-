@@ -1,3 +1,4 @@
+
 "use client"
 
 import { Button } from "@/components/ui/button"
@@ -88,7 +89,7 @@ export default function LandingPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-              <div className="p-10 rounded-[2.5rem] bg-card border border-border space-y-6 hover:border-primary/30 transition-all group">
+              <Link href="/docs/cms-switch" className="p-10 rounded-[2.5rem] bg-card border border-border space-y-6 hover:border-primary/30 transition-all group">
                 <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
                   <Activity className="w-7 h-7" />
                 </div>
@@ -96,9 +97,9 @@ export default function LandingPage() {
                 <p className="text-sm font-bold text-muted-foreground uppercase leading-relaxed opacity-70">
                   Instantly detect when a member switches carriers via nightly MARx snapshot polls. Catch churn before the disenrollment window closes.
                 </p>
-              </div>
+              </Link>
 
-              <div className="p-10 rounded-[2.5rem] bg-card border border-border space-y-6 hover:border-accent/30 transition-all group">
+              <Link href="/docs/maya-voice" className="p-10 rounded-[2.5rem] bg-card border border-border space-y-6 hover:border-accent/30 transition-all group">
                 <div className="w-14 h-14 rounded-2xl bg-accent/10 flex items-center justify-center text-accent group-hover:scale-110 transition-transform">
                   <Sparkles className="w-7 h-7" />
                 </div>
@@ -106,9 +107,9 @@ export default function LandingPage() {
                 <p className="text-sm font-bold text-muted-foreground uppercase leading-relaxed opacity-70">
                   Autonomous voice check-ins at critical policy milestones. Maya identifies dissatisfaction and escalates high-risk cases to brokers in real-time.
                 </p>
-              </div>
+              </Link>
 
-              <div className="p-10 rounded-[2.5rem] bg-card border border-border space-y-6 hover:border-primary/30 transition-all group">
+              <Link href="/docs/spruce-fax" className="p-10 rounded-[2.5rem] bg-card border border-border space-y-6 hover:border-primary/30 transition-all group">
                 <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
                   <Lock className="w-7 h-7" />
                 </div>
@@ -116,9 +117,9 @@ export default function LandingPage() {
                 <p className="text-sm font-bold text-muted-foreground uppercase leading-relaxed opacity-70">
                   Automated chronic condition verification. MediStay faxes PCP offices directly via Spruce Health to activate specialized benefits, locking in member loyalty.
                 </p>
-              </div>
+              </Link>
 
-              <div className="p-10 rounded-[2.5rem] bg-card border border-border space-y-6 hover:border-accent/30 transition-all group">
+              <Link href="/docs/ghl-sync" className="p-10 rounded-[2.5rem] bg-card border border-border space-y-6 hover:border-accent/30 transition-all group">
                 <div className="w-14 h-14 rounded-2xl bg-accent/10 flex items-center justify-center text-accent group-hover:scale-110 transition-transform">
                   <Globe className="w-7 h-7" />
                 </div>
@@ -126,7 +127,7 @@ export default function LandingPage() {
                 <p className="text-sm font-bold text-muted-foreground uppercase leading-relaxed opacity-70">
                   Two-way sync with GoHighLevel. Map Medicare fields directly to your CRM and trigger workflows automatically based on retention logic.
                 </p>
-              </div>
+              </Link>
             </div>
           </div>
         </section>
@@ -182,14 +183,14 @@ export default function LandingPage() {
 
             <div className="pt-8 text-center">
               <div className="inline-flex items-center gap-8 px-8 py-4 rounded-full bg-white/5 border border-white/10">
-                <div className="flex items-center gap-2">
+                <Link href="/docs/hipaa-secure" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                   <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">HIPAA Compliant</span>
-                </div>
-                <div className="flex items-center gap-2">
+                </Link>
+                <Link href="/docs/baa-agreement" className="flex items-center gap-2 hover:opacity-80 transition-opacity">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                   <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">BAA Ready</span>
-                </div>
+                </Link>
                 <div className="flex items-center gap-2">
                   <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                   <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">AES-256 Sealed</span>
@@ -297,10 +298,10 @@ export default function LandingPage() {
             <div className="space-y-4">
               <h5 className="text-[10px] font-black uppercase tracking-widest">Modules</h5>
               <ul className="space-y-2 text-[10px] font-black text-muted-foreground uppercase tracking-tight">
-                <li><Link href="#" className="hover:text-primary transition-colors">CMS Switch Detection</Link></li>
-                <li><Link href="#" className="hover:text-primary transition-colors">Maya AI Voice</Link></li>
-                <li><Link href="#" className="hover:text-primary transition-colors">Spruce Health Fax</Link></li>
-                <li><Link href="#" className="hover:text-primary transition-colors">GHL Integration</Link></li>
+                <li><Link href="/docs/cms-switch" className="hover:text-primary transition-colors">CMS Switch Detection</Link></li>
+                <li><Link href="/docs/maya-voice" className="hover:text-primary transition-colors">Maya AI Voice</Link></li>
+                <li><Link href="/docs/spruce-fax" className="hover:text-primary transition-colors">Spruce Health Fax</Link></li>
+                <li><Link href="/docs/ghl-sync" className="hover:text-primary transition-colors">GHL Integration</Link></li>
               </ul>
             </div>
 
@@ -308,18 +309,18 @@ export default function LandingPage() {
               <h5 className="text-[10px] font-black uppercase tracking-widest">Agency</h5>
               <ul className="space-y-2 text-[10px] font-black text-muted-foreground uppercase tracking-tight">
                 <li><Link href="/about" className="hover:text-primary transition-colors">About Us</Link></li>
-                <li><Link href="#" className="hover:text-primary transition-colors">Careers</Link></li>
-                <li><Link href="/compliance" className="hover:text-primary transition-colors">Compliance Vault</Link></li>
-                <li><Link href="#" className="hover:text-primary transition-colors">BAA Agreement</Link></li>
+                <li><Link href="/careers" className="hover:text-primary transition-colors">Careers</Link></li>
+                <li><Link href="/docs/compliance-vault" className="hover:text-primary transition-colors">Compliance Vault</Link></li>
+                <li><Link href="/docs/baa-agreement" className="hover:text-primary transition-colors">BAA Agreement</Link></li>
               </ul>
             </div>
 
             <div className="space-y-6">
               <div className="p-4 rounded-2xl bg-muted/50 border border-border/50">
-                <div className="flex items-center gap-2 text-muted-foreground mb-1">
+                <Link href="/docs/hipaa-secure" className="flex items-center gap-2 text-muted-foreground mb-1 hover:text-primary transition-colors">
                   <Lock className="w-3 h-3" />
                   <span className="text-[9px] font-black uppercase tracking-widest">HIPAA SECURE</span>
-                </div>
+                </Link>
                 <p className="text-[9px] text-muted-foreground leading-relaxed font-bold uppercase tracking-tight opacity-60">
                   BAA Active: AWS/Twilio/Spruce Health. Records encrypted at rest.
                 </p>
