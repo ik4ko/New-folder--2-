@@ -14,14 +14,14 @@
     --primary-foreground: 0 0% 100%;
     --secondary: 0 0% 96%;
     --secondary-foreground: 0 0% 0%;
-    --muted: 0 0% 96%;
+    --muted: 0 0% 90%;
     --muted-foreground: 0 0% 10%; /* High Contrast: Very Dark Grey */
     --accent: 0 0% 96%;
     --accent-foreground: 0 0% 0%;
     --destructive: 0 84.2% 60.2%;
     --destructive-foreground: 0 0% 100%;
     --border: 0 0% 80%; /* Darker border for contrast */
-    --input: 0 0% 80%;
+    --input: 0 0% 20%; /* Darker input text reference */
     --ring: 42 63% 42%;
     --radius: 1rem;
     --sidebar-background: 0 0% 100%;
@@ -52,7 +52,7 @@
     --destructive: 0 62.8% 30.6%;
     --destructive-foreground: 0 0% 98%;
     --border: 0 0% 15%;
-    --input: 0 0% 15%;
+    --input: 0 0% 98%;
     --ring: 42 63% 50%;
     --sidebar-background: 0 0% 5%;
     --sidebar-foreground: 0 0% 98%;
