@@ -1,3 +1,4 @@
+
 "use client"
 
 import { CollectionSidebar } from "@/components/collection-sidebar"
@@ -9,7 +10,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { 
   CircleAlert, TrendingUp, Users, ShieldCheck, Printer, 
   Zap, PhoneCall, ArrowUpRight, Activity, Calendar, 
-  Settings, Palette, Bell, ShieldAlert, Building2
+  Settings, Palette, Bell, ShieldAlert, Building2, Clock
 } from "lucide-react"
 import Link from "next/link"
 import { Progress } from "@/components/ui/progress"
@@ -26,16 +27,39 @@ export default function Dashboard() {
     const churnRisks = members.filter(m => m.status === 'churn-risk')
     const totalMembers = members.length
     const avgRetention = members.length > 0 
-      ? Math.round(members.reduce((acc, m) => acc + m.retentionScore, 0) / members.length)
+      ? Math.round(members.reduce((acc, m) => acc + (m.retentionScore || 0), 0) / members.length)
       : 0
     const pendingFaxes = members.filter(m => m.ssbciStatus === 'pending-fax').length
+    const activeCalls = members.filter(m => m.checkInStatus === 'scheduled').length
     
     return {
       totalMembers,
       avgRetention,
       churnRisks: churnRisks.length,
-      pendingFaxes
+      pendingFaxes,
+      activeCalls
     }
+  }, [members])
+
+  const recentActivity = useMemo(() => {
+    return [...members]
+      .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
+      .slice(0, 5)
+  }, [members])
+
+  const botTasks = useMemo(() => {
+    const tasks = []
+    
+    const faxPending = members.filter(m => m.ssbciStatus === 'pending-fax').length
+    if (faxPending > 0) tasks.push({ label: "Module 3: Chronic Fax", detail: `${faxPending} packages ready`, icon: Printer, color: "text-primary", status: "Queue" })
+    
+    const callsScheduled = members.filter(m => m.checkInStatus === 'scheduled').length
+    if (callsScheduled > 0) tasks.push({ label: "Module 2: Maya Call", detail: `${callsScheduled} check-ins queued`, icon: PhoneCall, color: "text-secondary", status: "Active" })
+    
+    const riskAlerts = members.filter(m => m.status === 'churn-risk').length
+    if (riskAlerts > 0) tasks.push({ label: "Module 1: MARx Sync", detail: `${riskAlerts} alerts detected`, icon: Activity, color: "text-destructive", status: "Alert" })
+    
+    return tasks.slice(0, 3)
   }, [members])
 
   return (
@@ -68,9 +92,9 @@ export default function Dashboard() {
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-black">{stats.totalMembers}</div>
-              <p className="text-[10px] text-emerald-600 flex items-center gap-1 mt-1 font-bold">
+              <p className="text-[10px] text-emerald-600 flex items-center gap-1 mt-1 font-bold uppercase tracking-tight">
                 <TrendingUp className="w-3 h-3" />
-                +4.2% growth (30d)
+                Live Roster Connected
               </p>
             </CardContent>
           </Card>
@@ -101,14 +125,14 @@ export default function Dashboard() {
 
           <Card className="shadow-sm border-border bg-card rounded-3xl overflow-hidden">
             <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
-              <CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Pending Faxes</CardTitle>
+              <CardTitle className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">SSBCI Fax Queue</CardTitle>
               <Printer className="w-4 h-4 text-primary" />
             </CardHeader>
             <CardContent>
               <div className="text-3xl font-black">
                 {stats.pendingFaxes}
               </div>
-              <p className="text-[10px] text-muted-foreground mt-1 font-bold">
+              <p className="text-[10px] text-muted-foreground mt-1 font-bold uppercase tracking-tight">
                 Module 3: chronic SNPs
               </p>
             </CardContent>
@@ -145,7 +169,7 @@ export default function Dashboard() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {members.slice(0, 5).map((member) => (
+                    {recentActivity.map((member) => (
                       <TableRow key={member.id} className="hover:bg-primary/5 transition-colors border-border/50">
                         <TableCell className="px-6 py-4">
                           <div className="flex flex-col">
@@ -237,14 +261,16 @@ export default function Dashboard() {
               <CardContent className="space-y-4">
                 <div className="p-4 rounded-2xl bg-card border border-primary/10 text-[11px] leading-relaxed text-muted-foreground font-medium shadow-sm">
                   <span className="font-black text-primary uppercase text-[10px] block mb-1">Module 5: AEP SHIELD</span> 
-                  September pre-emptive loyalty campaign is ready. Predicted disenrollment spike in ZIP 94103.
+                  {stats.churnRisks > 0 ? `${stats.churnRisks} high-risk members detected in current MARx poll. Triggering pre-emptive loyalty flows.` : "Roster fully protected. No disenrollment risks detected in latest snapshot."}
                 </div>
                 <div className="p-4 rounded-2xl bg-emerald-500/10 border border-emerald-500/10 text-[11px] leading-relaxed text-emerald-700 font-medium shadow-sm">
                   <span className="font-black text-emerald-600 uppercase text-[10px] block mb-1">LIS BOT ANALYTICS</span> 
-                  {members.filter(m => m.medicareMedicaidStatus === 'Medicare').length} members likely eligible for Extra Help based on local asset markers.
+                  {members.filter(m => m.medicareMedicaidStatus === 'Medicare' || m.medicareMedicaidStatus === 'Both').length} members currently benefit from Extra Help. Scanning for gaps in Zip Code clusters.
                 </div>
-                <Button className="w-full text-[10px] h-10 font-black uppercase tracking-widest bg-primary hover:bg-primary/90 text-white rounded-2xl shadow-lg shadow-primary/20">
-                  <Calendar className="w-3 h-3 mr-2" /> Launch AEP Shield
+                <Button className="w-full text-[10px] h-10 font-black uppercase tracking-widest bg-primary hover:bg-primary/90 text-white rounded-2xl shadow-lg shadow-primary/20" asChild>
+                  <Link href="/ai">
+                    <Calendar className="w-3 h-3 mr-2" /> Launch Retention AI
+                  </Link>
                 </Button>
               </CardContent>
             </Card>
@@ -254,11 +280,7 @@ export default function Dashboard() {
                 <CardTitle className="text-[10px] font-black uppercase tracking-widest text-foreground">Active Bot Task Queue</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4 p-6">
-                {[
-                  { label: "Module 1: MARx Sync", time: "12m ago", icon: Activity, color: "text-blue-600", status: "Success" },
-                  { label: "Module 3: Chronic Fax", time: "4h ago", icon: Printer, color: "text-primary", status: "Sent" },
-                  { label: "Module 2: Maya Call", time: "1h ago", icon: PhoneCall, color: "text-secondary", status: "Completed" }
-                ].map((act, i) => (
+                {botTasks.length > 0 ? botTasks.map((act, i) => (
                   <div key={i} className="flex items-center justify-between text-[11px] border-b border-border/50 pb-3 last:border-0 last:pb-0">
                     <div className="flex items-center gap-3">
                       <div className="w-7 h-7 rounded-lg bg-muted flex items-center justify-center">
@@ -266,12 +288,22 @@ export default function Dashboard() {
                       </div>
                       <div>
                         <p className="text-foreground font-bold">{act.label}</p>
-                        <p className="text-[9px] text-muted-foreground font-mono">{act.time}</p>
+                        <p className="text-[9px] text-muted-foreground font-medium uppercase tracking-tighter">{act.detail}</p>
                       </div>
                     </div>
                     <Badge variant="outline" className="text-[8px] font-black uppercase py-0 px-1.5">{act.status}</Badge>
                   </div>
-                ))}
+                )) : (
+                  <div className="py-4 text-center text-muted-foreground italic text-[10px] font-bold uppercase tracking-widest">
+                    All bots idle (100% Sync)
+                  </div>
+                )}
+                {botTasks.length > 0 && (
+                  <div className="flex items-center gap-2 text-[9px] text-muted-foreground font-medium pt-2 italic">
+                    <Clock className="w-3 h-3" />
+                    Last MARx polling: Just now
+                  </div>
+                )}
               </CardContent>
             </Card>
           </div>
