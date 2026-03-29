@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState, useEffect } from "react"
@@ -31,7 +32,7 @@ export function InsightsPanel({ member }: InsightsPanelProps) {
 
   const handleTriggerFax = () => {
     if (!member) return;
-    toast({ title: "Module 3: SSBCI Fax Agent", description: "Generating HIPAA package & faxing physician..." })
+    toast({ title: "Spruce Health Fax", description: "Generating HIPAA package & faxing physician via Spruce Health..." })
     updateMember(member.id, { ssbciStatus: 'faxed' })
   }
 
@@ -119,16 +120,16 @@ export function InsightsPanel({ member }: InsightsPanelProps) {
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-2">
                     <Printer className="w-3.5 h-3.5 text-primary" />
-                    <span className="font-bold text-xs text-foreground">SSBCI Fax Agent</span>
+                    <span className="font-bold text-xs text-foreground">Spruce Fax Agent</span>
                   </div>
                   <Badge variant="outline" className="text-[9px] uppercase font-bold">{member.ssbciStatus}</Badge>
                 </div>
                 <p className="text-[10px] text-muted-foreground leading-relaxed">
-                  Module 3: Automatically fax chronic care documentation to physician to activate benefits.
+                  Module 3: Automatically fax chronic care documentation via Spruce Health to activate benefits.
                 </p>
                 {member.ssbciStatus === 'pending-fax' && (
                   <Button onClick={handleTriggerFax} size="sm" className="w-full h-8 text-[10px] font-bold rounded-xl">
-                    <Printer className="w-3 h-3 mr-1.5" /> Trigger Fax Package
+                    <Printer className="w-3 h-3 mr-1.5" /> Trigger Spruce Fax
                   </Button>
                 )}
               </CardContent>

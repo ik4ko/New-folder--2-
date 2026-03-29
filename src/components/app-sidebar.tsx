@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -117,7 +118,7 @@ export function AppSidebar() {
             <span className="text-[9px] font-black uppercase tracking-widest">HIPAA SECURE</span>
           </div>
           <p className="text-[9px] text-muted-foreground leading-relaxed font-bold uppercase tracking-tight opacity-60">
-            BAA Active: AWS/Twilio/Documo. Records encrypted at rest.
+            BAA Active: AWS/Twilio/Spruce Health. Records encrypted at rest.
           </p>
         </div>
       </div>

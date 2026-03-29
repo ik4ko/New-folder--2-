@@ -23,7 +23,7 @@ export default function FaxCenterPage() {
       toast({ title: "Queue Empty", description: "No pending faxes to process." })
       return
     }
-    toast({ title: "Bulk Action Initiated", description: `Queuing ${pending.length} HIPAA packages via Documo API...` })
+    toast({ title: "Spruce Health Transmission", description: `Queuing ${pending.length} HIPAA packages via Spruce Health Secure API...` })
     pending.forEach(m => {
       setTimeout(() => {
         updateMember(m.id, { ssbciStatus: 'faxed' })
@@ -47,12 +47,12 @@ export default function FaxCenterPage() {
             </div>
             <div>
               <h1 className="text-xl font-bold text-foreground">SSBCI Fax Agent</h1>
-              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Module 3: Chronic Care Accelerator</p>
+              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Module 3: Powered by Spruce Health</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <Button variant="outline" className="rounded-2xl h-10 text-xs font-bold border-primary/20">
-              <RefreshCw className="w-4 h-4 mr-2" /> Sync Documo
+              <RefreshCw className="w-4 h-4 mr-2" /> Sync Spruce
             </Button>
             <Button onClick={handleBulkFax} className="rounded-2xl h-10 text-xs font-black uppercase tracking-widest bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20">
               <Send className="w-4 h-4 mr-2" />
@@ -74,10 +74,10 @@ export default function FaxCenterPage() {
             </Card>
             <Card className="rounded-3xl border-none shadow-sm bg-card">
               <CardContent className="pt-6 space-y-2">
-                <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">In Transit (SFTP/Fax)</p>
+                <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">In Transit (Spruce API)</p>
                 <div className="flex items-end justify-between">
                   <div className="text-4xl font-black text-primary">{faxQueue.filter(m => m.ssbciStatus === 'faxed').length}</div>
-                  <div className="text-[9px] font-bold text-muted-foreground mb-1 uppercase tracking-tighter">Avg 4.2m latency</div>
+                  <div className="text-[9px] font-bold text-muted-foreground mb-1 uppercase tracking-tighter">Avg 2.1m latency</div>
                 </div>
               </CardContent>
             </Card>
@@ -87,7 +87,7 @@ export default function FaxCenterPage() {
                 <div className="flex items-end justify-between">
                   <div className="text-4xl font-black text-emerald-600">{faxQueue.filter(m => m.ssbciStatus === 'approved').length}</div>
                   <div className="flex items-center gap-1 text-[9px] font-bold text-emerald-600 mb-1">
-                    <CheckCircle2 className="w-3 h-3" /> 100% HIPAA Logged
+                    <CheckCircle2 className="w-3 h-3" /> 100% Spruce BAA Logged
                   </div>
                 </div>
               </CardContent>
@@ -128,7 +128,7 @@ export default function FaxCenterPage() {
                           </div>
                           <div>
                             <p className="text-xs font-bold text-foreground">{member.pcpName || 'Missing Physician'}</p>
-                            <p className="text-[9px] text-muted-foreground font-medium italic">Confirmed FAX # available</p>
+                            <p className="text-[9px] text-muted-foreground font-medium italic">Confirmed Spruce FAX #</p>
                           </div>
                         </div>
                       </TableCell>
@@ -142,7 +142,7 @@ export default function FaxCenterPage() {
                           {member.ssbciStatus === 'faxed' ? (
                             <div className="flex items-center gap-2 text-primary bg-primary/5 px-2 py-1 rounded-lg border border-primary/10">
                               <Clock className="w-3.5 h-3.5 animate-spin" />
-                              <span className="text-[9px] font-black uppercase tracking-tighter">Transmitted (Wait)</span>
+                              <span className="text-[9px] font-black uppercase tracking-tighter">Spruce In Transit</span>
                             </div>
                           ) : member.ssbciStatus === 'pending-fax' ? (
                             <div className="flex items-center gap-2 text-amber-600 bg-amber-50 px-2 py-1 rounded-lg border border-amber-100">
@@ -178,11 +178,11 @@ export default function FaxCenterPage() {
               <ShieldAlert className="w-7 h-7" />
             </div>
             <div className="max-w-md mx-auto space-y-2">
-              <h3 className="text-sm font-black text-foreground uppercase tracking-widest">Module 3 Compliance Lock</h3>
+              <h3 className="text-sm font-black text-foreground uppercase tracking-widest">Spruce Health Compliance Lock</h3>
               <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
-                All SSBCI faxes are transmitted via Documo's HIPAA-encrypted SFTP bridge. Packages include pre-filled Medicare Part C chronic condition verification forms. Audit trails are archived for 10 years.
+                All SSBCI faxes are transmitted via Spruce Health's HIPAA-compliant clinical API. Packages include pre-filled Medicare Part C chronic condition verification forms. Audit trails are archived within the Spruce vault for 10 years.
               </p>
-              <Button variant="link" className="text-xs font-bold text-primary underline-offset-4">Review HIPAA Transmission Logs</Button>
+              <Button variant="link" className="text-xs font-bold text-primary underline-offset-4">Review Spruce BAA Transmission Logs</Button>
             </div>
           </div>
         </div>

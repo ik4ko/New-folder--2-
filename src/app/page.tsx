@@ -1,3 +1,4 @@
+
 "use client"
 
 import { Button } from "@/components/ui/button"
@@ -53,7 +54,7 @@ export default function LandingPage() {
             Shield Your <span className="text-primary">Book of Business</span> From Competitors.
           </h1>
           <p className="text-lg md:text-xl text-muted-foreground font-bold max-w-2xl mx-auto uppercase tracking-tight opacity-80">
-            Real-time CMS switch detection, automated SSBCI faxes, and AI-driven member check-ins. Built for enterprise Medicare agencies.
+            Real-time CMS switch detection, automated SSBCI faxes via Spruce Health, and AI-driven member check-ins. Built for enterprise Medicare agencies.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 pt-4">
             <Button size="lg" className="w-full sm:w-auto h-16 px-10 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest shadow-2xl shadow-primary/30 text-xs gap-3" asChild>
@@ -118,9 +119,9 @@ export default function LandingPage() {
               <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
                 <Lock className="w-7 h-7" />
               </div>
-              <h3 className="text-2xl font-black uppercase tracking-tight">Module 3: SSBCI Fax Agent</h3>
+              <h3 className="text-2xl font-black uppercase tracking-tight">Module 3: Spruce Health Fax Agent</h3>
               <p className="text-sm font-bold text-muted-foreground uppercase leading-relaxed opacity-70">
-                Automated chronic condition verification. MediStay faxes PCP offices directly to activate specialized benefits, locking in member loyalty.
+                Automated chronic condition verification. MediStay faxes PCP offices directly via Spruce Health to activate specialized benefits, locking in member loyalty.
               </p>
             </div>
 
@@ -180,7 +181,7 @@ export default function LandingPage() {
                   </div>
                 </div>
                 <div className="space-y-3">
-                  {["Unlimited Members", "Maya AI Voice (500m/mo)", "SSBCI Fax Center", "White-Label PDFs", "Priority Support"].map((item, i) => (
+                  {["Unlimited Members", "Maya AI Voice (500m/mo)", "Spruce Fax Center", "White-Label PDFs", "Priority Support"].map((item, i) => (
                     <div key={i} className="flex items-center gap-2 text-xs font-black uppercase tracking-tight">
                       <CheckCircle2 className="w-4 h-4 text-accent" /> {item}
                     </div>
@@ -236,7 +237,7 @@ export default function LandingPage() {
             <ul className="space-y-2 text-[10px] font-black text-muted-foreground uppercase tracking-tight">
               <li><Link href="#" className="hover:text-primary transition-colors">CMS Switch Detection</Link></li>
               <li><Link href="#" className="hover:text-primary transition-colors">Maya AI Voice</Link></li>
-              <li><Link href="#" className="hover:text-primary transition-colors">SSBCI Fax Center</Link></li>
+              <li><Link href="#" className="hover:text-primary transition-colors">Spruce Health Fax</Link></li>
               <li><Link href="#" className="hover:text-primary transition-colors">GHL Integration</Link></li>
             </ul>
           </div>
@@ -258,7 +259,7 @@ export default function LandingPage() {
                 <span className="text-[9px] font-black uppercase tracking-widest">HIPAA SECURE</span>
               </div>
               <p className="text-[9px] text-muted-foreground leading-relaxed font-bold uppercase tracking-tight opacity-60">
-                BAA Active: AWS/Twilio/Documo. Records encrypted at rest.
+                BAA Active: AWS/Twilio/Spruce Health. Records encrypted at rest.
               </p>
             </div>
           </div>
