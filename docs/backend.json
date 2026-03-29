@@ -1,0 +1,46 @@
+
+{
+  "entities": {
+    "EncryptedVaultBlob": {
+      "title": "Encrypted Vault Blob",
+      "description": "An E2EE blob representing patient PHI, intended only for backup and decentralized sync.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "cipher": { "type": "string", "description": "Base64 encoded encrypted data" },
+        "iv": { "type": "string", "description": "Base64 encoded initialization vector" },
+        "updatedAt": { "type": "number" },
+        "deviceId": { "type": "string" },
+        "hash": { "type": "string", "description": "Integrity hash of the ciphertext" }
+      },
+      "required": ["userId", "cipher", "iv", "updatedAt", "deviceId"]
+    },
+    "AuditLogEntry": {
+      "title": "Audit Log Entry",
+      "description": "HIPAA-compliant immutable audit record.",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "action": { "type": "string", "enum": ["READ", "WRITE", "SHARE", "SYNC"] },
+        "timestamp": { "type": "number" },
+        "deviceId": { "type": "string" },
+        "prevHash": { "type": "string" },
+        "hash": { "type": "string" }
+      },
+      "required": ["userId", "action", "timestamp", "deviceId", "hash"]
+    }
+  },
+  "auth": {
+    "providers": ["google.com", "password"]
+  },
+  "firestore": {
+    "/vaults/{userId}": {
+      "schema": { "$ref": "#/backend/entities/EncryptedVaultBlob" },
+      "description": "User's encrypted cold storage backup."
+    },
+    "/audit_logs/{userId}/entries/{logId}": {
+      "schema": { "$ref": "#/backend/entities/AuditLogEntry" },
+      "description": "Immutable audit trail for PHI access."
+    }
+  }
+}
