@@ -1,7 +1,7 @@
 "use client"
 
 import { Input } from "@/components/ui/input"
-import { Search, UserPlus, Filter, AlertCircle, ChevronLeft } from "lucide-react"
+import { Search, UserPlus, Filter, AlertCircle, ChevronLeft, PanelLeftClose } from "lucide-react"
 import { useAppStore } from "@/lib/store"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
@@ -26,7 +26,7 @@ export function CollectionSidebar() {
   return (
     <aside className={cn(
       "flex flex-col h-full bg-background border-r border-border shrink-0 z-40 overflow-hidden transition-all duration-300 ease-in-out",
-      isSidebarOpen ? "w-64 opacity-100" : "w-0 opacity-0 border-none pointer-events-none"
+      isSidebarOpen ? "w-64" : "w-0 border-none pointer-events-none"
     )}>
       {/* Header Area */}
       <div className="h-16 flex items-center justify-between px-4 border-b border-border shrink-0">
@@ -54,7 +54,7 @@ export function CollectionSidebar() {
             onClick={toggleSidebar} 
             className="h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted"
           >
-            <ChevronLeft className="h-4 w-4" />
+            <PanelLeftClose className="h-4 w-4" />
           </Button>
         </div>
       </div>

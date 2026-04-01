@@ -11,7 +11,8 @@ import {
   Link2,
   LayoutDashboard,
   PanelLeftClose,
-  ChevronRight
+  ChevronRight,
+  PanelLeft
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
@@ -68,7 +69,7 @@ export function AppSidebar() {
               onClick={toggleSidebar} 
               className="h-10 w-10 rounded-xl hover:bg-muted text-primary"
             >
-              <ChevronRight className="w-5 h-5" />
+              <PanelLeft className="w-5 h-5" />
             </Button>
           )}
         </div>
