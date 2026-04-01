@@ -46,7 +46,7 @@ export function AppSidebar() {
         isSidebarOpen ? "w-60" : "w-16"
       )}>
         {/* Brand Header */}
-        <div className={cn("p-5 flex items-center shrink-0", isSidebarOpen ? "justify-between" : "justify-center px-0")}>
+        <div className={cn("p-5 flex items-center shrink-0 h-16 border-b border-sidebar-border", isSidebarOpen ? "justify-between" : "justify-center px-0")}>
           {isSidebarOpen ? (
             <>
               <Link href="/dashboard" className="flex items-center gap-2">
@@ -68,7 +68,7 @@ export function AppSidebar() {
 
         {/* Search Shortcut (Visible when collapsed) */}
         {!isSidebarOpen && (
-          <div className="px-3 py-2 flex justify-center">
+          <div className="px-3 py-2 flex justify-center mt-2">
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl text-muted-foreground hover:bg-muted">

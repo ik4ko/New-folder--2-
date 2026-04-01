@@ -75,7 +75,7 @@ export function CollectionSidebar() {
               className={cn(
                 "flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all duration-150 group",
                 pathname === `/members/${member.id}` 
-                  ? "bg-primary/5 text-primary" 
+                  ? "bg-primary/5 text-primary font-black" 
                   : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
               )}
             >
@@ -108,7 +108,7 @@ export function CollectionSidebar() {
       </ScrollArea>
 
       {/* Footer Area */}
-      <div className="p-4 border-t border-border bg-muted/5">
+      <div className="p-4 border-t border-border bg-muted/5 shrink-0">
         <Button variant="outline" className="w-full justify-center gap-2 h-10 rounded-xl border-border bg-background text-foreground hover:bg-muted font-black text-[9px] uppercase tracking-widest transition-all">
           <Filter className="w-3.5 h-3.5 text-primary" />
           Filter Carrier
