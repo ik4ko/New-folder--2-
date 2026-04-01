@@ -12,9 +12,8 @@ import {
   LayoutDashboard,
   Home,
   PanelLeft,
+  PanelLeftClose,
   Shield,
-  ChevronRight,
-  ChevronLeft,
   Search
 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -57,14 +56,12 @@ export function AppSidebar() {
                 <span className="text-md font-black tracking-tight text-foreground uppercase">MediStay</span>
               </Link>
               <Button variant="ghost" size="icon" onClick={toggleSidebar} className="h-7 w-7 rounded-lg hover:bg-muted text-muted-foreground">
-                <PanelLeft className="w-3.5 h-3.5" />
+                <PanelLeftClose className="w-3.5 h-3.5" />
               </Button>
             </>
           ) : (
             <Button variant="ghost" size="icon" onClick={toggleSidebar} className="h-10 w-10 rounded-xl hover:bg-muted text-primary">
-              <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center text-white font-black text-sm shadow-md">
-                M
-              </div>
+              <PanelLeft className="w-5 h-5" />
             </Button>
           )}
         </div>
