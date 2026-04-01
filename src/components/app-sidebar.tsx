@@ -15,7 +15,8 @@ import {
   PanelLeftClose,
   Shield,
   Search,
-  Info
+  Info,
+  ChevronLeft
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
@@ -43,7 +44,7 @@ export function AppSidebar() {
   return (
     <TooltipProvider delayDuration={0}>
       <div className={cn(
-        "flex flex-col bg-sidebar border-r border-sidebar-border h-full shrink-0 z-50 overflow-hidden transition-all duration-300 ease-in-out",
+        "flex flex-col bg-sidebar border-r border-sidebar-border h-full shrink-0 z-50 overflow-hidden transition-all duration-300 ease-in-out relative",
         isSidebarOpen ? "w-60" : "w-16"
       )}>
         {/* Brand Header */}
@@ -54,14 +55,30 @@ export function AppSidebar() {
                 <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center text-white font-black text-sm shadow-lg shadow-primary/20">
                   M
                 </div>
-                <span className="text-md font-black tracking-tight text-foreground uppercase">MediStay</span>
+                <span className="text-md font-black tracking-tight text-foreground uppercase">medistay.ai</span>
               </Link>
-              <Button variant="ghost" size="icon" onClick={toggleSidebar} className="h-7 w-7 rounded-lg hover:bg-muted text-muted-foreground transition-transform active:scale-95">
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={(e) => {
+                  e.preventDefault();
+                  toggleSidebar();
+                }} 
+                className="h-7 w-7 rounded-lg hover:bg-muted text-muted-foreground transition-transform active:scale-95"
+              >
                 <PanelLeftClose className="w-3.5 h-3.5" />
               </Button>
             </>
           ) : (
-            <Button variant="ghost" size="icon" onClick={toggleSidebar} className="h-10 w-10 rounded-xl hover:bg-muted text-primary transition-transform active:scale-95">
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={(e) => {
+                e.preventDefault();
+                toggleSidebar();
+              }} 
+              className="h-10 w-10 rounded-xl hover:bg-muted text-primary transition-transform active:scale-95"
+            >
               <PanelLeft className="w-5 h-5" />
             </Button>
           )}

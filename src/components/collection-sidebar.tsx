@@ -47,7 +47,15 @@ export function CollectionSidebar() {
             </Tooltip>
           </TooltipProvider>
           
-          <Button variant="ghost" size="icon" onClick={toggleSidebar} className="h-7 w-7 rounded-lg text-muted-foreground hover:bg-muted transition-all active:scale-95">
+          <Button 
+            variant="ghost" 
+            size="icon" 
+            onClick={(e) => {
+              e.preventDefault();
+              toggleSidebar();
+            }} 
+            className="h-7 w-7 rounded-lg text-muted-foreground hover:bg-muted transition-all active:scale-95"
+          >
             <PanelLeftClose className="h-3.5 h-3.5" />
           </Button>
         </div>
