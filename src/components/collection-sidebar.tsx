@@ -1,7 +1,7 @@
 "use client"
 
 import { Input } from "@/components/ui/input"
-import { Search, UserPlus, Filter, AlertCircle, ChevronLeft } from "lucide-react"
+import { Search, UserPlus, Filter, AlertCircle, ChevronLeft, PanelLeftClose } from "lucide-react"
 import { useAppStore } from "@/lib/store"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
@@ -9,6 +9,7 @@ import { useState, useMemo } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
 export function CollectionSidebar() {
   const { members, isSidebarOpen, toggleSidebar } = useAppStore()
@@ -33,13 +34,21 @@ export function CollectionSidebar() {
           Member Roster
         </h2>
         <div className="flex items-center gap-1.5">
-          <Button variant="ghost" size="icon" asChild className="h-7 w-7 rounded-lg bg-primary/5 text-primary hover:bg-primary hover:text-white transition-all">
-            <Link href="/members/new">
-              <UserPlus className="h-3.5 h-3.5" />
-            </Link>
-          </Button>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" asChild className="h-7 w-7 rounded-lg bg-primary/5 text-primary hover:bg-primary hover:text-white transition-all">
+                  <Link href="/members/new">
+                    <UserPlus className="h-3.5 h-3.5" />
+                  </Link>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="bottom">Enroll Member</TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+          
           <Button variant="ghost" size="icon" onClick={toggleSidebar} className="h-7 w-7 rounded-lg text-muted-foreground hover:bg-muted transition-all">
-            <ChevronLeft className="h-3.5 h-3.5" />
+            <PanelLeftClose className="h-3.5 h-3.5" />
           </Button>
         </div>
       </div>

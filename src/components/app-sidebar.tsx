@@ -14,7 +14,8 @@ import {
   PanelLeft,
   Shield,
   ChevronRight,
-  ChevronLeft
+  ChevronLeft,
+  Search
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
@@ -61,12 +62,26 @@ export function AppSidebar() {
             </>
           ) : (
             <Button variant="ghost" size="icon" onClick={toggleSidebar} className="h-10 w-10 rounded-xl hover:bg-muted text-primary">
-              <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center text-white font-black text-sm shadow-md mb-0">
+              <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center text-white font-black text-sm shadow-md">
                 M
               </div>
             </Button>
           )}
         </div>
+
+        {/* Search Shortcut (Visible when collapsed) */}
+        {!isSidebarOpen && (
+          <div className="px-3 py-2 flex justify-center">
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl text-muted-foreground hover:bg-muted">
+                  <Search className="w-4 h-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right">Quick Search (⌘K)</TooltipContent>
+            </Tooltip>
+          </div>
+        )}
 
         {/* Main Nav */}
         <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto scrollbar-hide pt-2">
