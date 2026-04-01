@@ -28,18 +28,31 @@ export function CollectionSidebar() {
       "flex flex-col h-full bg-background border-r border-border shrink-0 z-40 overflow-hidden transition-all duration-300 ease-in-out",
       isSidebarOpen ? "w-64 opacity-100" : "w-0 opacity-0 border-r-0"
     )}>
-      {/* Header Area */}
-      <div className="h-16 flex items-center justify-between px-5 border-b border-border shrink-0">
-        <h2 className="text-[9px] font-black uppercase tracking-widest text-muted-foreground whitespace-nowrap">
+      {/* Header Area - Optimized with Dual Functional Toggles */}
+      <div className="h-16 flex items-center justify-between px-4 border-b border-border shrink-0">
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={(e) => {
+            e.preventDefault();
+            toggleSidebar();
+          }} 
+          className="h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted transition-all active:scale-95"
+        >
+          <PanelLeftClose className="h-4 w-4" />
+        </Button>
+
+        <h2 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground whitespace-nowrap px-2">
           Member Roster
         </h2>
-        <div className="flex items-center gap-1.5">
+
+        <div className="flex items-center gap-1">
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" asChild className="h-7 w-7 rounded-lg bg-primary/5 text-primary hover:bg-primary hover:text-white transition-all">
+                <Button variant="ghost" size="icon" asChild className="h-8 w-8 rounded-lg text-muted-foreground hover:bg-primary/5 hover:text-primary transition-all">
                   <Link href="/members/new">
-                    <UserPlus className="h-3.5 h-3.5" />
+                    <UserPlus className="h-4 w-4" />
                   </Link>
                 </Button>
               </TooltipTrigger>
@@ -54,9 +67,9 @@ export function CollectionSidebar() {
               e.preventDefault();
               toggleSidebar();
             }} 
-            className="h-7 w-7 rounded-lg text-muted-foreground hover:bg-muted transition-all active:scale-95"
+            className="h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted transition-all active:scale-95"
           >
-            <PanelLeftClose className="h-3.5 h-3.5" />
+            <PanelLeftClose className="h-4 w-4" />
           </Button>
         </div>
       </div>

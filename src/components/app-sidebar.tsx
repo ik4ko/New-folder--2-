@@ -15,8 +15,7 @@ import {
   PanelLeftClose,
   Shield,
   Search,
-  Info,
-  ChevronLeft
+  Info
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
