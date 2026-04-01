@@ -28,20 +28,8 @@ export function CollectionSidebar() {
       "flex flex-col h-full bg-background border-r border-border shrink-0 z-40 overflow-hidden transition-all duration-300 ease-in-out",
       isSidebarOpen ? "w-64 opacity-100" : "w-0 opacity-0 border-r-0"
     )}>
-      {/* Header Area - Optimized with Dual Functional Toggles */}
+      {/* Header Area */}
       <div className="h-16 flex items-center justify-between px-4 border-b border-border shrink-0">
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          onClick={(e) => {
-            e.preventDefault();
-            toggleSidebar();
-          }} 
-          className="h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted transition-all active:scale-95"
-        >
-          <PanelLeftClose className="h-4 w-4" />
-        </Button>
-
         <h2 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground whitespace-nowrap px-2">
           Member Roster
         </h2>
@@ -63,10 +51,7 @@ export function CollectionSidebar() {
           <Button 
             variant="ghost" 
             size="icon" 
-            onClick={(e) => {
-              e.preventDefault();
-              toggleSidebar();
-            }} 
+            onClick={toggleSidebar} 
             className="h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted transition-all active:scale-95"
           >
             <PanelLeftClose className="h-4 w-4" />
@@ -129,16 +114,11 @@ export function CollectionSidebar() {
       </ScrollArea>
 
       {/* Footer Area */}
-      <div className="p-4 border-t border-border bg-muted/5 shrink-0 space-y-3">
+      <div className="p-4 border-t border-border bg-muted/5 shrink-0">
         <Button variant="outline" className="w-full justify-center gap-2 h-10 rounded-xl border-border bg-background text-foreground hover:bg-muted font-black text-[9px] uppercase tracking-widest transition-all">
           <Filter className="w-3.5 h-3.5 text-primary" />
           Filter Carrier
         </Button>
-        <div className="px-2 text-center">
-          <p className="text-[7px] text-muted-foreground font-bold uppercase tracking-tighter opacity-50">
-            MediStay Intelligence © 2025
-          </p>
-        </div>
       </div>
     </aside>
   )

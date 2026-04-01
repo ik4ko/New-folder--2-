@@ -15,7 +15,8 @@ import {
   PanelLeftClose,
   Shield,
   Search,
-  Info
+  Info,
+  ChevronRight
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
@@ -44,7 +45,7 @@ export function AppSidebar() {
     <TooltipProvider delayDuration={0}>
       <div className={cn(
         "flex flex-col bg-sidebar border-r border-sidebar-border h-full shrink-0 z-50 overflow-hidden transition-all duration-300 ease-in-out relative",
-        isSidebarOpen ? "w-60" : "w-16"
+        isSidebarOpen ? "w-64" : "w-16"
       )}>
         {/* Brand Header */}
         <div className={cn("p-5 flex items-center shrink-0 h-16 border-b border-sidebar-border", isSidebarOpen ? "justify-between" : "justify-center px-0")}>
@@ -59,10 +60,7 @@ export function AppSidebar() {
               <Button 
                 variant="ghost" 
                 size="icon" 
-                onClick={(e) => {
-                  e.preventDefault();
-                  toggleSidebar();
-                }} 
+                onClick={toggleSidebar} 
                 className="h-7 w-7 rounded-lg hover:bg-muted text-muted-foreground transition-transform active:scale-95"
               >
                 <PanelLeftClose className="w-3.5 h-3.5" />
@@ -72,33 +70,16 @@ export function AppSidebar() {
             <Button 
               variant="ghost" 
               size="icon" 
-              onClick={(e) => {
-                e.preventDefault();
-                toggleSidebar();
-              }} 
+              onClick={toggleSidebar} 
               className="h-10 w-10 rounded-xl hover:bg-muted text-primary transition-transform active:scale-95"
             >
-              <PanelLeft className="w-5 h-5" />
+              <ChevronRight className="w-5 h-5" />
             </Button>
           )}
         </div>
 
-        {/* Search Shortcut (Visible when collapsed) */}
-        {!isSidebarOpen && (
-          <div className="px-3 py-2 flex justify-center mt-2">
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-10 w-10 rounded-xl text-muted-foreground hover:bg-muted">
-                  <Search className="w-4 h-4" />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent side="right">Quick Search (⌘K)</TooltipContent>
-            </Tooltip>
-          </div>
-        )}
-
         {/* Main Nav */}
-        <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto scrollbar-hide pt-2">
+        <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto scrollbar-hide pt-4">
           {navItems.map((item) => {
             const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))
             return (
@@ -149,17 +130,6 @@ export function AppSidebar() {
           </div>
 
           <Link 
-            href="/"
-            className={cn(
-              "flex items-center rounded-xl text-muted-foreground hover:bg-muted hover:text-foreground transition-all",
-              isSidebarOpen ? "px-3 py-2.5 gap-3" : "justify-center py-3"
-            )}
-          >
-            <Home className="w-4.5 h-4.5" />
-            {isSidebarOpen && <span className="text-[10px] font-black uppercase tracking-widest">Public Site</span>}
-          </Link>
-
-          <Link 
             href="/settings"
             className={cn(
               "flex items-center rounded-xl transition-all",
@@ -171,41 +141,13 @@ export function AppSidebar() {
             {isSidebarOpen && <span className="text-[10px] font-black uppercase tracking-widest">Settings</span>}
           </Link>
 
-          {/* HIPAA & CMS Compliance Box */}
-          {isSidebarOpen ? (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="mt-2 p-3 rounded-2xl bg-muted/30 border border-border/50 cursor-help">
-                  <div className="flex items-center gap-1.5 text-muted-foreground mb-1">
-                    <Shield className="w-2.5 h-2.5" />
-                    <span className="text-[8px] font-black uppercase tracking-widest">Individual Agent Mode</span>
-                  </div>
-                  <p className="text-[7px] text-muted-foreground leading-tight font-bold uppercase tracking-tight opacity-60">
-                    This product uses the Blue Button 2.0 API but is not a CMS service.
-                  </p>
-                </div>
-              </TooltipTrigger>
-              <TooltipContent side="top" className="max-w-[200px] p-3">
-                <div className="space-y-2">
-                  <div className="flex items-center gap-2 text-primary">
-                    <Info className="w-3 h-3" />
-                    <p className="font-bold text-[9px] uppercase">CMS Disclaimer</p>
-                  </div>
-                  <p className="text-[8px] leading-relaxed opacity-80 uppercase font-bold">
-                    Blue Button 2.0 is a registered trademark of CMS. MediStay provides autonomous synchronization for independent licensed agents.
-                  </p>
-                </div>
-              </TooltipContent>
-            </Tooltip>
-          ) : (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <div className="flex justify-center py-2">
-                  <Shield className="w-4 h-4 text-muted-foreground opacity-50" />
-                </div>
-              </TooltipTrigger>
-              <TooltipContent side="right">Individual Agent Compliance Mode</TooltipContent>
-            </Tooltip>
+          {/* Compliance Box */}
+          {isSidebarOpen && (
+            <div className="mt-2 p-3 rounded-2xl bg-muted/30 border border-border/50">
+              <p className="text-[7px] text-muted-foreground leading-tight font-bold uppercase tracking-tight opacity-60">
+                Individual Agent Mode. Blue Button 2.0 Integration Active.
+              </p>
+            </div>
           )}
         </div>
       </div>
