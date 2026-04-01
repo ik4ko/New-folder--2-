@@ -47,7 +47,7 @@ export function CollectionSidebar() {
             </Tooltip>
           </TooltipProvider>
           
-          <Button variant="ghost" size="icon" onClick={toggleSidebar} className="h-7 w-7 rounded-lg text-muted-foreground hover:bg-muted transition-all">
+          <Button variant="ghost" size="icon" onClick={toggleSidebar} className="h-7 w-7 rounded-lg text-muted-foreground hover:bg-muted transition-all active:scale-95">
             <PanelLeftClose className="h-3.5 h-3.5" />
           </Button>
         </div>
@@ -108,11 +108,16 @@ export function CollectionSidebar() {
       </ScrollArea>
 
       {/* Footer Area */}
-      <div className="p-4 border-t border-border bg-muted/5 shrink-0">
+      <div className="p-4 border-t border-border bg-muted/5 shrink-0 space-y-3">
         <Button variant="outline" className="w-full justify-center gap-2 h-10 rounded-xl border-border bg-background text-foreground hover:bg-muted font-black text-[9px] uppercase tracking-widest transition-all">
           <Filter className="w-3.5 h-3.5 text-primary" />
           Filter Carrier
         </Button>
+        <div className="px-2 text-center">
+          <p className="text-[7px] text-muted-foreground font-bold uppercase tracking-tighter opacity-50">
+            MediStay Intelligence © 2025
+          </p>
+        </div>
       </div>
     </aside>
   )

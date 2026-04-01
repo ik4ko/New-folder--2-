@@ -14,7 +14,8 @@ import {
   PanelLeft,
   PanelLeftClose,
   Shield,
-  Search
+  Search,
+  Info
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
@@ -29,14 +30,14 @@ export function AppSidebar() {
   const { isSidebarOpen, toggleSidebar } = useAppStore()
 
   const navItems = [
-    { href: '/dashboard', icon: LayoutDashboard, label: 'Command Center', desc: 'Agency-wide retention overview' },
-    { href: '/members', icon: Users, label: 'Member Roster', desc: 'Full book of business management' },
-    { href: '/accounting', icon: Printer, label: 'Accounting', desc: 'Commissions & SaaS billing' },
-    { href: '/fax', icon: Printer, label: 'SSBCI Fax Center', desc: 'Automated clinical documentation' },
-    { href: '/check-ins', icon: PhoneCall, label: 'AI Check-ins', desc: 'Maya AI voice outreach' },
-    { href: '/ghl', icon: Link2, label: 'GHL Integration', desc: 'CRM field mapping & sync' },
-    { href: '/compliance', icon: ShieldCheck, label: 'Compliance Vault', desc: 'Immutable SOA & PHI archive' },
-    { href: '/ai', icon: Sparkles, label: 'Retention AI', isSpecial: true, desc: 'Predictive churn modeling' },
+    { href: '/dashboard', icon: LayoutDashboard, label: 'Command Center', desc: 'Real-time monitoring' },
+    { href: '/members', icon: Users, label: 'Member Roster', desc: 'Personal book of business' },
+    { href: '/accounting', icon: Printer, label: 'Accounting', desc: 'Commissions' },
+    { href: '/fax', icon: Printer, label: 'SSBCI Fax', desc: 'Clinical documentation' },
+    { href: '/check-ins', icon: PhoneCall, label: 'AI Check-ins', desc: 'Maya AI outreach' },
+    { href: '/ghl', icon: Link2, label: 'CRM Sync', desc: 'GHL Integration' },
+    { href: '/compliance', icon: ShieldCheck, label: 'Vault', desc: 'Secure PHI archive' },
+    { href: '/ai', icon: Sparkles, label: 'Retention AI', isSpecial: true, desc: 'Predictive churn' },
   ]
 
   return (
@@ -55,12 +56,12 @@ export function AppSidebar() {
                 </div>
                 <span className="text-md font-black tracking-tight text-foreground uppercase">MediStay</span>
               </Link>
-              <Button variant="ghost" size="icon" onClick={toggleSidebar} className="h-7 w-7 rounded-lg hover:bg-muted text-muted-foreground">
+              <Button variant="ghost" size="icon" onClick={toggleSidebar} className="h-7 w-7 rounded-lg hover:bg-muted text-muted-foreground transition-transform active:scale-95">
                 <PanelLeftClose className="w-3.5 h-3.5" />
               </Button>
             </>
           ) : (
-            <Button variant="ghost" size="icon" onClick={toggleSidebar} className="h-10 w-10 rounded-xl hover:bg-muted text-primary">
+            <Button variant="ghost" size="icon" onClick={toggleSidebar} className="h-10 w-10 rounded-xl hover:bg-muted text-primary transition-transform active:scale-95">
               <PanelLeft className="w-5 h-5" />
             </Button>
           )}
@@ -154,24 +155,29 @@ export function AppSidebar() {
             {isSidebarOpen && <span className="text-[10px] font-black uppercase tracking-widest">Settings</span>}
           </Link>
 
-          {/* HIPAA Box */}
+          {/* HIPAA & CMS Compliance Box */}
           {isSidebarOpen ? (
             <Tooltip>
               <TooltipTrigger asChild>
                 <div className="mt-2 p-3 rounded-2xl bg-muted/30 border border-border/50 cursor-help">
-                  <div className="flex items-center gap-1.5 text-muted-foreground mb-0.5">
+                  <div className="flex items-center gap-1.5 text-muted-foreground mb-1">
                     <Shield className="w-2.5 h-2.5" />
-                    <span className="text-[8px] font-black uppercase tracking-widest">HIPAA SECURE</span>
+                    <span className="text-[8px] font-black uppercase tracking-widest">Individual Agent Mode</span>
                   </div>
-                  <p className="text-[8px] text-muted-foreground leading-tight font-bold uppercase tracking-tight opacity-60">
-                    BAA Active: AWS/Twilio/Spruce.
+                  <p className="text-[7px] text-muted-foreground leading-tight font-bold uppercase tracking-tight opacity-60">
+                    This product uses the Blue Button 2.0 API but is not a CMS service.
                   </p>
                 </div>
               </TooltipTrigger>
-              <TooltipContent side="top" className="max-w-[180px]">
-                <div className="space-y-1">
-                  <p className="font-bold text-[10px]">Encryption Protocol</p>
-                  <p className="text-[9px]">All PII is encrypted with AES-256 at rest and TLS 1.3 in transit.</p>
+              <TooltipContent side="top" className="max-w-[200px] p-3">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-primary">
+                    <Info className="w-3 h-3" />
+                    <p className="font-bold text-[9px] uppercase">CMS Disclaimer</p>
+                  </div>
+                  <p className="text-[8px] leading-relaxed opacity-80 uppercase font-bold">
+                    Blue Button 2.0 is a registered trademark of CMS. MediStay provides autonomous synchronization for independent licensed agents.
+                  </p>
                 </div>
               </TooltipContent>
             </Tooltip>
@@ -182,7 +188,7 @@ export function AppSidebar() {
                   <Shield className="w-4 h-4 text-muted-foreground opacity-50" />
                 </div>
               </TooltipTrigger>
-              <TooltipContent side="right">HIPAA SECURE</TooltipContent>
+              <TooltipContent side="right">Individual Agent Compliance Mode</TooltipContent>
             </Tooltip>
           )}
         </div>
