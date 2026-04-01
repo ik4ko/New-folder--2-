@@ -14,7 +14,7 @@ import {
   MoreVertical, BadgeCheck,
   CreditCard, History,
   Fingerprint, ExternalLink as LinkIcon,
-  ShoppingBag
+  ShoppingBag, ShieldAlert, Database, Briefcase
 } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import { useSearchParams, useRouter } from "next/navigation"
@@ -39,7 +39,7 @@ function SettingsContent() {
 
   useEffect(() => {
     const tab = searchParams.get("tab")
-    if (tab && ["identity", "branding", "alerts", "compliance", "team", "billing"].includes(tab)) {
+    if (tab && ["identity", "branding", "alerts", "compliance", "team", "billing", "security", "carriers"].includes(tab)) {
       setActiveTab(tab)
     }
   }, [searchParams])
@@ -89,10 +89,13 @@ function SettingsContent() {
             {agencyProfile.isSolo ? "Broker Settings" : "Agency Settings"}
           </h1>
         </div>
-        <Button onClick={handleSave} className="rounded-xl h-10 font-black uppercase tracking-widest bg-primary hover:bg-primary/90 px-6 shadow-lg shadow-primary/20 text-white text-[10px]">
-          <Save className="w-4 h-4 mr-2" />
-          Save Changes
-        </Button>
+        <div className="flex items-center gap-3">
+          <Button variant="ghost" className="rounded-xl h-10 font-black uppercase text-[10px] tracking-widest text-muted-foreground" onClick={() => router.push('/dashboard')}>Discard</Button>
+          <Button onClick={handleSave} className="rounded-xl h-10 font-black uppercase tracking-widest bg-primary hover:bg-primary/90 px-6 shadow-lg shadow-primary/20 text-white text-[10px]">
+            <Save className="w-4 h-4 mr-2" />
+            Save Changes
+          </Button>
+        </div>
       </header>
 
       <div className="flex-1 overflow-y-auto p-8 max-w-5xl mx-auto w-full space-y-8 bg-background">
@@ -104,17 +107,17 @@ function SettingsContent() {
             <TabsTrigger value="team" className="rounded-xl flex-1 min-w-[120px] py-2.5 text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white">
               <Users2 className="w-4 h-4 mr-2" /> Team
             </TabsTrigger>
+            <TabsTrigger value="carriers" className="rounded-xl flex-1 min-w-[120px] py-2.5 text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white">
+              <Briefcase className="w-4 h-4 mr-2" /> Carriers
+            </TabsTrigger>
+            <TabsTrigger value="security" className="rounded-xl flex-1 min-w-[120px] py-2.5 text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white">
+              <ShieldAlert className="w-4 h-4 mr-2" /> Security
+            </TabsTrigger>
             <TabsTrigger value="billing" className="rounded-xl flex-1 min-w-[120px] py-2.5 text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white">
               <CreditCard className="w-4 h-4 mr-2" /> Billing
             </TabsTrigger>
-            <TabsTrigger value="branding" className="rounded-xl flex-1 min-w-[120px] py-2.5 text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white">
-              <Palette className="w-4 h-4 mr-2" /> Branding
-            </TabsTrigger>
             <TabsTrigger value="alerts" className="rounded-xl flex-1 min-w-[120px] py-2.5 text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white">
               <Bell className="w-4 h-4 mr-2" /> Alerts
-            </TabsTrigger>
-            <TabsTrigger value="compliance" className="rounded-xl flex-1 min-w-[120px] py-2.5 text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white">
-              <ShieldCheck className="w-4 h-4 mr-2" /> Compliance
             </TabsTrigger>
           </TabsList>
 
@@ -162,6 +165,80 @@ function SettingsContent() {
                       className="rounded-xl h-12 bg-background border-border font-mono text-foreground font-black pl-4 shadow-inner"
                     />
                   </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="carriers" className="space-y-6 animate-in fade-in duration-300">
+            <Card className="rounded-3xl border border-border shadow-sm bg-card">
+              <CardHeader>
+                <CardTitle className="text-sm font-black uppercase tracking-widest text-foreground flex items-center gap-2">
+                  <Briefcase className="w-4 h-4 text-primary" />
+                  Contracted Carriers & Licensing
+                </CardTitle>
+                <CardDescription className="text-xs font-black uppercase opacity-60">Manage your state appointments and carrier ID numbers.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="grid grid-cols-1 gap-4">
+                  {[
+                    { carrier: "UnitedHealthcare", states: "CA, TX, FL", writingId: "UHC-99201" },
+                    { carrier: "Humana", states: "CA, NV", writingId: "HUM-7721" },
+                    { carrier: "Clover Health", states: "CA", writingId: "CLV-0012" }
+                  ].map((contract, i) => (
+                    <div key={i} className="flex items-center justify-between p-4 rounded-2xl border bg-muted/10">
+                      <div>
+                        <p className="text-[11px] font-black uppercase text-foreground">{contract.carrier}</p>
+                        <p className="text-[9px] font-bold text-muted-foreground uppercase tracking-widest">Active in: {contract.states}</p>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[10px] font-mono font-black text-primary">{contract.writingId}</p>
+                        <p className="text-[8px] font-bold text-emerald-600 uppercase">Contract Verified</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <Button variant="outline" className="w-full rounded-xl border-dashed border-2 h-12 text-[10px] font-black uppercase tracking-widest">
+                  <Plus className="w-4 h-4 mr-2" /> Add New Carrier Appointment
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="security" className="space-y-6 animate-in fade-in duration-300">
+            <Card className="rounded-3xl border border-border shadow-sm bg-slate-950 text-white p-8 overflow-hidden relative">
+              <div className="absolute top-0 right-0 p-6 opacity-10"><Lock className="w-32 h-32 text-white" /></div>
+              <CardHeader className="px-0">
+                <CardTitle className="text-sm font-black uppercase tracking-widest text-emerald-400 flex items-center gap-2">
+                  <Fingerprint className="w-5 h-5" />
+                  HIPAA Access Controls
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="px-0 space-y-6 relative z-10">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <div className="p-5 rounded-2xl bg-white/5 border border-white/10 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-slate-300">Enforce 2FA</Label>
+                      <Switch defaultChecked />
+                    </div>
+                    <p className="text-[9px] text-slate-400 font-bold uppercase leading-relaxed">Required for all agency roles to access PHI.</p>
+                  </div>
+                  <div className="p-5 rounded-2xl bg-white/5 border border-white/10 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-[10px] font-black uppercase tracking-widest text-slate-300">IP Whitelisting</Label>
+                      <Switch />
+                    </div>
+                    <p className="text-[9px] text-slate-400 font-bold uppercase leading-relaxed">Restrict access to specific office network IPs.</p>
+                  </div>
+                </div>
+                <div className="p-5 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 space-y-2">
+                  <div className="flex items-center gap-2 text-emerald-400">
+                    <ShieldCheck className="w-4 h-4" />
+                    <span className="text-[10px] font-black uppercase tracking-widest">Audit Retention: 10 Years</span>
+                  </div>
+                  <p className="text-[10px] text-slate-300 font-medium uppercase opacity-80 leading-relaxed">
+                    MediStay automatically archives all member record modifications and MARx polling data for the federally mandated period.
+                  </p>
                 </div>
               </CardContent>
             </Card>
@@ -283,27 +360,6 @@ function SettingsContent() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="branding" className="space-y-6">
-            <Card className="rounded-3xl border border-border shadow-sm bg-card p-10">
-              <div className="flex items-center gap-4 mb-8">
-                <Palette className="w-6 h-6 text-primary" />
-                <h2 className="text-lg font-black uppercase tracking-tight text-foreground">Clinical White-Labeling</h2>
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
-                <div className="space-y-4">
-                  <Label className="text-[10px] font-black uppercase tracking-widest text-foreground">Branding Primary</Label>
-                  <div className="flex gap-4 items-center">
-                    <div className="w-16 h-16 rounded-2xl bg-primary shadow-inner border border-black/10" />
-                    <Input className="font-mono text-xs font-black h-12 rounded-xl bg-background border-border text-foreground pl-4" value={agencyProfile.primaryColor} readOnly />
-                  </div>
-                </div>
-                <div className="p-6 rounded-2xl bg-primary/5 border border-primary/10 space-y-2 text-[11px] text-foreground font-black leading-relaxed italic uppercase opacity-70">
-                  "This color profile is applied to all member-facing PDFs, clinical fax cover sheets, and HIPAA vault exports."
-                </div>
-              </div>
-            </Card>
-          </TabsContent>
-
           <TabsContent value="alerts" className="space-y-6">
             <Card className="rounded-3xl border border-border shadow-sm bg-card p-10">
               <div className="flex items-center justify-between mb-8">
@@ -327,33 +383,6 @@ function SettingsContent() {
                     <Switch defaultChecked />
                   </div>
                 ))}
-              </div>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="compliance" className="space-y-6">
-            <Card className="rounded-3xl border border-border shadow-sm bg-slate-900 text-white p-10 overflow-hidden relative">
-              <div className="absolute top-0 right-0 p-6 opacity-10"><Lock className="w-32 h-32 text-white" /></div>
-              <CardTitle className="text-sm font-black uppercase tracking-widest text-emerald-400 flex items-center gap-2 mb-8 underline decoration-emerald-400/30 underline-offset-8">
-                <ShieldCheck className="w-5 h-5" /> HIPAA BAA Security Lock
-              </CardTitle>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 relative z-10">
-                <div className="p-6 rounded-2xl bg-white/5 border border-white/10 space-y-3">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
-                    <Fingerprint className="w-3 h-3" /> Biometric MFA
-                  </span>
-                  <p className="text-[11px] text-slate-200 font-black uppercase leading-relaxed opacity-80">
-                    Multi-Factor Authentication is enforced for all agency roles to ensure immutable PHI access logging.
-                  </p>
-                </div>
-                <div className="p-6 rounded-2xl bg-white/5 border border-white/10 space-y-3">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-slate-400 flex items-center gap-2">
-                    <History className="w-3 h-3" /> 10-Year Audit Trail
-                  </span>
-                  <p className="text-[11px] text-slate-200 font-black uppercase leading-relaxed opacity-80">
-                    All document generations and MARx polls are archived for the federally mandated retention period.
-                  </p>
-                </div>
               </div>
             </Card>
           </TabsContent>

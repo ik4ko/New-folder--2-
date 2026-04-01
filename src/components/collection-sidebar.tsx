@@ -26,7 +26,7 @@ export function CollectionSidebar() {
   return (
     <aside className={cn(
       "flex flex-col h-full bg-background border-r border-border shrink-0 z-40 overflow-hidden transition-all duration-300 ease-in-out",
-      isSidebarOpen ? "w-64 opacity-100" : "w-0 opacity-0 border-none"
+      isSidebarOpen ? "w-64 opacity-100" : "w-0 opacity-0 border-none pointer-events-none"
     )}>
       {/* Header Area */}
       <div className="h-16 flex items-center justify-between px-4 border-b border-border shrink-0">
