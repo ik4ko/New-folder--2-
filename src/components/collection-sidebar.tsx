@@ -1,7 +1,7 @@
 "use client"
 
 import { Input } from "@/components/ui/input"
-import { Search, UserPlus, Filter, AlertCircle, PanelLeftClose } from "lucide-react"
+import { Search, UserPlus, Filter, AlertCircle, PanelLeftClose, ChevronLeft } from "lucide-react"
 import { useAppStore } from "@/lib/store"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
@@ -23,11 +23,11 @@ export function CollectionSidebar() {
     )
   }, [members, search])
 
+  // If the unified sidebar state is closed, this whole column retracts
+  if (!isSidebarOpen) return null;
+
   return (
-    <aside className={cn(
-      "flex flex-col h-full bg-background border-r border-border shrink-0 z-40 overflow-hidden transition-all duration-300 ease-in-out",
-      isSidebarOpen ? "w-64 opacity-100" : "w-0 opacity-0 border-r-0"
-    )}>
+    <aside className="flex flex-col h-full bg-background border-r border-border w-64 shrink-0 z-40 overflow-hidden transition-all duration-300 ease-in-out animate-in slide-in-from-left duration-300">
       {/* Header Area */}
       <div className="h-16 flex items-center justify-between px-4 border-b border-border shrink-0">
         <h2 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground whitespace-nowrap px-2">
@@ -38,7 +38,7 @@ export function CollectionSidebar() {
           <TooltipProvider>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" asChild className="h-8 w-8 rounded-lg text-muted-foreground hover:bg-primary/5 hover:text-primary transition-all">
+                <Button variant="ghost" size="icon" asChild className="h-8 w-8 rounded-lg text-muted-foreground hover:bg-primary/5 hover:text-primary">
                   <Link href="/members/new">
                     <UserPlus className="h-4 w-4" />
                   </Link>
@@ -52,9 +52,9 @@ export function CollectionSidebar() {
             variant="ghost" 
             size="icon" 
             onClick={toggleSidebar} 
-            className="h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted transition-all active:scale-95"
+            className="h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted"
           >
-            <PanelLeftClose className="h-4 w-4" />
+            <ChevronLeft className="h-4 w-4" />
           </Button>
         </div>
       </div>
@@ -65,7 +65,7 @@ export function CollectionSidebar() {
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground group-focus-within:text-primary transition-colors" />
           <Input 
             placeholder="Search roster..." 
-            className="pl-9 h-9 bg-muted/50 border-none rounded-xl text-[11px] focus-visible:ring-primary shadow-inner text-foreground font-black uppercase tracking-tight"
+            className="pl-9 h-9 bg-muted/50 border-none rounded-xl text-[11px] focus-visible:ring-primary shadow-inner text-foreground font-bold uppercase tracking-tight"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -81,7 +81,7 @@ export function CollectionSidebar() {
               className={cn(
                 "flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all duration-150 group",
                 pathname === `/members/${member.id}` 
-                  ? "bg-primary/5 text-primary font-black" 
+                  ? "bg-primary/5 text-primary font-bold" 
                   : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
               )}
             >
@@ -92,7 +92,7 @@ export function CollectionSidebar() {
               )} />
               
               <div className="flex-1 min-w-0">
-                <p className="text-[11px] font-black truncate leading-tight uppercase tracking-tight">
+                <p className="text-[11px] font-bold truncate leading-tight uppercase tracking-tight">
                   {member.fullName}
                 </p>
                 <p className="text-[9px] opacity-60 font-mono truncate leading-tight mt-0.5 uppercase">
@@ -115,7 +115,7 @@ export function CollectionSidebar() {
 
       {/* Footer Area */}
       <div className="p-4 border-t border-border bg-muted/5 shrink-0">
-        <Button variant="outline" className="w-full justify-center gap-2 h-10 rounded-xl border-border bg-background text-foreground hover:bg-muted font-black text-[9px] uppercase tracking-widest transition-all">
+        <Button variant="outline" className="w-full justify-center gap-2 h-10 rounded-xl border-border bg-background text-foreground hover:bg-muted font-bold text-[9px] uppercase tracking-widest">
           <Filter className="w-3.5 h-3.5 text-primary" />
           Filter Carrier
         </Button>

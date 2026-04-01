@@ -10,13 +10,9 @@ import {
   Printer,
   Link2,
   LayoutDashboard,
-  Home,
-  PanelLeft,
   PanelLeftClose,
-  Shield,
-  Search,
-  Info,
-  ChevronRight
+  ChevronRight,
+  ChevronLeft
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
@@ -44,26 +40,26 @@ export function AppSidebar() {
   return (
     <TooltipProvider delayDuration={0}>
       <div className={cn(
-        "flex flex-col bg-sidebar border-r border-sidebar-border h-full shrink-0 z-50 overflow-hidden transition-all duration-300 ease-in-out relative",
+        "flex flex-col bg-card border-r border-border h-full shrink-0 z-50 overflow-hidden transition-all duration-300 ease-in-out relative",
         isSidebarOpen ? "w-64" : "w-16"
       )}>
         {/* Brand Header */}
-        <div className={cn("p-5 flex items-center shrink-0 h-16 border-b border-sidebar-border", isSidebarOpen ? "justify-between" : "justify-center px-0")}>
+        <div className={cn("p-4 flex items-center shrink-0 h-16 border-b border-border", isSidebarOpen ? "justify-between" : "justify-center px-0")}>
           {isSidebarOpen ? (
             <>
               <Link href="/dashboard" className="flex items-center gap-2">
-                <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center text-white font-black text-sm shadow-lg shadow-primary/20">
+                <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center text-white font-black text-sm shadow-lg shadow-primary/20">
                   M
                 </div>
-                <span className="text-md font-black tracking-tight text-foreground uppercase">medistay.ai</span>
+                <span className="text-sm font-black tracking-tight text-foreground uppercase">medistay.ai</span>
               </Link>
               <Button 
                 variant="ghost" 
                 size="icon" 
                 onClick={toggleSidebar} 
-                className="h-7 w-7 rounded-lg hover:bg-muted text-muted-foreground transition-transform active:scale-95"
+                className="h-8 w-8 rounded-lg hover:bg-muted text-muted-foreground"
               >
-                <PanelLeftClose className="w-3.5 h-3.5" />
+                <PanelLeftClose className="w-4 h-4" />
               </Button>
             </>
           ) : (
@@ -71,7 +67,7 @@ export function AppSidebar() {
               variant="ghost" 
               size="icon" 
               onClick={toggleSidebar} 
-              className="h-10 w-10 rounded-xl hover:bg-muted text-primary transition-transform active:scale-95"
+              className="h-10 w-10 rounded-xl hover:bg-muted text-primary"
             >
               <ChevronRight className="w-5 h-5" />
             </Button>
@@ -79,7 +75,7 @@ export function AppSidebar() {
         </div>
 
         {/* Main Nav */}
-        <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto scrollbar-hide pt-4">
+        <nav className="flex-1 px-3 space-y-1 overflow-y-auto scrollbar-hide pt-4">
           {navItems.map((item) => {
             const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))
             return (
@@ -88,23 +84,23 @@ export function AppSidebar() {
                   <Link 
                     href={item.href}
                     className={cn(
-                      "flex items-center rounded-xl transition-all duration-200 group border border-transparent",
+                      "flex items-center rounded-xl transition-all duration-200 group",
                       isSidebarOpen ? "px-3 py-2.5 gap-3" : "justify-center py-3",
                       isActive 
-                        ? "bg-primary/5 text-primary font-black shadow-sm border-primary/10" 
+                        ? "bg-primary/10 text-primary font-bold shadow-sm" 
                         : "text-muted-foreground hover:bg-muted hover:text-foreground"
                     )}
                   >
-                    <item.icon className={cn("w-4.5 h-4.5", isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground")} />
+                    <item.icon className={cn("w-5 h-5", isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground")} />
                     {isSidebarOpen && (
-                      <span className="text-[10px] font-black uppercase tracking-widest truncate">{item.label}</span>
+                      <span className="text-[11px] font-bold uppercase tracking-widest truncate">{item.label}</span>
                     )}
                   </Link>
                 </TooltipTrigger>
                 {!isSidebarOpen && (
                   <TooltipContent side="right">
-                    <p className="font-bold">{item.label}</p>
-                    <p className="text-[9px] opacity-70">{item.desc}</p>
+                    <p className="font-bold text-xs uppercase">{item.label}</p>
+                    <p className="text-[10px] opacity-70">{item.desc}</p>
                   </TooltipContent>
                 )}
               </Tooltip>
@@ -113,18 +109,13 @@ export function AppSidebar() {
         </nav>
 
         {/* Footer Nav */}
-        <div className="p-3 mt-auto border-t border-sidebar-border space-y-1">
-          <div className={cn("flex items-center px-3 py-1.5", isSidebarOpen ? "justify-between" : "justify-center px-0")}>
+        <div className="p-3 mt-auto border-t border-border space-y-2">
+          <div className={cn("flex items-center", isSidebarOpen ? "justify-between px-2" : "justify-center px-0")}>
             {isSidebarOpen && (
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <div className="flex items-center gap-1.5 cursor-help">
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className="text-[8px] font-black text-emerald-600 uppercase tracking-widest">Live Sync</span>
-                  </div>
-                </TooltipTrigger>
-                <TooltipContent side="top">CMS MARx Bridge: Connected</TooltipContent>
-              </Tooltip>
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Live Sync</span>
+              </div>
             )}
             <ModeToggle />
           </div>
@@ -134,21 +125,12 @@ export function AppSidebar() {
             className={cn(
               "flex items-center rounded-xl transition-all",
               isSidebarOpen ? "px-3 py-2.5 gap-3" : "justify-center py-3",
-              pathname.startsWith('/settings') ? "bg-muted text-foreground font-black border border-border" : "text-muted-foreground hover:bg-muted hover:text-foreground"
+              pathname.startsWith('/settings') ? "bg-muted text-foreground font-bold" : "text-muted-foreground hover:bg-muted hover:text-foreground"
             )}
           >
-            <Settings className="w-4.5 h-4.5" />
-            {isSidebarOpen && <span className="text-[10px] font-black uppercase tracking-widest">Settings</span>}
+            <Settings className="w-5 h-5" />
+            {isSidebarOpen && <span className="text-[11px] font-bold uppercase tracking-widest">Settings</span>}
           </Link>
-
-          {/* Compliance Box */}
-          {isSidebarOpen && (
-            <div className="mt-2 p-3 rounded-2xl bg-muted/30 border border-border/50">
-              <p className="text-[7px] text-muted-foreground leading-tight font-bold uppercase tracking-tight opacity-60">
-                Individual Agent Mode. Blue Button 2.0 Integration Active.
-              </p>
-            </div>
-          )}
         </div>
       </div>
     </TooltipProvider>

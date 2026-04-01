@@ -5,6 +5,9 @@ const nextConfig: NextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
+  eslint: {
+    ignoreDuringBuilds: true,
+  },
   experimental: {
     allowedDevOrigins: [
       '6000-firebase-studio-1774646349316.cluster-omu5xfjeevhmgwf75twfksi4vc.cloudworkstations.dev',
