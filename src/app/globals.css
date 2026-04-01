@@ -4,19 +4,19 @@
 
 @layer base {
   :root {
-    --background: 210 20% 98%;
+    --background: 210 20% 98%; /* Paper White */
     --foreground: 222 47% 11%;
     --card: 0 0% 100%;
     --card-foreground: 222 47% 11%;
     --popover: 0 0% 100%;
     --popover-foreground: 222 47% 11%;
-    --primary: 221 83% 53%;
+    --primary: 221 83% 53%; /* Trust Blue */
     --primary-foreground: 210 40% 98%;
     --secondary: 210 40% 96%;
     --secondary-foreground: 222 47% 11%;
     --muted: 210 40% 96%;
     --muted-foreground: 215 16% 47%;
-    --accent: 199 89% 48%;
+    --accent: 199 89% 48%; /* Clinical Cyan */
     --accent-foreground: 222 47% 11%;
     --destructive: 0 84% 60%;
     --destructive-foreground: 210 40% 98%;
@@ -35,7 +35,7 @@
   }
 
   .dark {
-    --background: 222 47% 4%;
+    --background: 222 47% 4%; /* Deep Space Slate */
     --foreground: 210 40% 98%;
     --card: 222 47% 6%;
     --card-foreground: 210 40% 98%;
@@ -65,26 +65,6 @@
   }
 }
 
-[data-theme='cyan'] {
-  --primary: 188 94% 42%;
-}
-
-[data-theme='green'] {
-  --primary: 160 84% 39%;
-}
-
-[data-theme='purple'] {
-  --primary: 262 83% 58%;
-}
-
-[data-theme='red'] {
-  --primary: 0 84% 60%;
-}
-
-[data-theme='orange'] {
-  --primary: 24 95% 53%;
-}
-
 @layer base {
   * {
     @apply border-border transition-colors duration-200;
@@ -95,17 +75,6 @@
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
   }
-}
-
-.ai-shimmer {
-  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
-  background-size: 200% 100%;
-  animation: shimmer 2s infinite;
-}
-
-@keyframes shimmer {
-  0% { background-position: -200% 0; }
-  100% { background-position: 200% 0; }
 }
 
 .scrollbar-hide::-webkit-scrollbar {

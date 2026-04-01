@@ -11,8 +11,7 @@ import {
   Link2,
   LayoutDashboard,
   PanelLeftClose,
-  ChevronRight,
-  ChevronLeft
+  ChevronRight
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"

@@ -1,7 +1,7 @@
 "use client"
 
 import { Input } from "@/components/ui/input"
-import { Search, UserPlus, Filter, AlertCircle, PanelLeftClose, ChevronLeft } from "lucide-react"
+import { Search, UserPlus, Filter, AlertCircle, ChevronLeft } from "lucide-react"
 import { useAppStore } from "@/lib/store"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { cn } from "@/lib/utils"
@@ -23,11 +23,11 @@ export function CollectionSidebar() {
     )
   }, [members, search])
 
-  // If the unified sidebar state is closed, this whole column retracts
-  if (!isSidebarOpen) return null;
-
   return (
-    <aside className="flex flex-col h-full bg-background border-r border-border w-64 shrink-0 z-40 overflow-hidden transition-all duration-300 ease-in-out animate-in slide-in-from-left duration-300">
+    <aside className={cn(
+      "flex flex-col h-full bg-background border-r border-border shrink-0 z-40 overflow-hidden transition-all duration-300 ease-in-out",
+      isSidebarOpen ? "w-64 opacity-100" : "w-0 opacity-0 border-none"
+    )}>
       {/* Header Area */}
       <div className="h-16 flex items-center justify-between px-4 border-b border-border shrink-0">
         <h2 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground whitespace-nowrap px-2">
