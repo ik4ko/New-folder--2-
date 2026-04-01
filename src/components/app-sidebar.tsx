@@ -11,8 +11,8 @@ import {
   Link2,
   LayoutDashboard,
   PanelLeftClose,
-  ChevronRight,
-  PanelLeft
+  PanelLeft,
+  Banknote
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
@@ -29,7 +29,7 @@ export function AppSidebar() {
   const navItems = [
     { href: '/dashboard', icon: LayoutDashboard, label: 'Command Center', desc: 'Real-time monitoring' },
     { href: '/members', icon: Users, label: 'Member Roster', desc: 'Personal book of business' },
-    { href: '/accounting', icon: Printer, label: 'Accounting', desc: 'Commissions' },
+    { href: '/accounting', icon: Banknote, label: 'Accounting', desc: 'Commissions & Splits' },
     { href: '/fax', icon: Printer, label: 'SSBCI Fax', desc: 'Clinical documentation' },
     { href: '/check-ins', icon: PhoneCall, label: 'AI Check-ins', desc: 'Maya AI outreach' },
     { href: '/ghl', icon: Link2, label: 'CRM Sync', desc: 'GHL Integration' },
@@ -108,6 +108,15 @@ export function AppSidebar() {
           })}
         </nav>
 
+        {/* CMS Disclaimer Rail (Mandatory) */}
+        {isSidebarOpen && (
+          <div className="px-4 py-3 bg-muted/30 border-t border-border">
+            <p className="text-[8px] font-bold text-muted-foreground leading-tight uppercase opacity-50">
+              Not connected with or endorsed by the U.S. government or the federal Medicare program.
+            </p>
+          </div>
+        )}
+
         {/* Footer Nav */}
         <div className="p-3 mt-auto border-t border-border space-y-2">
           <div className={cn("flex items-center", isSidebarOpen ? "justify-between px-2" : "justify-center px-0")}>
@@ -125,7 +134,7 @@ export function AppSidebar() {
             className={cn(
               "flex items-center rounded-xl transition-all",
               isSidebarOpen ? "px-3 py-2.5 gap-3" : "justify-center py-3",
-              pathname.startsWith('/settings') ? "bg-muted text-foreground font-bold" : "text-muted-foreground hover:bg-muted hover:text-foreground"
+              pathname.startsWith('/settings') ? "bg-muted text-foreground font-bold shadow-sm" : "text-muted-foreground hover:bg-muted hover:text-foreground"
             )}
           >
             <Settings className="w-5 h-5" />

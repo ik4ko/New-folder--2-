@@ -10,11 +10,11 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Switch } from "@/components/ui/switch"
 import { 
   Settings, Building2, User, ShieldCheck, Bell, 
-  Palette, Save, Lock, Users2, Plus, 
+  Save, Lock, Users2, Plus, 
   MoreVertical, BadgeCheck,
-  CreditCard, History,
+  CreditCard,
   Fingerprint, ExternalLink as LinkIcon,
-  ShoppingBag, ShieldAlert, Database, Briefcase
+  ShoppingBag, ShieldAlert, Briefcase
 } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import { useSearchParams, useRouter } from "next/navigation"
