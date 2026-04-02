@@ -33,6 +33,8 @@ export interface MemberRecord {
   status: 'active' | 'pending' | 'churn-risk' | 'disenrolled';
   ssbciStatus: 'not-needed' | 'pending-fax' | 'faxed' | 'approved';
   poaStatus: 'unprotected' | 'pending-invite' | 'shielded';
+  poaName?: string;
+  poaPhone?: string;
   checkInStatus: 'scheduled' | 'called' | 'escalated' | 'completed';
   retentionScore: number; // 0-100
   updatedAt: number;
@@ -42,6 +44,10 @@ export interface MemberRecord {
   pharmacyName?: string;
   lastCallTranscript?: string;
   lastCallSentiment?: 'Positive' | 'Neutral' | 'Negative';
+  ptcExpiryDate: string; // CMS Compliance: PTC expires after 12 months
+  lastCmsCheck?: string; // HETS/BEQ last poll timestamp
+  futurePlanDetected?: boolean; // Medizues-style pre-effective detection
+  futurePlanName?: string;
 }
 
 export interface BrokerAccount {
@@ -101,6 +107,7 @@ export interface AgencyProfile {
   primaryColor?: string;
   billingPlan: 'entry' | 'starter' | 'pro' | 'enterprise';
   isSubscriptionActive: boolean;
+  setupFeePaid: boolean;
 }
 
 interface AppState {
@@ -180,8 +187,12 @@ export const useAppStore = create<AppState>((set) => ({
     primaryColor: '#0F4C81',
     billingPlan: 'pro',
     isSubscriptionActive: true,
+    setupFeePaid: true,
   },
   addMember: (memberData) => set((state) => {
+    const today = new Date();
+    const expiry = new Date(today.setFullYear(today.getFullYear() + 1)).toISOString().split('T')[0];
+    
     const newMember: MemberRecord = {
       id: Math.random().toString(36).substr(2, 9),
       fullName: 'New Member',
@@ -211,6 +222,7 @@ export const useAppStore = create<AppState>((set) => ({
       retentionScore: 85,
       updatedAt: Date.now(),
       agentId: 'agent-123',
+      ptcExpiryDate: expiry,
       ...memberData,
     };
     const updatedMembers = [newMember, ...state.members];
@@ -304,7 +316,9 @@ export const initializeStore = () => {
           agentId: 'agent-123',
           notes: "Module 1 Flag: Member detected switching to Humana Gold. Disenrollment pending.",
           pcpName: 'Dr. Sarah Chen',
-          pharmacyName: 'CVS #4402'
+          pharmacyName: 'CVS #4402',
+          ptcExpiryDate: '2025-10-12',
+          lastCmsCheck: new Date().toISOString()
         },
         { 
           id: '2', 
@@ -332,13 +346,17 @@ export const initializeStore = () => {
           status: 'active', 
           ssbciStatus: 'not-needed',
           poaStatus: 'shielded',
+          poaName: 'Sarah Johnson (Daughter)',
+          poaPhone: '415-555-9988',
           checkInStatus: 'completed',
           retentionScore: 94,
           updatedAt: Date.now(), 
           agentId: 'agent-123',
           notes: "High loyalty member. POA Shield active via daughter (Sarah J).",
           pcpName: 'Dr. Michael West',
-          pharmacyName: 'Walgreens #110'
+          pharmacyName: 'Walgreens #110',
+          ptcExpiryDate: '2025-11-15',
+          lastCmsCheck: new Date().toISOString()
         }
       ];
       localStorage.setItem('medistay_members', JSON.stringify(seedMembers));

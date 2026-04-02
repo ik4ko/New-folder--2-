@@ -8,7 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Camera, Save, Wand2, User, ShieldCheck, Briefcase, Heart, MapPin, Phone, Mail, FileCheck, Stethoscope } from "lucide-react"
+import { Camera, Save, Wand2, User, ShieldCheck, Briefcase, Heart, MapPin, Phone, Mail, FileCheck, Stethoscope, ShieldAlert } from "lucide-react"
 import { useState, useRef } from "react"
 import { useAppStore, type MemberRecord } from "@/lib/store"
 import { useRouter } from "next/navigation"
@@ -40,6 +40,8 @@ export default function NewMemberPage() {
     pharmacyName: "",
     partAEffective: "",
     partBEffective: "",
+    poaStatus: "unprotected",
+    ptcExpiryDate: new Date(new Date().setFullYear(new Date().getFullYear() + 1)).toISOString().split('T')[0]
   })
 
   const fileInputRef = useRef<HTMLInputElement>(null)
@@ -124,7 +126,7 @@ export default function NewMemberPage() {
       <div className="flex-1 flex flex-col h-full overflow-hidden">
         <header className="h-16 border-b border-border px-8 flex items-center justify-between bg-card/50 backdrop-blur-md sticky top-0 z-10">
           <div className="flex items-center gap-4">
-            <h1 className="text-xl font-bold text-foreground">Member Enrollment</h1>
+            <h1 className="text-xl font-black text-foreground uppercase tracking-tight">Member Enrollment</h1>
             <div className="h-4 w-[1px] bg-border" />
             <div className="flex items-center gap-2">
                 <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
@@ -132,10 +134,10 @@ export default function NewMemberPage() {
             </div>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="outline" className="rounded-xl h-10 text-xs font-bold" onClick={() => router.push('/members')}>Discard</Button>
-            <Button className="rounded-xl h-10 text-xs font-black uppercase tracking-widest bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20" onClick={handleSubmit}>
+            <Button variant="ghost" className="rounded-xl h-10 text-[10px] font-black uppercase tracking-widest text-muted-foreground" onClick={() => router.push('/members')}>Discard</Button>
+            <Button className="rounded-xl h-10 px-6 text-[10px] font-black uppercase tracking-widest bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 text-white" onClick={handleSubmit}>
               <Save className="w-4 h-4 mr-2" />
-              Store Member Record
+              Store Record
             </Button>
           </div>
         </header>
@@ -143,177 +145,170 @@ export default function NewMemberPage() {
         <div className="flex-1 overflow-y-auto p-8 max-w-5xl mx-auto w-full space-y-8 pb-32">
           {/* AI Intake Section */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="md:col-span-2 p-8 rounded-3xl border-2 border-dashed border-primary/20 bg-primary/5 flex flex-col items-center justify-center gap-4 text-center group hover:bg-primary/10 transition-all cursor-pointer" onClick={() => fileInputRef.current?.click()}>
-              <div className="w-16 h-16 rounded-2xl bg-card shadow-sm flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+            <div className="md:col-span-2 p-10 rounded-[2.5rem] border-2 border-dashed border-primary/20 bg-primary/5 flex flex-col items-center justify-center gap-4 text-center group hover:bg-primary/10 transition-all cursor-pointer shadow-inner" onClick={() => fileInputRef.current?.click()}>
+              <div className="w-16 h-16 rounded-[1.5rem] bg-card shadow-sm flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
                 <Camera className="w-8 h-8" />
               </div>
               <div className="space-y-1">
-                <h3 className="text-sm font-bold text-foreground">Biometric Data Capture</h3>
-                <p className="text-xs text-foreground font-semibold">Upload ID, Medicare Card, or Policy Document to pre-fill 70% of this form.</p>
+                <h3 className="text-sm font-black uppercase tracking-tight text-foreground">Biometric Data Capture</h3>
+                <p className="text-[10px] text-muted-foreground font-black uppercase tracking-widest opacity-70">Upload Medicare Card or ID to pre-fill the form with 99% accuracy.</p>
               </div>
               <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleOCR} />
               {loading && <div className="flex items-center gap-2 text-[10px] font-black uppercase text-primary animate-pulse"><Wand2 className="w-3 h-3" /> Analyzing...</div>}
             </div>
 
-            <div className="p-6 rounded-3xl bg-slate-900 text-white space-y-4 shadow-xl">
-               <div className="flex items-center gap-2 text-primary">
+            <div className="p-8 rounded-[2rem] bg-slate-900 text-white space-y-4 shadow-2xl relative overflow-hidden">
+               <div className="absolute top-0 right-0 p-4 opacity-5"><ShieldCheck className="w-24 h-24 text-white" /></div>
+               <div className="flex items-center gap-2 text-primary relative z-10">
                  <ShieldCheck className="w-4 h-4" />
-                 <span className="text-[10px] font-black uppercase tracking-widest">Compliance Mode</span>
+                 <span className="text-[10px] font-black uppercase tracking-widest">Compliance Locked</span>
                </div>
-               <p className="text-[11px] leading-relaxed text-slate-300 font-medium italic">
-                 "Zero-knowledge encryption active. All member PII is hashed before syncing. CMS cross-check occurs during nightly poll."
+               <p className="text-[11px] leading-relaxed text-slate-300 font-medium italic relative z-10">
+                 "Zero-knowledge field encryption active. Member PII is hashed before syncing. CMS HETS monitoring begins tonight at 2:00 AM."
                </p>
             </div>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            <Accordion type="multiple" defaultValue={["identity", "medicare", "coverage"]} className="space-y-4">
+            <Accordion type="multiple" defaultValue={["identity", "medicare", "compliance"]} className="space-y-4">
               {/* Identity & Contact */}
-              <AccordionItem value="identity" className="border rounded-2xl bg-card px-6 py-2 shadow-sm">
-                <AccordionTrigger className="hover:no-underline py-4">
+              <AccordionItem value="identity" className="border rounded-[2rem] bg-card px-8 py-2 shadow-sm">
+                <AccordionTrigger className="hover:no-underline py-6">
                   <div className="flex items-center gap-4">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary">
-                      <User className="w-4 h-4" />
+                    <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-sm">
+                      <User className="w-5 h-5" />
                     </div>
-                    <span className="font-bold text-sm uppercase tracking-widest text-foreground">Personal Identity</span>
+                    <span className="font-black text-sm uppercase tracking-widest text-foreground">Personal Identity</span>
                   </div>
                 </AccordionTrigger>
-                <AccordionContent className="pt-2 pb-6 space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-foreground tracking-widest ml-1">Full Legal Name</Label>
+                <AccordionContent className="pt-2 pb-8 space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-3">
+                      <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Full Legal Name</Label>
                       <Input 
                         placeholder="e.g. Johnathan Smith" 
                         value={formData.fullName}
                         onChange={e => setFormData(p => ({...p, fullName: e.target.value}))}
-                        className="rounded-xl h-11 border-border bg-background"
+                        className="rounded-xl h-12 border-border bg-background shadow-inner font-black uppercase pl-4"
                       />
                     </div>
                     <div className="grid grid-cols-2 gap-4">
-                      <div className="space-y-2">
-                        <Label className="text-[10px] font-black uppercase text-foreground tracking-widest ml-1">DOB</Label>
+                      <div className="space-y-3">
+                        <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">DOB</Label>
                         <Input 
                           type="date"
                           value={formData.dob}
                           onChange={e => setFormData(p => ({...p, dob: e.target.value}))}
-                          className="rounded-xl h-11 border-border bg-background"
+                          className="rounded-xl h-12 border-border bg-background shadow-inner font-black uppercase"
                         />
                       </div>
-                      <div className="space-y-2">
-                        <Label className="text-[10px] font-black uppercase text-foreground tracking-widest ml-1">SSN (Last 4)</Label>
+                      <div className="space-y-3">
+                        <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">SSN (Last 4)</Label>
                         <Input 
                           placeholder="0000"
                           maxLength={4}
                           value={formData.ssnLast4}
                           onChange={e => setFormData(p => ({...p, ssnLast4: e.target.value}))}
-                          className="rounded-xl h-11 border-border bg-background font-mono"
+                          className="rounded-xl h-12 border-border bg-background shadow-inner font-mono font-black"
                         />
                       </div>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-foreground tracking-widest ml-1 flex items-center gap-1.5"><Phone className="w-3 h-3" /> Phone</Label>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div className="space-y-3">
+                      <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1 flex items-center gap-1.5"><Phone className="w-3 h-3" /> Phone</Label>
                       <Input 
                         placeholder="415-555-0100"
                         value={formData.phone}
                         onChange={e => setFormData(p => ({...p, phone: e.target.value}))}
-                        className="rounded-xl h-11 border-border bg-background"
+                        className="rounded-xl h-12 border-border bg-background shadow-inner font-black"
                       />
                     </div>
-                    <div className="space-y-2 md:col-span-2">
-                      <Label className="text-[10px] font-black uppercase text-foreground tracking-widest ml-1 flex items-center gap-1.5"><Mail className="w-3 h-3" /> Email Address</Label>
+                    <div className="space-y-3 md:col-span-2">
+                      <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1 flex items-center gap-1.5"><Mail className="w-3 h-3" /> Email Address</Label>
                       <Input 
                         type="email"
                         placeholder="j.smith@example.com"
                         value={formData.email}
                         onChange={e => setFormData(p => ({...p, email: e.target.value}))}
-                        className="rounded-xl h-11 border-border bg-background"
+                        className="rounded-xl h-12 border-border bg-background shadow-inner font-black lowercase"
                       />
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <Label className="text-[10px] font-black uppercase text-foreground tracking-widest ml-1 flex items-center gap-1.5"><MapPin className="w-3 h-3" /> Physical Address</Label>
+                  <div className="space-y-3">
+                    <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1 flex items-center gap-1.5"><MapPin className="w-3 h-3" /> Physical Address</Label>
                     <Input 
                       placeholder="Street, City, State, ZIP"
                       value={formData.address}
                       onChange={e => setFormData(p => ({...p, address: e.target.value}))}
-                      className="rounded-xl h-11 border-border bg-background"
+                      className="rounded-xl h-12 border-border bg-background shadow-inner font-black uppercase pl-4"
                     />
                   </div>
                 </AccordionContent>
               </AccordionItem>
 
-              {/* Medicare Credentials */}
-              <AccordionItem value="medicare" className="border rounded-2xl bg-card px-6 py-2 shadow-sm">
-                <AccordionTrigger className="hover:no-underline py-4">
+              {/* Compliance Credentials */}
+              <AccordionItem value="compliance" className="border rounded-[2rem] bg-card px-8 py-2 shadow-sm">
+                <AccordionTrigger className="hover:no-underline py-6">
                   <div className="flex items-center gap-4">
-                    <div className="w-8 h-8 rounded-full bg-emerald-500/10 flex items-center justify-center text-emerald-600">
-                      <FileCheck className="w-4 h-4" />
+                    <div className="w-10 h-10 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-600 shadow-sm">
+                      <ShieldAlert className="w-5 h-5" />
                     </div>
-                    <span className="font-bold text-sm uppercase tracking-widest text-foreground">Medicare Credentials</span>
+                    <span className="font-black text-sm uppercase tracking-widest text-foreground">Compliance & Consent</span>
                   </div>
                 </AccordionTrigger>
-                <AccordionContent className="pt-2 pb-6 space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-foreground tracking-widest ml-1">Medicare ID (MBI)</Label>
+                <AccordionContent className="pt-2 pb-8 space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-3">
+                      <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Medicare ID (MBI)</Label>
                       <Input 
                         placeholder="1EG4-TE5-MK22"
                         value={formData.medicareId}
                         onChange={e => setFormData(p => ({...p, medicareId: e.target.value.toUpperCase()}))}
-                        className="rounded-xl h-11 border-border bg-background font-mono"
+                        className="rounded-xl h-12 border-border bg-background shadow-inner font-mono font-black"
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-foreground tracking-widest ml-1">Part A Effective</Label>
+                    <div className="space-y-3">
+                      <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">PTC Consent Expiry</Label>
                       <Input 
                         type="date"
-                        value={formData.partAEffective}
-                        onChange={e => setFormData(p => ({...p, partAEffective: e.target.value}))}
-                        className="rounded-xl h-11 border-border bg-background"
+                        value={formData.ptcExpiryDate}
+                        onChange={e => setFormData(p => ({...p, ptcExpiryDate: e.target.value}))}
+                        className="rounded-xl h-12 border-border bg-background shadow-inner font-black uppercase"
                       />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-foreground tracking-widest ml-1">Part B Effective</Label>
-                      <Input 
-                        type="date"
-                        value={formData.partBEffective}
-                        onChange={e => setFormData(p => ({...p, partBEffective: e.target.value}))}
-                        className="rounded-xl h-11 border-border bg-background"
-                      />
+                      <p className="text-[9px] font-black text-amber-600 uppercase tracking-widest px-1 opacity-70">CMS Requirement: Consent must be renewed every 12 months.</p>
                     </div>
                   </div>
                 </AccordionContent>
               </AccordionItem>
 
               {/* Policy & Coverage */}
-              <AccordionItem value="coverage" className="border rounded-2xl bg-card px-6 py-2 shadow-sm">
-                <AccordionTrigger className="hover:no-underline py-4">
+              <AccordionItem value="coverage" className="border rounded-[2rem] bg-card px-8 py-2 shadow-sm">
+                <AccordionTrigger className="hover:no-underline py-6">
                   <div className="flex items-center gap-4">
-                    <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center text-blue-600">
-                      <Briefcase className="w-4 h-4" />
+                    <div className="w-10 h-10 rounded-2xl bg-blue-500/10 flex items-center justify-center text-blue-600 shadow-sm">
+                      <Briefcase className="w-5 h-5" />
                     </div>
-                    <span className="font-bold text-sm uppercase tracking-widest text-foreground">Policy & Coverage</span>
+                    <span className="font-black text-sm uppercase tracking-widest text-foreground">Policy & Coverage</span>
                   </div>
                 </AccordionTrigger>
-                <AccordionContent className="pt-2 pb-6 space-y-6">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-foreground tracking-widest ml-1">Carrier / Payer</Label>
+                <AccordionContent className="pt-2 pb-8 space-y-6">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <div className="space-y-3">
+                      <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Carrier / Payer</Label>
                       <Select 
                         value={formData.carrier}
                         onValueChange={(val) => setFormData(p => ({...p, carrier: val}))}
                       >
-                        <SelectTrigger className="rounded-xl h-11 border-border bg-background">
+                        <SelectTrigger className="rounded-xl h-12 border-border bg-background shadow-inner font-black uppercase">
                           <SelectValue placeholder="Select Carrier" />
                         </SelectTrigger>
-                        <SelectContent className="max-h-[300px]">
+                        <SelectContent className="max-h-[300px] rounded-2xl">
                           <ScrollArea className="h-[280px]">
                             {insuranceCarriers.map((carrier) => (
-                              <SelectItem key={carrier} value={carrier}>
+                              <SelectItem key={carrier} value={carrier} className="text-xs font-black uppercase">
                                 {carrier}
                               </SelectItem>
                             ))}
@@ -321,112 +316,60 @@ export default function NewMemberPage() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-foreground tracking-widest ml-1">Plan Name</Label>
+                    <div className="space-y-3">
+                      <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Plan Name</Label>
                       <Input 
                         placeholder="e.g. Choice PPO Plus"
                         value={formData.planName}
                         onChange={e => setFormData(p => ({...p, planName: e.target.value}))}
-                        className="rounded-xl h-11 border-border bg-background"
+                        className="rounded-xl h-12 border-border bg-background shadow-inner font-black uppercase"
                       />
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-foreground tracking-widest ml-1">Enrollment Period</Label>
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div className="space-y-3">
+                      <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Enrollment Period</Label>
                       <Select 
                         value={formData.enrollmentPeriod}
                         onValueChange={(val: any) => setFormData(p => ({...p, enrollmentPeriod: val}))}
                       >
-                        <SelectTrigger className="rounded-xl h-11 border-border bg-background">
+                        <SelectTrigger className="rounded-xl h-12 border-border bg-background shadow-inner font-black uppercase">
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="IEP">Initial Enrollment (IEP)</SelectItem>
-                          <SelectItem value="AEP">Annual Enrollment (AEP)</SelectItem>
-                          <SelectItem value="SEP">Special Enrollment (SEP)</SelectItem>
-                          <SelectItem value="OE">Open Enrollment (OE)</SelectItem>
+                        <SelectContent className="rounded-xl">
+                          <SelectItem value="IEP" className="text-xs font-black uppercase">Initial (IEP)</SelectItem>
+                          <SelectItem value="AEP" className="text-xs font-black uppercase">Annual (AEP)</SelectItem>
+                          <SelectItem value="SEP" className="text-xs font-black uppercase">Special (SEP)</SelectItem>
+                          <SelectItem value="OE" className="text-xs font-black uppercase">Open (OE)</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-foreground tracking-widest ml-1">Monthly Premium</Label>
+                    <div className="space-y-3">
+                      <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Monthly Premium</Label>
                       <Input 
                         placeholder="$0.00"
                         value={formData.monthlyPremium}
                         onChange={e => setFormData(p => ({...p, monthlyPremium: e.target.value}))}
-                        className="rounded-xl h-11 border-border bg-background"
+                        className="rounded-xl h-12 border-border bg-background shadow-inner font-black"
                       />
                     </div>
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-foreground tracking-widest ml-1">Federal Benefits</Label>
+                    <div className="space-y-3">
+                      <Label className="text-[10px] font-black uppercase text-muted-foreground tracking-widest ml-1">Federal Benefits</Label>
                       <Select 
                         value={formData.medicareMedicaidStatus}
                         onValueChange={(val: any) => setFormData(p => ({...p, medicareMedicaidStatus: val}))}
                       >
-                        <SelectTrigger className="rounded-xl h-11 border-border bg-background">
+                        <SelectTrigger className="rounded-xl h-12 border-border bg-background shadow-inner font-black uppercase">
                           <SelectValue />
                         </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="None">None</SelectItem>
-                          <SelectItem value="Medicare">Medicare Only</SelectItem>
-                          <SelectItem value="Medicaid">Medicaid Only</SelectItem>
-                          <SelectItem value="Both">Dual-Eligible (Both)</SelectItem>
+                        <SelectContent className="rounded-xl">
+                          <SelectItem value="None" className="text-xs font-black uppercase">None</SelectItem>
+                          <SelectItem value="Medicare" className="text-xs font-black uppercase">Medicare Only</SelectItem>
+                          <SelectItem value="Medicaid" className="text-xs font-black uppercase">Medicaid Only</SelectItem>
+                          <SelectItem value="Both" className="text-xs font-black uppercase">Dual-Eligible</SelectItem>
                         </SelectContent>
                       </Select>
-                    </div>
-                  </div>
-                </AccordionContent>
-              </AccordionItem>
-
-              {/* Health & Providers */}
-              <AccordionItem value="health" className="border rounded-2xl bg-card px-6 py-2 shadow-sm">
-                <AccordionTrigger className="hover:no-underline py-4">
-                  <div className="flex items-center gap-4">
-                    <div className="w-8 h-8 rounded-full bg-red-500/10 flex items-center justify-center text-red-600">
-                      <Heart className="w-4 h-4" />
-                    </div>
-                    <span className="font-bold text-sm uppercase tracking-widest text-foreground">Health & Providers</span>
-                  </div>
-                </AccordionTrigger>
-                <AccordionContent className="pt-2 pb-6 space-y-6">
-                  <div className="space-y-3">
-                    <Label className="text-[10px] font-black uppercase text-foreground tracking-widest ml-1">Chronic Care Identifiers</Label>
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                      {["Diabetes", "Hypertension", "Heart Condition", "Respiratory Issue", "Mobility Issues"].map(cond => (
-                        <div key={cond} className="flex items-center space-x-3 p-3 rounded-xl border bg-background hover:bg-muted/30 transition-colors cursor-pointer" onClick={() => {
-                          const current = formData.healthConditions || []
-                          setFormData(p => ({
-                            p, 
-                            healthConditions: current.includes(cond) ? current.filter(c => c !== cond) : [...current, cond]
-                          }))
-                        }}>
-                          <Checkbox id={cond} checked={formData.healthConditions?.includes(cond)} className="rounded-full border-foreground" />
-                          <Label htmlFor={cond} className="text-xs font-bold cursor-pointer text-foreground">{cond}</Label>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-foreground tracking-widest ml-1 flex items-center gap-1.5"><Stethoscope className="w-3 h-3" /> PCP Name</Label>
-                      <Input 
-                        placeholder="Dr. Alexander Wright"
-                        value={formData.pcpName}
-                        onChange={e => setFormData(p => ({...p, pcpName: e.target.value}))}
-                        className="rounded-xl h-11 border-border bg-background"
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label className="text-[10px] font-black uppercase text-foreground tracking-widest ml-1">Preferred Pharmacy</Label>
-                      <Input 
-                        placeholder="CVS #1204 / Walgreens"
-                        value={formData.pharmacyName}
-                        onChange={e => setFormData(p => ({...p, pharmacyName: e.target.value}))}
-                        className="rounded-xl h-11 border-border bg-background"
-                      />
                     </div>
                   </div>
                 </AccordionContent>

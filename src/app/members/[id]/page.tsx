@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button"
 import { 
   Download, ShieldAlert, History, User, Heart, ShieldCheck, 
   Mail, Briefcase, Stethoscope, Pill, Calendar, CreditCard,
-  FileCheck, FileText, PhoneCall, Printer, Zap
+  FileCheck, FileText, PhoneCall, Printer, Zap, Network, Shield
 } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { toast } from "@/hooks/use-toast"
@@ -28,7 +28,7 @@ export default function MemberDetailPage() {
     }, 1500)
   }
 
-  if (!member) return <div className="p-20 text-center font-bold text-muted-foreground">Member record not found.</div>
+  if (!member) return <div className="p-20 text-center font-black uppercase tracking-widest opacity-30 text-foreground">Member record not found.</div>
 
   return (
     <div className="flex h-full w-full bg-background">
@@ -37,274 +37,251 @@ export default function MemberDetailPage() {
       <div className="flex-1 flex flex-col h-full overflow-hidden">
         <header className="h-16 border-b border-border px-8 flex items-center justify-between bg-card/80 backdrop-blur-md sticky top-0 z-10">
           <div className="flex items-center gap-4">
-            <h1 className="text-xl font-bold text-foreground">{member.fullName}</h1>
-            <Badge variant={member.status === 'churn-risk' ? 'destructive' : 'secondary'} className="rounded-full uppercase text-[10px] px-3 py-0.5">
-              {member.status}
-            </Badge>
+            <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-sm">
+              <User className="w-5 h-5" />
+            </div>
+            <div>
+              <h1 className="text-xl font-black text-foreground uppercase tracking-tight">{member.fullName}</h1>
+              <div className="flex items-center gap-2">
+                <Badge variant={member.status === 'churn-risk' ? 'destructive' : 'secondary'} className="rounded-md uppercase text-[8px] font-black px-2 py-0">
+                  {member.status}
+                </Badge>
+                <span className="text-[9px] font-mono text-muted-foreground uppercase">{member.medicareId}</span>
+              </div>
+            </div>
           </div>
           <div className="flex items-center gap-3">
-            <Button variant="outline" className="rounded-xl h-9 text-[11px] font-bold" onClick={handleGeneratePDF}>
+            <Button variant="outline" className="rounded-xl h-9 text-[10px] font-black uppercase tracking-widest border-border" onClick={handleGeneratePDF}>
               <Download className="w-4 h-4 mr-2" />
-              Benefit Summary
+              Benefits PDF
             </Button>
-            <Button className="rounded-xl h-9 text-[11px] font-bold bg-secondary hover:bg-secondary/90 shadow-sm">
+            <Button className="rounded-xl h-9 text-[10px] font-black uppercase tracking-widest bg-secondary hover:bg-secondary/90 shadow-sm border border-border">
               Update Policy
             </Button>
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto p-8">
+        <div className="flex-1 overflow-y-auto p-8 max-w-6xl mx-auto w-full space-y-8 pb-32">
           <Tabs defaultValue="overview" className="space-y-8">
-            <TabsList className="bg-muted p-1 rounded-2xl border border-border">
-              <TabsTrigger value="overview" className="rounded-xl px-6 py-2 text-xs font-bold">
+            <TabsList className="bg-muted p-1 rounded-2xl border border-border shadow-inner">
+              <TabsTrigger value="overview" className="rounded-xl px-6 py-2 text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white">
                 Overview
               </TabsTrigger>
-              <TabsTrigger value="policy" className="rounded-xl px-6 py-2 text-xs font-bold">
+              <TabsTrigger value="policy" className="rounded-xl px-6 py-2 text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white">
                 Policy & LIS
               </TabsTrigger>
-              <TabsTrigger value="health" className="rounded-xl px-6 py-2 text-xs font-bold">
-                Health & Rx
+              <TabsTrigger value="retention" className="rounded-xl px-6 py-2 text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white">
+                Retention Mod
               </TabsTrigger>
-              <TabsTrigger value="compliance" className="rounded-xl px-6 py-2 text-xs font-bold">
-                Compliance
+              <TabsTrigger value="health" className="rounded-xl px-6 py-2 text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white">
+                Health & Rx
               </TabsTrigger>
             </TabsList>
 
-            <TabsContent value="overview" className="space-y-8 mt-6">
+            <TabsContent value="overview" className="space-y-8 mt-6 animate-in fade-in duration-300">
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                <Card className="rounded-2xl border-border shadow-sm bg-card">
-                  <CardHeader className="pb-2 border-b border-muted mb-4">
-                    <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2">
+                <Card className="rounded-3xl border-border shadow-sm bg-card overflow-hidden">
+                  <CardHeader className="pb-4 border-b bg-muted/30">
+                    <CardTitle className="text-[10px] font-black text-foreground flex items-center gap-2 uppercase tracking-widest">
                       <User className="w-4 h-4 text-primary" />
                       Demographics
                     </CardTitle>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="pt-6">
                     <dl className="space-y-4">
-                      <div className="flex justify-between items-center text-xs">
-                        <dt className="text-muted-foreground font-medium">Date of Birth</dt>
-                        <dd className="font-bold">{member.dob} ({member.age} yrs)</dd>
+                      <div className="flex justify-between items-center">
+                        <dt className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">DOB</dt>
+                        <dd className="text-xs font-black uppercase">{member.dob} ({member.age} yrs)</dd>
                       </div>
-                      <div className="flex justify-between items-center text-xs">
-                        <dt className="text-muted-foreground font-medium">Medicare MBI</dt>
-                        <dd className="font-mono text-primary font-bold">{member.medicareId}</dd>
+                      <div className="flex justify-between items-center">
+                        <dt className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">MBI</dt>
+                        <dd className="text-xs font-mono font-black text-primary">{member.medicareId}</dd>
                       </div>
-                      <div className="flex justify-between items-center text-xs">
-                        <dt className="text-muted-foreground font-medium">Address</dt>
-                        <dd className="text-[10px] text-right max-w-[140px] truncate">{member.address}</dd>
+                      <div className="flex justify-between items-center">
+                        <dt className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Contact</dt>
+                        <dd className="text-xs font-black uppercase">{member.phone}</dd>
                       </div>
-                      <div className="flex justify-between items-center text-xs">
-                        <dt className="text-muted-foreground font-medium">Contact</dt>
-                        <dd className="font-bold">{member.phone}</dd>
+                      <div className="flex justify-between items-center">
+                        <dt className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">PTC Expiry</dt>
+                        <dd className="text-xs font-black text-amber-600 uppercase">{member.ptcExpiryDate}</dd>
                       </div>
                     </dl>
                   </CardContent>
                 </Card>
 
-                <Card className="rounded-2xl border-border shadow-sm bg-card">
-                  <CardHeader className="pb-2 border-b border-muted mb-4">
-                    <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2">
+                <Card className="rounded-3xl border-border shadow-sm bg-card overflow-hidden">
+                  <CardHeader className="pb-4 border-b bg-muted/30">
+                    <CardTitle className="text-[10px] font-black text-foreground flex items-center gap-2 uppercase tracking-widest">
                       <ShieldCheck className="w-4 h-4 text-primary" />
-                      Retention Modules
+                      Retention Index
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-5">
+                  <CardContent className="pt-6 space-y-5">
                     <div className="space-y-2">
-                      <div className="flex justify-between text-[11px] mb-1">
-                        <span className="text-muted-foreground font-medium">Overall Score</span>
-                        <span className="font-black text-foreground">{member.retentionScore}%</span>
+                      <div className="flex justify-between items-center mb-1">
+                        <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Loyalty Score</span>
+                        <span className="text-sm font-black text-foreground">{member.retentionScore}%</span>
                       </div>
-                      <Progress value={member.retentionScore} className="h-1.5" />
+                      <Progress value={member.retentionScore} className="h-1.5 bg-muted shadow-inner" />
                     </div>
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-between text-[10px]">
-                        <span className="text-muted-foreground">POA Shield:</span>
-                        <Badge variant="outline" className="text-[9px] uppercase">{member.poaStatus}</Badge>
+                    <div className="grid grid-cols-2 gap-2">
+                      <div className="p-2 rounded-xl bg-muted/50 text-center">
+                        <p className="text-[8px] font-black text-muted-foreground uppercase">HETS Check</p>
+                        <p className="text-[10px] font-black uppercase text-foreground">Verified</p>
                       </div>
-                      <div className="flex items-center justify-between text-[10px]">
-                        <span className="text-muted-foreground">SSBCI Fax:</span>
-                        <Badge variant="outline" className="text-[9px] uppercase">{member.ssbciStatus}</Badge>
-                      </div>
-                      <div className="flex items-center justify-between text-[10px]">
-                        <span className="text-muted-foreground">AI Call:</span>
-                        <Badge variant="outline" className="text-[9px] uppercase">{member.checkInStatus}</Badge>
+                      <div className="p-2 rounded-xl bg-muted/50 text-center">
+                        <p className="text-[8px] font-black text-muted-foreground uppercase">POA Status</p>
+                        <p className="text-[10px] font-black uppercase text-foreground">{member.poaStatus}</p>
                       </div>
                     </div>
                   </CardContent>
                 </Card>
 
-                <Card className="rounded-2xl border-border shadow-sm bg-card">
-                  <CardHeader className="pb-2 border-b border-muted mb-4">
-                    <CardTitle className="text-sm font-bold text-foreground flex items-center gap-2">
+                <Card className="rounded-3xl border-border shadow-sm bg-card overflow-hidden">
+                  <CardHeader className="pb-4 border-b bg-muted/30">
+                    <CardTitle className="text-[10px] font-black text-foreground flex items-center gap-2 uppercase tracking-widest">
                       <Zap className="w-4 h-4 text-primary" />
-                      Engagement Engine
+                      Engagement
                     </CardTitle>
                   </CardHeader>
-                  <CardContent className="space-y-4">
-                     <div className="p-3 rounded-xl bg-primary/5 border border-primary/10 text-[10px] text-primary leading-relaxed font-medium">
-                        Module 5: Personalized benefits nudge scheduled for 1st of next month.
+                  <CardContent className="pt-6 space-y-4">
+                     <div className="p-4 rounded-2xl bg-primary/5 border border-primary/10 text-[10px] text-primary leading-relaxed font-black uppercase tracking-tight">
+                        MOD 5: Benefit utilization nudge scheduled for next month.
                      </div>
-                     <Button variant="outline" size="sm" className="w-full text-[10px] h-8 font-bold border-primary/20">
+                     <Button variant="outline" size="sm" className="w-full text-[9px] font-black uppercase tracking-widest h-9 border-primary/20 hover:bg-primary/5 text-primary rounded-xl">
                         Preview Next Nudge
                      </Button>
                   </CardContent>
                 </Card>
               </div>
 
-              <Card className="rounded-2xl border-border shadow-sm bg-card p-6">
-                <h3 className="text-sm font-bold text-foreground mb-4 flex items-center gap-2">
+              <Card className="rounded-3xl border-border shadow-sm bg-card p-8">
+                <h3 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-4 flex items-center gap-2">
                   <Mail className="w-4 h-4 text-primary" />
                   Intelligent Agent Notes
                 </h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">
+                <p className="text-sm text-foreground font-medium leading-relaxed italic opacity-80">
                   {member.notes || "Member is currently in active monitoring. No anomalies detected in current carrier snapshot. Last check-in call was positive; member expressed satisfaction with pharmacy benefits. Recommend triggering the AEP Shield preview in late September to maintain loyalty."}
                 </p>
               </Card>
             </TabsContent>
 
-            <TabsContent value="policy" className="space-y-6 mt-6">
+            <TabsContent value="retention" className="space-y-6 mt-6 animate-in slide-in-from-bottom-2 duration-300">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <Card className="rounded-3xl bg-card border border-border shadow-sm p-8 space-y-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shadow-sm">
+                      <Shield className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-black uppercase tracking-tight">POA Shield (Module 4)</h3>
+                      <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Healthcare Plan Advocate</p>
+                    </div>
+                  </div>
+                  
+                  {member.poaStatus === 'shielded' ? (
+                    <div className="space-y-4">
+                      <div className="p-5 rounded-2xl bg-emerald-50 border border-emerald-100 flex items-center justify-between">
+                        <div>
+                          <p className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">Active Advocate</p>
+                          <p className="text-sm font-black text-foreground uppercase">{member.poaName}</p>
+                          <p className="text-[10px] font-mono text-muted-foreground">{member.poaPhone}</p>
+                        </div>
+                        <Badge className="bg-emerald-500 text-white border-none font-black text-[9px] px-2 py-0.5">SHIELDED</Badge>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground leading-relaxed font-medium uppercase opacity-70">
+                        Competing agents will be routed to the designated advocate before any plan changes can be discussed.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="space-y-4">
+                      <div className="p-5 rounded-2xl bg-muted/30 border border-dashed border-border text-center">
+                        <p className="text-sm font-black text-muted-foreground uppercase opacity-50">Shield Not Active</p>
+                      </div>
+                      <Button className="w-full h-12 rounded-2xl bg-primary text-white font-black uppercase tracking-widest text-[10px] shadow-lg shadow-primary/20">
+                        Initiate Advocate Enrollment
+                      </Button>
+                    </div>
+                  )}
+                </Card>
+
+                <Card className="rounded-3xl bg-card border border-border shadow-sm p-8 space-y-6">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-600 shadow-sm">
+                      <Network className="w-6 h-6" />
+                    </div>
+                    <div>
+                      <h3 className="text-lg font-black uppercase tracking-tight">HETS Monitoring (Mod 1)</h3>
+                      <p className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">Real-Time CMS Status</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between border-b pb-4">
+                      <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Last HETS Poll</span>
+                      <span className="text-xs font-black uppercase">{member.lastCmsCheck ? new Date(member.lastCmsCheck).toLocaleString() : 'Pending'}</span>
+                    </div>
+                    <div className="flex items-center justify-between border-b pb-4">
+                      <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Status Signal</span>
+                      <Badge variant="outline" className="text-[9px] font-black uppercase border-emerald-200 bg-emerald-50 text-emerald-700">ENROLLMENT_CONFIRMED</Badge>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Future Effective Detection</span>
+                      <span className="text-[10px] font-black uppercase text-emerald-600">No Switches Detected</span>
+                    </div>
+                    <Button variant="outline" className="w-full h-12 rounded-2xl border-border font-black uppercase tracking-widest text-[10px] hover:bg-muted">
+                      Manual HETS Refresh
+                    </Button>
+                  </div>
+                </Card>
+              </div>
+            </TabsContent>
+
+            <TabsContent value="policy" className="space-y-6 mt-6 animate-in slide-in-from-left-2 duration-300">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <Card className="rounded-2xl bg-card border-border shadow-sm">
-                   <CardHeader className="border-b border-muted">
-                      <CardTitle className="text-sm font-bold flex items-center gap-2">
+                <Card className="rounded-3xl bg-card border-border shadow-sm overflow-hidden">
+                   <CardHeader className="border-b bg-muted/30">
+                      <CardTitle className="text-[10px] font-black flex items-center gap-2 uppercase tracking-widest">
                         <Briefcase className="w-4 h-4 text-primary" />
                         Plan Information
                       </CardTitle>
                    </CardHeader>
                    <CardContent className="pt-6">
-                      <dl className="grid grid-cols-2 gap-y-4 text-xs">
-                        <dt className="text-muted-foreground">Carrier</dt>
-                        <dd className="font-bold">{member.carrier}</dd>
-                        <dt className="text-muted-foreground">Plan Name</dt>
-                        <dd className="font-bold">{member.planName}</dd>
-                        <dt className="text-muted-foreground">Premium</dt>
-                        <dd className="font-bold">{member.monthlyPremium}</dd>
-                        <dt className="text-muted-foreground">Enrollment Period</dt>
-                        <dd className="font-bold uppercase">{member.enrollmentPeriod}</dd>
-                        <dt className="text-muted-foreground">Part A Effective</dt>
-                        <dd className="font-bold">{member.partAEffective}</dd>
-                        <dt className="text-muted-foreground">Part B Effective</dt>
-                        <dd className="font-bold">{member.partBEffective}</dd>
+                      <dl className="grid grid-cols-2 gap-y-4">
+                        <dt className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Carrier</dt>
+                        <dd className="text-xs font-black uppercase">{member.carrier}</dd>
+                        <dt className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Plan Name</dt>
+                        <dd className="text-xs font-black uppercase">{member.planName}</dd>
+                        <dt className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Premium</dt>
+                        <dd className="text-xs font-black uppercase">{member.monthlyPremium}</dd>
+                        <dt className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Enrollment</dt>
+                        <dd className="text-xs font-black uppercase">{member.enrollmentPeriod}</dd>
+                        <dt className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Part A Effective</dt>
+                        <dd className="text-xs font-black uppercase">{member.partAEffective}</dd>
+                        <dt className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">Part B Effective</dt>
+                        <dd className="text-xs font-black uppercase">{member.partBEffective}</dd>
                       </dl>
                    </CardContent>
                 </Card>
 
-                <Card className="rounded-2xl bg-card border-border shadow-sm">
-                   <CardHeader className="border-b border-muted">
-                      <CardTitle className="text-sm font-bold flex items-center gap-2">
+                <Card className="rounded-3xl bg-card border-border shadow-sm overflow-hidden">
+                   <CardHeader className="border-b bg-muted/30">
+                      <CardTitle className="text-[10px] font-black flex items-center gap-2 uppercase tracking-widest">
                         <CreditCard className="w-4 h-4 text-primary" />
-                        Financial Assistance (LIS)
+                        Financial Assistance
                       </CardTitle>
                    </CardHeader>
                    <CardContent className="pt-6 space-y-4">
-                      <div className="p-4 rounded-xl bg-muted/50 border border-border text-xs leading-relaxed">
-                        <p className="font-bold mb-1">Extra Help / LIS Status</p>
-                        <p className="text-muted-foreground">Member currently {member.medicareMedicaidStatus === 'Medicare' ? 'evaluated for' : 'has'} federal financial assistance. Estimated annual savings: $5,700.</p>
+                      <div className="p-5 rounded-2xl bg-muted/50 border border-border text-[11px] leading-relaxed font-medium uppercase opacity-80">
+                        <p className="font-black text-foreground mb-2">Extra Help / LIS Status</p>
+                        <p>Member currently {member.medicareMedicaidStatus === 'Medicare' ? 'evaluated for' : 'has'} federal financial assistance. Estimated annual savings: <span className="text-primary font-black">$5,700</span>.</p>
                       </div>
-                      <Button className="w-full text-[10px] font-bold h-9 bg-primary hover:bg-primary/90">
+                      <Button className="w-full h-12 rounded-2xl bg-primary text-white font-black uppercase tracking-widest text-[10px] shadow-lg shadow-primary/20">
                          Initiate LIS Enrollment Bot
                       </Button>
                    </CardContent>
                 </Card>
               </div>
-            </TabsContent>
-
-            <TabsContent value="health" className="space-y-6 mt-6">
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <Card className="rounded-2xl border-border shadow-sm bg-card">
-                     <CardHeader className="border-b border-muted">
-                        <CardTitle className="text-sm font-bold flex items-center gap-2">
-                          <Stethoscope className="w-4 h-4 text-primary" />
-                          Providers
-                        </CardTitle>
-                     </CardHeader>
-                     <CardContent className="pt-6 space-y-4">
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-muted-foreground">PCP Name</span>
-                          <span className="font-bold">{member.pcpName || 'Not Set'}</span>
-                        </div>
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="text-muted-foreground">Preferred Pharmacy</span>
-                          <span className="font-bold">{member.pharmacyName || 'Not Set'}</span>
-                        </div>
-                     </CardContent>
-                  </Card>
-                  
-                  <Card className="rounded-2xl border-border shadow-sm bg-card">
-                     <CardHeader className="border-b border-muted">
-                        <CardTitle className="text-sm font-bold flex items-center gap-2">
-                          <Pill className="w-4 h-4 text-primary" />
-                          Formulary & Medications
-                        </CardTitle>
-                     </CardHeader>
-                     <CardContent className="pt-6">
-                        {member.medications.length > 0 ? (
-                          <div className="space-y-3">
-                            {member.medications.map((med, i) => (
-                              <div key={i} className="flex justify-between items-center p-2 rounded-lg bg-muted/30 text-[10px]">
-                                <span className="font-bold">{med.name} ({med.dosage})</span>
-                                <Badge variant="secondary" className="text-[8px] h-4">Tier {med.tier}</Badge>
-                              </div>
-                            ))}
-                          </div>
-                        ) : (
-                          <p className="text-xs text-muted-foreground italic text-center py-4">No medications listed.</p>
-                        )}
-                     </CardContent>
-                  </Card>
-               </div>
-            </TabsContent>
-
-            <TabsContent value="compliance" className="mt-6 space-y-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                   <Card className="rounded-2xl border-border shadow-sm bg-card">
-                      <CardHeader className="border-b border-muted">
-                         <CardTitle className="text-sm font-bold flex items-center gap-2">
-                           <FileCheck className="w-4 h-4 text-primary" />
-                           Compliance Documents
-                         </CardTitle>
-                      </CardHeader>
-                      <CardContent className="pt-6 space-y-4">
-                         <div className="flex justify-between items-center text-xs">
-                            <span className="text-muted-foreground">SOA Status</span>
-                            <Badge variant={member.soaStatus === 'Completed' ? 'secondary' : 'outline'}>{member.soaStatus}</Badge>
-                         </div>
-                         <div className="flex justify-between items-center text-xs">
-                            <span className="text-muted-foreground">SOA Date</span>
-                            <span className="font-bold">{member.soaDate || 'N/A'}</span>
-                         </div>
-                         <Button variant="outline" size="sm" className="w-full text-[10px] font-bold border-primary/20">
-                            Download Compliance Bundle
-                         </Button>
-                      </CardContent>
-                   </Card>
-
-                   <Card className="rounded-2xl border-border shadow-sm bg-card">
-                      <CardHeader className="border-b border-muted">
-                         <CardTitle className="text-sm font-bold flex items-center gap-2">
-                           <History className="w-4 h-4 text-primary" />
-                           Audit Log
-                         </CardTitle>
-                      </CardHeader>
-                      <CardContent className="pt-6">
-                         <div className="space-y-3">
-                            {[
-                              { date: "2024-11-20", action: "MARx Snapshot Poll", detail: "No switch detected" },
-                              { date: "2024-11-15", action: "AI Check-in Call", detail: "Member satisfied" },
-                              { date: "2024-10-01", action: "Carrier Email Parse", detail: "Enrollment confirmed" }
-                            ].map((item, i) => (
-                              <div key={i} className="text-[10px] border-b border-muted pb-2 last:border-0">
-                                <div className="flex justify-between mb-1">
-                                  <span className="font-bold">{item.action}</span>
-                                  <span className="text-muted-foreground font-mono">{item.date}</span>
-                                </div>
-                                <p className="text-muted-foreground italic">{item.detail}</p>
-                              </div>
-                            ))}
-                         </div>
-                      </CardContent>
-                   </Card>
-                </div>
             </TabsContent>
           </Tabs>
         </div>

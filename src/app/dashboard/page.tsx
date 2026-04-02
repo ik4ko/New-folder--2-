@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { 
   Activity, Users, ShieldCheck, Printer, 
   Zap, ArrowUpRight, Sparkles, Banknote, Calendar, Info,
-  BookOpen, Play, GraduationCap
+  BookOpen, Play, GraduationCap, Network, PhoneCall, Bot
 } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -64,16 +64,38 @@ export default function Dashboard() {
               <div className="flex flex-wrap gap-2">
                 <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 px-3 py-1 h-8 md:h-9 gap-2 font-black uppercase tracking-widest text-[8px] md:text-[9px]">
                   <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  CMS MARx: Active
+                  HETS Live: Active
                 </Badge>
                 <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 px-3 py-1 h-8 md:h-9 gap-2 font-black uppercase tracking-widest text-[8px] md:text-[9px]">
-                  <Zap className="w-3 h-3" />
-                  GHL Sync: Live
+                  <Network className="w-3 h-3" />
+                  Availity API: Connect
                 </Badge>
               </div>
             </div>
 
-            {/* Tutorial / Academy Section */}
+            {/* Agent Heartbeat Section */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {[
+                { name: 'Agent 1: Switch Monitor', icon: Bot, status: 'Polling CMS', color: 'text-primary' },
+                { name: 'Agent 2: Fax Automator', icon: Printer, status: 'Scanning Chronic', color: 'text-emerald-600' },
+                { name: 'Agent 3: Maya AI Voice', icon: PhoneCall, status: 'Queue Ready', color: 'text-amber-600' }
+              ].map((agent, i) => (
+                <div key={i} className="flex items-center gap-4 p-4 rounded-2xl bg-card border border-border shadow-sm">
+                  <div className={`w-10 h-10 rounded-xl bg-muted flex items-center justify-center ${agent.color}`}>
+                    <agent.icon className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{agent.name}</p>
+                    <div className="flex items-center gap-2">
+                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                      <span className="text-xs font-bold">{agent.status}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Quick-Start Academy */}
             <section className="p-1 rounded-[2.5rem] bg-gradient-to-r from-primary/20 via-accent/20 to-primary/20">
               <div className="bg-background rounded-[2.4rem] p-8 flex flex-col md:flex-row items-center justify-between gap-8">
                 <div className="flex items-center gap-6">
@@ -97,7 +119,6 @@ export default function Dashboard() {
             </section>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              {/* Stats Cards */}
               <Link href="/members" className="block">
                 <Card className="bg-muted/30 border-none rounded-3xl p-5 flex flex-col justify-between min-h-[140px] shadow-sm hover:bg-muted/40 transition-colors cursor-pointer group">
                   <div className="flex justify-between items-start">
@@ -151,23 +172,20 @@ export default function Dashboard() {
               </Link>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-              {/* Change Detection Table */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 pb-20">
               <div className="lg:col-span-2 space-y-4">
                 <div className="flex items-center justify-between px-1">
-                  <div className="flex items-center gap-2">
-                    <h3 className="text-lg font-black tracking-tight uppercase">Active Change Detection</h3>
-                  </div>
+                  <h3 className="text-lg font-black tracking-tight uppercase">Active Change Detection</h3>
                   <Button variant="link" className="text-primary font-black text-[10px] uppercase tracking-widest h-auto p-0" asChild>
                     <Link href="/members">View Roster <ArrowUpRight className="ml-1 w-3 h-3" /></Link>
                   </Button>
                 </div>
-                <div className="rounded-3xl bg-muted/20 border-none overflow-x-auto">
+                <div className="rounded-3xl bg-muted/20 border-none overflow-x-auto shadow-inner">
                   <Table>
                     <TableHeader>
                       <TableRow className="border-none hover:bg-transparent bg-transparent">
                         <TableHead className="font-black uppercase tracking-widest text-[9px] py-4 px-6 text-muted-foreground">Member</TableHead>
-                        <TableHead className="font-black uppercase tracking-widest text-[9px] text-muted-foreground">Carrier</TableHead>
+                        <TableHead className="font-black uppercase tracking-widest text-[9px] text-muted-foreground">Last HETS Check</TableHead>
                         <TableHead className="font-black uppercase tracking-widest text-[9px] text-muted-foreground">Status</TableHead>
                         <TableHead className="font-black uppercase tracking-widest text-[9px] text-muted-foreground">Prot.</TableHead>
                         <TableHead className="text-right font-black uppercase tracking-widest text-[9px] px-6 text-muted-foreground">Act</TableHead>
@@ -176,8 +194,15 @@ export default function Dashboard() {
                     <TableBody>
                       {recentActivity.map((member) => (
                         <TableRow key={member.id} className="border-border/50 hover:bg-muted/30 transition-colors">
-                          <TableCell className="font-black py-4 px-6 text-foreground uppercase tracking-tight text-xs whitespace-nowrap">{member.fullName}</TableCell>
-                          <TableCell className="text-[10px] font-bold text-muted-foreground uppercase whitespace-nowrap">{member.carrier}</TableCell>
+                          <TableCell className="font-black py-4 px-6 text-foreground uppercase tracking-tight text-xs whitespace-nowrap">
+                            <div className="flex flex-col">
+                              <span>{member.fullName}</span>
+                              <span className="text-[8px] opacity-50 font-mono">{member.medicareId}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-[10px] font-bold text-muted-foreground uppercase whitespace-nowrap">
+                            {member.lastCmsCheck ? new Date(member.lastCmsCheck).toLocaleTimeString() : 'Never'}
+                          </TableCell>
                           <TableCell>
                             <Badge 
                               variant={member.status === 'churn-risk' ? 'destructive' : 'outline'} 
@@ -204,7 +229,6 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              {/* AI Insights Sidebar */}
               <div className="space-y-4">
                 <div className="flex items-center gap-2 px-1">
                   <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary shadow-sm">
@@ -217,10 +241,10 @@ export default function Dashboard() {
                   <Card className="bg-primary/5 border border-primary/10 rounded-3xl p-6 space-y-4">
                     <div className="space-y-1.5">
                       <div className="text-[9px] font-black uppercase text-primary tracking-widest flex items-center gap-1.5">
-                        <ShieldCheck className="w-2.5 h-2.5" /> AEP Shield Ready:
+                        <ShieldCheck className="w-2.5 h-2.5" /> AEP Shield Check:
                       </div>
                       <p className="text-[10px] text-foreground leading-relaxed font-bold uppercase tracking-tight">
-                        September campaign scheduled for {stats.totalMembers} members.
+                        {members.filter(m => m.poaStatus === 'shielded').length} / {members.length} members protected via POA Shield.
                       </p>
                     </div>
                     
@@ -228,10 +252,15 @@ export default function Dashboard() {
                     
                     <div className="space-y-1.5">
                       <div className="text-[9px] font-black uppercase text-emerald-600 tracking-widest flex items-center gap-1.5">
-                        <Banknote className="w-2.5 h-2.5" /> LIS Opportunity:
+                        <Calendar className="w-2.5 h-2.5" /> PTC Compliance:
                       </div>
                       <p className="text-[10px] text-foreground leading-relaxed font-bold uppercase tracking-tight">
-                        {members.filter(m => m.medicareMedicaidStatus === 'Medicare').length} likely eligible members found.
+                        {members.filter(m => {
+                          const expiry = new Date(m.ptcExpiryDate);
+                          const thirtyDaysFromNow = new Date();
+                          thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
+                          return expiry < thirtyDaysFromNow;
+                        }).length} members need PTC renewal this month.
                       </p>
                     </div>
                   </Card>
@@ -239,21 +268,6 @@ export default function Dashboard() {
                   <Button className="w-full h-12 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest shadow-lg shadow-primary/20 text-[10px]" asChild>
                     <Link href="/ai">Run Strategy Agent</Link>
                   </Button>
-
-                  <Link href="/settings?tab=compliance" className="block">
-                    <div className="p-4 rounded-2xl border border-border bg-card flex items-center justify-between group cursor-pointer hover:border-primary/30 transition-all">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-all">
-                          <Calendar className="w-4 h-4" />
-                        </div>
-                        <div>
-                          <p className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">Next Audit</p>
-                          <p className="text-[10px] font-black text-foreground uppercase tracking-tight">Oct 12, 2025</p>
-                        </div>
-                      </div>
-                      <ArrowUpRight className="w-3.5 h-3.5 text-muted-foreground group-hover:text-primary transition-all" />
-                    </div>
-                  </Link>
                 </div>
               </div>
             </div>
