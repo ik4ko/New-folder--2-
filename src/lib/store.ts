@@ -183,7 +183,7 @@ export const useAppStore = create<AppState>((set) => ({
     licenseNumber: 'NPN-12345678',
     email: 'admin@medistay-demo.com',
     phone: '415-555-0100',
-    isSolo: true, // SET TO TRUE BY DEFAULT AS REQUESTED
+    isSolo: true, // DEFAULTED TO TRUE AS REQUESTED
     primaryColor: '#0F4C81',
     billingPlan: 'pro',
     isSubscriptionActive: true,

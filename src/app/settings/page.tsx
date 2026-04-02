@@ -68,7 +68,7 @@ function SettingsSidebar({ activeTab, onTabChange }: { activeTab: string, onTabC
               key={item.id}
               onClick={() => onTabChange(item.id)}
               className={cn(
-                "w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all text-left group relative",
+                "w-full flex items-center gap-3 px-3 py-3 rounded-xl transition-all text-left group relative cursor-pointer",
                 activeTab === item.id 
                   ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 font-black" 
                   : "text-muted-foreground hover:bg-muted/50 hover:text-foreground"
@@ -540,9 +540,11 @@ function AgencySettingsPageInner() {
   const initialTab = searchParams.get("tab") || "identity"
   const [activeTab, setActiveTab] = useState(initialTab)
 
-  // Sync state if URL changes externally
   useEffect(() => {
-    setActiveTab(searchParams.get("tab") || "identity")
+    const tabFromUrl = searchParams.get("tab")
+    if (tabFromUrl) {
+      setActiveTab(tabFromUrl)
+    }
   }, [searchParams])
 
   const handleTabChange = (tab: string) => {
