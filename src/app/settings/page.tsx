@@ -4,19 +4,16 @@ import { useAppStore } from "@/lib/store"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent } from "@/components/ui/tabs"
 import { Switch } from "@/components/ui/switch"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { 
-  Settings, Building2, User, ShieldCheck, Bell, 
-  Save, Lock, Users2, Plus, 
-  MoreVertical, BadgeCheck,
-  CreditCard,
-  Fingerprint, ExternalLink as LinkIcon,
-  ShoppingBag, ShieldAlert, Briefcase, PhoneCall, Mic2,
-  PanelLeftClose, Link2, Palette, Globe,
-  X
+  Building2, Save, Lock, Users2, Plus, 
+  MoreVertical, CreditCard,
+  ExternalLink as LinkIcon,
+  ShoppingBag, ShieldAlert, Briefcase, Mic2,
+  PanelLeftClose, Bell, ShieldCheck, Globe
 } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import { useSearchParams, useRouter } from "next/navigation"
@@ -26,8 +23,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { 
   AlertDialog, 
   AlertDialogContent, 
-  AlertDialogHeader, 
-  AlertDialogTitle, 
   AlertDialogTrigger 
 } from "@/components/ui/alert-dialog"
 import { Textarea } from "@/components/ui/textarea"
@@ -142,7 +137,7 @@ function SettingsContent({ activeTab }: { activeTab: string }) {
       <header className="h-16 border-b border-border px-8 flex items-center justify-between bg-card/50 backdrop-blur-md sticky top-0 z-10">
         <div className="flex items-center gap-3">
           <h1 className="text-xl font-black text-foreground uppercase tracking-tighter">
-            Agency Settings
+            {activeTab.charAt(0).toUpperCase() + activeTab.slice(1)} Configuration
           </h1>
         </div>
         <div className="flex items-center gap-6">
@@ -539,18 +534,35 @@ function SettingsContent({ activeTab }: { activeTab: string }) {
   )
 }
 
-export default function AgencySettingsPage() {
+function AgencySettingsPageInner() {
   const searchParams = useSearchParams()
   const router = useRouter()
-  const activeTab = searchParams.get("tab") || "identity"
+  const initialTab = searchParams.get("tab") || "identity"
+  const [activeTab, setActiveTab] = useState(initialTab)
 
+  // Sync state if URL changes externally
+  useEffect(() => {
+    setActiveTab(searchParams.get("tab") || "identity")
+  }, [searchParams])
+
+  const handleTabChange = (tab: string) => {
+    setActiveTab(tab)
+    router.push(`/settings?tab=${tab}`, { scroll: false })
+  }
+
+  return (
+    <div className="flex h-full w-full">
+      <SettingsSidebar activeTab={activeTab} onTabChange={handleTabChange} />
+      <SettingsContent activeTab={activeTab} />
+    </div>
+  )
+}
+
+export default function AgencySettingsPage() {
   return (
     <div className="flex h-full w-full bg-background overflow-hidden">
       <Suspense fallback={<div className="flex-1 p-20 text-center font-black uppercase tracking-widest opacity-30 text-foreground animate-pulse">Initializing HIPAA Workspace...</div>}>
-        <div className="flex h-full w-full">
-          <SettingsSidebar activeTab={activeTab} onTabChange={(tab) => router.push(`/settings?tab=${tab}`)} />
-          <SettingsContent activeTab={activeTab} />
-        </div>
+        <AgencySettingsPageInner />
       </Suspense>
     </div>
   )
