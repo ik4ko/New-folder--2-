@@ -140,6 +140,7 @@ interface AppState {
   updateMayaSettings: (updates: Partial<MayaSettings>) => void;
   updateAgencyProfile: (updates: Partial<AgencyProfile>) => void;
   addBroker: (broker: Partial<BrokerAccount>) => void;
+  updateBroker: (id: string, updates: Partial<BrokerAccount>) => void;
 }
 
 export const useAppStore = create<AppState>((set) => ({
@@ -183,7 +184,7 @@ export const useAppStore = create<AppState>((set) => ({
     licenseNumber: 'NPN-12345678',
     email: 'admin@medistay-demo.com',
     phone: '415-555-0100',
-    isSolo: true, // DEFAULTED TO TRUE AS REQUESTED
+    isSolo: true,
     primaryColor: '#0F4C81',
     billingPlan: 'pro',
     isSubscriptionActive: true,
@@ -249,15 +250,21 @@ export const useAppStore = create<AppState>((set) => ({
   startTutorial: (type) => set({ activeTutorial: type, tutorialStep: 0 }),
   nextTutorialStep: () => set((state) => ({ tutorialStep: state.tutorialStep + 1 })),
   closeTutorial: () => set({ activeTutorial: 'none', tutorialStep: 0 }),
-  updateGHLSettings: (updates) => set((state) => ({
-    ghlSettings: { ...state.ghlSettings, ...updates }
-  })),
-  updateMayaSettings: (updates) => set((state) => ({
-    mayaSettings: { ...state.mayaSettings, ...updates }
-  })),
-  updateAgencyProfile: (updates) => set((state) => ({
-    agencyProfile: { ...state.agencyProfile, ...updates }
-  })),
+  updateGHLSettings: (updates) => set((state) => {
+    const newSettings = { ...state.ghlSettings, ...updates };
+    localStorage.setItem('medistay_ghl_settings', JSON.stringify(newSettings));
+    return { ghlSettings: newSettings };
+  }),
+  updateMayaSettings: (updates) => set((state) => {
+    const newSettings = { ...state.mayaSettings, ...updates };
+    localStorage.setItem('medistay_maya_settings', JSON.stringify(newSettings));
+    return { mayaSettings: newSettings };
+  }),
+  updateAgencyProfile: (updates) => set((state) => {
+    const newProfile = { ...state.agencyProfile, ...updates };
+    localStorage.setItem('medistay_agency_profile', JSON.stringify(newProfile));
+    return { agencyProfile: newProfile };
+  }),
   addBroker: (brokerData) => set((state) => {
     const newBroker: BrokerAccount = {
       id: Math.random().toString(36).substr(2, 9),
@@ -268,6 +275,11 @@ export const useAppStore = create<AppState>((set) => ({
       npn: brokerData.npn || '00000000',
     };
     const updated = [...state.brokers, newBroker];
+    localStorage.setItem('medistay_brokers', JSON.stringify(updated));
+    return { brokers: updated };
+  }),
+  updateBroker: (id, updates) => set((state) => {
+    const updated = state.brokers.map(b => b.id === id ? { ...b, ...updates } : b);
     localStorage.setItem('medistay_brokers', JSON.stringify(updated));
     return { brokers: updated };
   }),
@@ -388,6 +400,22 @@ export const initializeStore = () => {
       localStorage.setItem('medistay_ledger', JSON.stringify(seedLedger));
       useAppStore.getState().setLedger(seedLedger);
     }
+
+    const savedProfile = localStorage.getItem('medistay_agency_profile');
+    if (savedProfile) {
+      useAppStore.getState().updateAgencyProfile(JSON.parse(savedProfile));
+    }
+
+    const savedGHL = localStorage.getItem('medistay_ghl_settings');
+    if (savedGHL) {
+      useAppStore.getState().updateGHLSettings(JSON.parse(savedGHL));
+    }
+
+    const savedMaya = localStorage.getItem('medistay_maya_settings');
+    if (savedMaya) {
+      useAppStore.getState().updateMayaSettings(JSON.parse(savedMaya));
+    }
+
   } catch (e) {
     console.error("Failed to initialize store", e);
   }

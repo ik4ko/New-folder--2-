@@ -1,6 +1,6 @@
 "use client"
 
-import { useAppStore } from "@/lib/store"
+import { useAppStore, initializeStore } from "@/lib/store"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -99,10 +99,10 @@ function SettingsContent({ activeTab }: { activeTab: string }) {
   const router = useRouter()
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false)
   
-  const { agencyProfile, updateAgencyProfile, brokers, addBroker, mayaSettings, updateMayaSettings } = useAppStore()
+  const { agencyProfile, updateAgencyProfile, brokers, addBroker, updateBroker, mayaSettings, updateMayaSettings } = useAppStore()
 
   const handleSave = () => {
-    toast({ title: "Settings Saved", description: "Your agency configuration has been updated across all nodes." })
+    toast({ title: "Settings Saved", description: "Your agency configuration has been updated and persisted." })
   }
 
   const handleAddUser = () => {
@@ -371,10 +371,18 @@ function SettingsContent({ activeTab }: { activeTab: string }) {
                   <TableBody>
                     {brokers.map((broker) => (
                       <TableRow key={broker.id} className="border-border/50 hover:bg-muted/20 transition-colors">
-                        <TableCell className="px-10 py-6 font-black text-sm text-foreground">
-                          <div className="flex flex-col">
-                            <span className="uppercase tracking-tight">{broker.name}</span>
-                            <span className="text-[10px] text-muted-foreground lowercase font-black italic opacity-60">{broker.email || 'pending@agency.com'}</span>
+                        <TableCell className="px-10 py-6">
+                          <div className="flex flex-col gap-2">
+                            <Input 
+                              value={broker.name} 
+                              onChange={(e) => updateBroker(broker.id, { name: e.target.value })}
+                              className="h-8 border-none bg-transparent font-black text-sm text-foreground uppercase p-0 focus-visible:ring-0"
+                            />
+                            <Input 
+                              value={broker.email} 
+                              onChange={(e) => updateBroker(broker.id, { email: e.target.value })}
+                              className="h-6 border-none bg-transparent text-[10px] text-muted-foreground lowercase font-black italic opacity-60 p-0 focus-visible:ring-0"
+                            />
                           </div>
                         </TableCell>
                         <TableCell>
@@ -382,7 +390,13 @@ function SettingsContent({ activeTab }: { activeTab: string }) {
                             {broker.role}
                           </Badge>
                         </TableCell>
-                        <TableCell className="font-mono text-xs font-black text-primary">{broker.npn || '00000000'}</TableCell>
+                        <TableCell>
+                          <Input 
+                            value={broker.npn} 
+                            onChange={(e) => updateBroker(broker.id, { npn: e.target.value })}
+                            className="h-8 border-none bg-transparent font-mono text-xs font-black text-primary p-0 focus-visible:ring-0"
+                          />
+                        </TableCell>
                         <TableCell className="text-right px-10">
                           <Button variant="ghost" size="icon" className="rounded-xl h-10 w-10 hover:bg-primary/5">
                             <MoreVertical className="w-4 h-4 text-foreground" />
@@ -539,6 +553,10 @@ function AgencySettingsPageInner() {
   const router = useRouter()
   const initialTab = searchParams.get("tab") || "identity"
   const [activeTab, setActiveTab] = useState(initialTab)
+
+  useEffect(() => {
+    initializeStore()
+  }, [])
 
   useEffect(() => {
     const tabFromUrl = searchParams.get("tab")

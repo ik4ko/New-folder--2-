@@ -1,7 +1,7 @@
 "use client"
 
 import { CollectionSidebar } from "@/components/collection-sidebar"
-import { useAppStore } from "@/lib/store"
+import { useAppStore, initializeStore } from "@/lib/store"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -11,7 +11,7 @@ import {
   ChevronRight, Briefcase, ListFilter
 } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { toast } from "@/hooks/use-toast"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -19,6 +19,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator"
 
 export default function GHLIntegrationPage() {
+  useEffect(() => {
+    initializeStore()
+  }, [])
+
   const isGHLConnected = useAppStore(s => s.isGHLConnected)
   const toggleGHL = useAppStore(s => s.toggleGHL)
   const ghlSettings = useAppStore(s => s.ghlSettings)
@@ -103,7 +107,7 @@ export default function GHLIntegrationPage() {
                       type="password"
                       placeholder="ghl_loc_xxxxxxxxxxxxxxxxxxxx" 
                       className="rounded-xl pl-4 pr-12 font-mono text-xs border-border h-12 bg-background shadow-inner focus-visible:ring-primary font-black text-foreground"
-                      value={ghlSettings.apiKey || (isGHLConnected ? "pit_live_key_managed_by_medistay" : "")}
+                      value={ghlSettings.apiKey}
                       onChange={(e) => updateGHLSettings({ apiKey: e.target.value })}
                     />
                   </div>
@@ -145,7 +149,7 @@ export default function GHLIntegrationPage() {
                       <Input 
                         readOnly 
                         value={ghlSettings.webhookUrl} 
-                        className="rounded-xl px-4 font-mono text-[9px] bg-white border-border h-10 shadow-inner text-foreground font-black"
+                        className="rounded-xl px-4 font-mono text-[9px] bg-white border-border h-10 shadow-inner text-foreground font-black cursor-not-allowed opacity-70"
                       />
                     </div>
                     <Button variant="outline" className="rounded-xl h-10 w-10 p-0 border-border bg-white" onClick={() => copyToClipboard(ghlSettings.webhookUrl)}>
@@ -163,7 +167,7 @@ export default function GHLIntegrationPage() {
 
           <Separator className="opacity-50" />
 
-          {/* Section 2: Field Mapping - OPTIMIZED FOR CLARITY */}
+          {/* Section 2: Field Mapping */}
           <section id="field-mapping" className="space-y-6">
             <div>
               <h2 className="text-lg font-black uppercase tracking-tight text-foreground underline decoration-primary/30 underline-offset-4">02. CRM Field Mapping</h2>
