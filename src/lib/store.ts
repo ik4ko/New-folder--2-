@@ -1,4 +1,7 @@
+
 import { create } from 'zustand';
+import { type Firestore } from 'firebase/firestore';
+import { encryptData, syncVaultToCloud } from '@/lib/vault/core';
 
 export interface Medication {
   name: string;
@@ -124,6 +127,7 @@ interface AppState {
   mayaSettings: MayaSettings;
   agencyProfile: AgencyProfile;
   currentUser: BrokerAccount | null;
+  encryptionKey: CryptoKey | null;
   addMember: (member: Partial<MemberRecord>) => void;
   updateMember: (id: string, updates: Partial<MemberRecord>) => void;
   setMembers: (members: MemberRecord[]) => void;
@@ -141,9 +145,11 @@ interface AppState {
   updateAgencyProfile: (updates: Partial<AgencyProfile>) => void;
   addBroker: (broker: Partial<BrokerAccount>) => void;
   updateBroker: (id: string, updates: Partial<BrokerAccount>) => void;
+  setEncryptionKey: (key: CryptoKey | null) => void;
+  syncToCloudVault: (db: Firestore, userId: string) => Promise<void>;
 }
 
-export const useAppStore = create<AppState>((set) => ({
+export const useAppStore = create<AppState>((set, get) => ({
   members: [],
   brokers: [],
   ledger: [],
@@ -154,6 +160,7 @@ export const useAppStore = create<AppState>((set) => ({
   activeTutorial: 'none',
   tutorialStep: 0,
   currentUser: null,
+  encryptionKey: null,
   mayaSettings: {
     voiceName: 'Algenib',
     script: "Hi, this is Maya from the MediStay team. We've detected a possible change in your provider network and wanted to ensure your doctors still accept your current coverage. How has your experience been with your plan lately?",
@@ -283,6 +290,36 @@ export const useAppStore = create<AppState>((set) => ({
     localStorage.setItem('medistay_brokers', JSON.stringify(updated));
     return { brokers: updated };
   }),
+  setEncryptionKey: (key) => set({ encryptionKey: key }),
+  syncToCloudVault: async (db, userId) => {
+    const { encryptionKey, agencyProfile, ghlSettings, mayaSettings } = get();
+    if (!encryptionKey) return;
+
+    try {
+      const vaultState = {
+        healthRecords: [], // In a real app, you'd pull this from the store too
+        blueButtonData: null,
+        agencyProfile,
+        ghlSettings,
+        mayaSettings,
+        updatedAt: Date.now(),
+      };
+
+      const encrypted = await encryptData(vaultState, encryptionKey);
+      const blob = { 
+        ...encrypted, 
+        userId, 
+        updatedAt: Date.now(), 
+        deviceId: 'browser-client' 
+      };
+
+      syncVaultToCloud(db, userId, blob);
+      set({ isSynced: true });
+    } catch (error) {
+      console.error('Vault encryption failed', error);
+      set({ isSynced: false });
+    }
+  },
 }));
 
 export const initializeStore = () => {

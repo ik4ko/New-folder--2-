@@ -4,6 +4,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useFirestore, useUser } from '@/firebase';
 import { deriveKey, encryptData, decryptData, syncVaultToCloud, fetchVaultFromCloud, VaultState, createAuditHash } from '@/lib/vault/core';
+import { useAppStore } from '@/lib/store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -22,6 +23,8 @@ export default function DistributedVaultPage() {
   const [vaultData, setVaultState] = useState<VaultState | null>(null);
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'synced'>('idle');
   const [gunPeers, setGunPeers] = useState(0);
+  
+  const { setEncryptionKey, updateAgencyProfile, updateGHLSettings, updateMayaSettings } = useAppStore();
   
   // Refs for background processes
   const gunRef = useRef<any>(null);
@@ -44,11 +47,13 @@ export default function DistributedVaultPage() {
       setSyncStatus('syncing');
       const key = await deriveKey(passphrase);
       keyRef.current = key;
+      setEncryptionKey(key);
 
       // 1. Try Local
       const local = localStorage.getItem(`vault_${user?.uid}`);
       if (local) {
         const decrypted = await decryptData(JSON.parse(local).cipher, JSON.parse(local).iv, key);
+        restoreSettings(decrypted);
         setVaultState(decrypted);
         setIsUnlocked(true);
         toast({ title: "Local Vault Decrypted", description: "Identity verified via WebCrypto." });
@@ -57,6 +62,7 @@ export default function DistributedVaultPage() {
         const cloudBlob = await fetchVaultFromCloud(firestore, user.uid);
         if (cloudBlob) {
           const decrypted = await decryptData(cloudBlob.cipher, cloudBlob.iv, key);
+          restoreSettings(decrypted);
           setVaultState(decrypted);
           setIsUnlocked(true);
           toast({ title: "Cloud Backup Restored", description: "Encrypted PHI recovered from Firestore." });
@@ -72,6 +78,12 @@ export default function DistributedVaultPage() {
     } catch (err) {
       toast({ variant: "destructive", title: "Decryption Failed", description: "Incorrect passphrase or corrupted cipher." });
     }
+  };
+
+  const restoreSettings = (data: VaultState) => {
+    if (data.agencyProfile) updateAgencyProfile(data.agencyProfile);
+    if (data.ghlSettings) updateGHLSettings(data.ghlSettings);
+    if (data.mayaSettings) updateMayaSettings(data.mayaSettings);
   };
 
   const handleSaveRecord = async (content: string) => {

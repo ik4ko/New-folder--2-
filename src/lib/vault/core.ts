@@ -10,6 +10,7 @@
  */
 
 import { doc, setDoc, getDoc, Firestore } from 'firebase/firestore';
+import { type AgencyProfile, type GHLSettings, type MayaSettings } from '@/lib/store';
 
 // --- WebCrypto Logic ---
 export async function deriveKey(passphrase: string, salt: string = 'medistay-v1') {
@@ -52,13 +53,19 @@ export async function decryptData(cipherB64: string, ivB64: string, key: CryptoK
 export interface VaultState {
   healthRecords: any[];
   blueButtonData: any;
+  agencyProfile?: AgencyProfile;
+  ghlSettings?: GHLSettings;
+  mayaSettings?: MayaSettings;
   updatedAt: number;
 }
 
-export async function syncVaultToCloud(db: Firestore, userId: string, blob: any) {
+export function syncVaultToCloud(db: Firestore, userId: string, blob: any) {
   const vaultRef = doc(db, 'vaults', userId);
   // Non-blocking firestore write as per guidelines
-  setDoc(vaultRef, blob, { merge: true }).catch(err => console.error('Cloud Sync Failed', err));
+  setDoc(vaultRef, blob, { merge: true }).catch(async (serverError) => {
+    // Error handling logic would go here if specialized errorEmitter existed
+    console.error('Cloud Sync Failed', serverError);
+  });
 }
 
 export async function fetchVaultFromCloud(db: Firestore, userId: string) {
