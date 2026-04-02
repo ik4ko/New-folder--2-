@@ -102,6 +102,8 @@ interface AppState {
   isGHLConnected: boolean;
   isSidebarOpen: boolean;
   isRosterOpen: boolean;
+  activeTutorial: 'none' | 'enrollment' | 'retention';
+  tutorialStep: number;
   ghlSettings: GHLSettings;
   agencyProfile: AgencyProfile;
   currentUser: BrokerAccount | null;
@@ -114,6 +116,9 @@ interface AppState {
   toggleGHL: () => void;
   toggleSidebar: () => void;
   toggleRoster: () => void;
+  startTutorial: (type: 'enrollment' | 'retention') => void;
+  nextTutorialStep: () => void;
+  closeTutorial: () => void;
   updateGHLSettings: (updates: Partial<GHLSettings>) => void;
   updateAgencyProfile: (updates: Partial<AgencyProfile>) => void;
   addBroker: (broker: Partial<BrokerAccount>) => void;
@@ -127,6 +132,8 @@ export const useAppStore = create<AppState>((set) => ({
   isGHLConnected: false,
   isSidebarOpen: true,
   isRosterOpen: false,
+  activeTutorial: 'none',
+  tutorialStep: 0,
   currentUser: null,
   ghlSettings: {
     locationId: 'loc_99201_sf',
@@ -153,7 +160,7 @@ export const useAppStore = create<AppState>((set) => ({
     email: 'admin@medistay-demo.com',
     phone: '415-555-0100',
     isSolo: false,
-    primaryColor: '#0F4C81', /* Classic Blue */
+    primaryColor: '#0F4C81',
     billingPlan: 'pro',
     isSubscriptionActive: true,
   },
@@ -210,6 +217,9 @@ export const useAppStore = create<AppState>((set) => ({
   toggleGHL: () => set((state) => ({ isGHLConnected: !state.isGHLConnected })),
   toggleSidebar: () => set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
   toggleRoster: () => set((state) => ({ isRosterOpen: !state.isRosterOpen })),
+  startTutorial: (type) => set({ activeTutorial: type, tutorialStep: 0 }),
+  nextTutorialStep: () => set((state) => ({ tutorialStep: state.tutorialStep + 1 })),
+  closeTutorial: () => set({ activeTutorial: 'none', tutorialStep: 0 }),
   updateGHLSettings: (updates) => set((state) => ({
     ghlSettings: { ...state.ghlSettings, ...updates }
   })),

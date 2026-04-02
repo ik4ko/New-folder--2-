@@ -12,7 +12,8 @@ import {
   LayoutDashboard,
   PanelLeftClose,
   PanelLeft,
-  Banknote
+  Banknote,
+  GraduationCap
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
@@ -110,6 +111,14 @@ export function AppSidebar({ forceOpen = false }: { forceOpen?: boolean }) {
             )
           })}
         </nav>
+
+        {/* Academy Shortcut */}
+        <div className="px-3 pb-4">
+          <Button variant="ghost" className={cn("w-full rounded-xl justify-start gap-3 text-muted-foreground hover:text-primary hover:bg-primary/5 px-3", !isOpen && "justify-center px-0")}>
+            <GraduationCap className="w-5 h-5" />
+            {isOpen && <span className="text-[11px] font-bold uppercase tracking-widest">Help Center</span>}
+          </Button>
+        </div>
 
         {/* CMS Disclaimer Rail */}
         {isOpen && (

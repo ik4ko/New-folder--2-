@@ -8,14 +8,16 @@ import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { 
   Activity, Users, ShieldCheck, Printer, 
-  Zap, ArrowUpRight, Sparkles, Banknote, Calendar, Info
+  Zap, ArrowUpRight, Sparkles, Banknote, Calendar, Info,
+  BookOpen, Play, GraduationCap
 } from "lucide-react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { TutorialOverlay } from "@/components/tutorial-overlay"
 
 export default function Dashboard() {
-  const members = useAppStore((state) => state.members)
+  const { members, startTutorial } = useAppStore()
 
   useEffect(() => {
     initializeStore()
@@ -44,8 +46,9 @@ export default function Dashboard() {
   }, [members])
 
   return (
-    <div className="flex h-full w-full bg-background overflow-hidden">
+    <div className="flex h-full w-full bg-background overflow-hidden relative">
       <CollectionSidebar />
+      <TutorialOverlay />
       
       <div className="flex-1 flex flex-col h-full bg-background overflow-hidden">
         <TooltipProvider delayDuration={0}>
@@ -69,6 +72,29 @@ export default function Dashboard() {
                 </Badge>
               </div>
             </div>
+
+            {/* Tutorial / Academy Section */}
+            <section className="p-1 rounded-[2.5rem] bg-gradient-to-r from-primary/20 via-accent/20 to-primary/20">
+              <div className="bg-background rounded-[2.4rem] p-8 flex flex-col md:flex-row items-center justify-between gap-8">
+                <div className="flex items-center gap-6">
+                  <div className="w-16 h-16 rounded-[2rem] bg-primary flex items-center justify-center text-white shadow-xl shadow-primary/20 shrink-0">
+                    <GraduationCap className="w-8 h-8" />
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-black uppercase tracking-tight">Quick-Start Academy</h2>
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide opacity-70">Master Medicare Registration & Retention in 5 minutes.</p>
+                  </div>
+                </div>
+                <div className="flex gap-3 w-full md:w-auto">
+                  <Button variant="outline" className="flex-1 md:flex-none h-12 rounded-2xl font-black uppercase text-[10px] border-primary/20 text-primary" onClick={() => startTutorial('enrollment')}>
+                    <Play className="w-3.5 h-3.5 mr-2" /> Enrollment 101
+                  </Button>
+                  <Button className="flex-1 md:flex-none h-12 rounded-2xl font-black uppercase text-[10px] bg-primary hover:bg-primary/90 text-white shadow-lg" onClick={() => startTutorial('retention')}>
+                    <Play className="w-3.5 h-3.5 mr-2" /> Retention 101
+                  </Button>
+                </div>
+              </div>
+            </section>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
               {/* Stats Cards */}
