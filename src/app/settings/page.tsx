@@ -14,7 +14,7 @@ import {
   MoreVertical, BadgeCheck,
   CreditCard,
   Fingerprint, ExternalLink as LinkIcon,
-  ShoppingBag, ShieldAlert, Briefcase
+  ShoppingBag, ShieldAlert, Briefcase, PhoneCall, Mic2
 } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import { useSearchParams, useRouter } from "next/navigation"
@@ -28,6 +28,7 @@ import {
   AlertDialogTitle, 
   AlertDialogTrigger 
 } from "@/components/ui/alert-dialog"
+import { Textarea } from "@/components/ui/textarea"
 
 function SettingsContent() {
   const searchParams = useSearchParams()
@@ -35,11 +36,11 @@ function SettingsContent() {
   const [activeTab, setActiveTab] = useState("identity")
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false)
   
-  const { agencyProfile, updateAgencyProfile, brokers, addBroker } = useAppStore()
+  const { agencyProfile, updateAgencyProfile, brokers, addBroker, mayaSettings, updateMayaSettings } = useAppStore()
 
   useEffect(() => {
     const tab = searchParams.get("tab")
-    if (tab && ["identity", "branding", "alerts", "compliance", "team", "billing", "security", "carriers"].includes(tab)) {
+    if (tab && ["identity", "branding", "alerts", "compliance", "team", "billing", "security", "carriers", "maya"].includes(tab)) {
       setActiveTab(tab)
     }
   }, [searchParams])
@@ -107,6 +108,9 @@ function SettingsContent() {
             <TabsTrigger value="team" className="rounded-xl flex-1 min-w-[120px] py-2.5 text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white">
               <Users2 className="w-4 h-4 mr-2" /> Team
             </TabsTrigger>
+            <TabsTrigger value="maya" className="rounded-xl flex-1 min-w-[120px] py-2.5 text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white">
+              <PhoneCall className="w-4 h-4 mr-2" /> Maya AI
+            </TabsTrigger>
             <TabsTrigger value="carriers" className="rounded-xl flex-1 min-w-[120px] py-2.5 text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white">
               <Briefcase className="w-4 h-4 mr-2" /> Carriers
             </TabsTrigger>
@@ -115,9 +119,6 @@ function SettingsContent() {
             </TabsTrigger>
             <TabsTrigger value="billing" className="rounded-xl flex-1 min-w-[120px] py-2.5 text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white">
               <CreditCard className="w-4 h-4 mr-2" /> Billing
-            </TabsTrigger>
-            <TabsTrigger value="alerts" className="rounded-xl flex-1 min-w-[120px] py-2.5 text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white">
-              <Bell className="w-4 h-4 mr-2" /> Alerts
             </TabsTrigger>
           </TabsList>
 
@@ -165,6 +166,61 @@ function SettingsContent() {
                       className="rounded-xl h-12 bg-background border-border font-mono text-foreground font-black pl-4 shadow-inner"
                     />
                   </div>
+                </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="maya" className="space-y-6 animate-in fade-in duration-300">
+            <Card className="rounded-3xl border border-border shadow-sm bg-card">
+              <CardHeader>
+                <CardTitle className="text-sm font-black uppercase tracking-widest text-foreground flex items-center gap-2">
+                  <Mic2 className="w-4 h-4 text-primary" />
+                  Maya AI Voice Configuration
+                </CardTitle>
+                <CardDescription className="text-xs font-black uppercase opacity-60">Fine-tune Maya's outbound clinical personality.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="space-y-3">
+                    <Label className="text-[10px] font-black uppercase text-foreground ml-1">Voice Profile</Label>
+                    <div className="flex gap-2">
+                      <Button 
+                        variant={mayaSettings.voiceName === 'Algenib' ? 'default' : 'outline'} 
+                        className="flex-1 rounded-xl h-12 font-bold"
+                        onClick={() => updateMayaSettings({ voiceName: 'Algenib' })}
+                      >
+                        Algenib (F)
+                      </Button>
+                      <Button 
+                        variant={mayaSettings.voiceName === 'Achernar' ? 'default' : 'outline'} 
+                        className="flex-1 rounded-xl h-12 font-bold"
+                        onClick={() => updateMayaSettings({ voiceName: 'Achernar' })}
+                      >
+                        Achernar (M)
+                      </Button>
+                    </div>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between px-1">
+                      <Label className="text-[10px] font-black uppercase text-foreground">Auto-Escalation</Label>
+                      <Switch 
+                        checked={mayaSettings.autoEscalate}
+                        onCheckedChange={(val) => updateMayaSettings({ autoEscalate: val })}
+                      />
+                    </div>
+                    <p className="text-[10px] text-muted-foreground font-medium uppercase leading-relaxed">Maya will instantly alert a broker if churn keywords are detected during a check-in.</p>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <Label className="text-[10px] font-black uppercase text-foreground ml-1">Global Retention Script</Label>
+                  <Textarea 
+                    value={mayaSettings.script}
+                    onChange={(e) => updateMayaSettings({ script: e.target.value })}
+                    className="min-h-[150px] rounded-2xl bg-muted/20 border-border p-4 text-sm font-medium leading-relaxed italic"
+                  />
+                  <p className="text-[10px] text-primary font-black uppercase tracking-widest text-center mt-2">Personalization tokens: {'{member_name}'}, {'{carrier}'}, {'{days_enrolled}'}</p>
                 </div>
               </CardContent>
             </Card>

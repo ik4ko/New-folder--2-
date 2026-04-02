@@ -40,6 +40,8 @@ export interface MemberRecord {
   notes?: string;
   pcpName?: string;
   pharmacyName?: string;
+  lastCallTranscript?: string;
+  lastCallSentiment?: 'Positive' | 'Neutral' | 'Negative';
 }
 
 export interface BrokerAccount {
@@ -60,6 +62,13 @@ export interface FinancialTransaction {
   amount: number;
   type: 'commission' | 'bonus' | 'renewal';
   status: 'paid' | 'pending';
+}
+
+export interface MayaSettings {
+  voiceName: 'Algenib' | 'Achernar';
+  script: string;
+  autoEscalate: boolean;
+  scheduleDays: number[]; // e.g. [7, 30, 75]
 }
 
 export interface GHLSettings {
@@ -105,6 +114,7 @@ interface AppState {
   activeTutorial: 'none' | 'enrollment' | 'retention';
   tutorialStep: number;
   ghlSettings: GHLSettings;
+  mayaSettings: MayaSettings;
   agencyProfile: AgencyProfile;
   currentUser: BrokerAccount | null;
   addMember: (member: Partial<MemberRecord>) => void;
@@ -120,6 +130,7 @@ interface AppState {
   nextTutorialStep: () => void;
   closeTutorial: () => void;
   updateGHLSettings: (updates: Partial<GHLSettings>) => void;
+  updateMayaSettings: (updates: Partial<MayaSettings>) => void;
   updateAgencyProfile: (updates: Partial<AgencyProfile>) => void;
   addBroker: (broker: Partial<BrokerAccount>) => void;
 }
@@ -135,6 +146,12 @@ export const useAppStore = create<AppState>((set) => ({
   activeTutorial: 'none',
   tutorialStep: 0,
   currentUser: null,
+  mayaSettings: {
+    voiceName: 'Algenib',
+    script: "Hi, this is Maya from the MediStay team. We've detected a possible change in your provider network and wanted to ensure your doctors still accept your current coverage. How has your experience been with your plan lately?",
+    autoEscalate: true,
+    scheduleDays: [7, 30, 75],
+  },
   ghlSettings: {
     locationId: 'loc_99201_sf',
     apiKey: '',
@@ -222,6 +239,9 @@ export const useAppStore = create<AppState>((set) => ({
   closeTutorial: () => set({ activeTutorial: 'none', tutorialStep: 0 }),
   updateGHLSettings: (updates) => set((state) => ({
     ghlSettings: { ...state.ghlSettings, ...updates }
+  })),
+  updateMayaSettings: (updates) => set((state) => ({
+    mayaSettings: { ...state.mayaSettings, ...updates }
   })),
   updateAgencyProfile: (updates) => set((state) => ({
     agencyProfile: { ...state.agencyProfile, ...updates }
