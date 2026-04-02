@@ -101,6 +101,7 @@ interface AppState {
   isSynced: boolean;
   isGHLConnected: boolean;
   isSidebarOpen: boolean;
+  isRosterOpen: boolean;
   ghlSettings: GHLSettings;
   agencyProfile: AgencyProfile;
   currentUser: BrokerAccount | null;
@@ -112,6 +113,7 @@ interface AppState {
   triggerSync: () => void;
   toggleGHL: () => void;
   toggleSidebar: () => void;
+  toggleRoster: () => void;
   updateGHLSettings: (updates: Partial<GHLSettings>) => void;
   updateAgencyProfile: (updates: Partial<AgencyProfile>) => void;
   addBroker: (broker: Partial<BrokerAccount>) => void;
@@ -124,6 +126,7 @@ export const useAppStore = create<AppState>((set) => ({
   isSynced: true,
   isGHLConnected: false,
   isSidebarOpen: true,
+  isRosterOpen: false,
   currentUser: null,
   ghlSettings: {
     locationId: 'loc_99201_sf',
@@ -206,6 +209,7 @@ export const useAppStore = create<AppState>((set) => ({
   },
   toggleGHL: () => set((state) => ({ isGHLConnected: !state.isGHLConnected })),
   toggleSidebar: () => set((state) => ({ isSidebarOpen: !state.isSidebarOpen })),
+  toggleRoster: () => set((state) => ({ isRosterOpen: !state.isRosterOpen })),
   updateGHLSettings: (updates) => set((state) => ({
     ghlSettings: { ...state.ghlSettings, ...updates }
   })),

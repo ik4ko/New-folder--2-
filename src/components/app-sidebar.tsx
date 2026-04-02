@@ -22,9 +22,10 @@ import { Button } from "@/components/ui/button"
 import { ModeToggle } from "@/components/mode-toggle"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 
-export function AppSidebar() {
+export function AppSidebar({ forceOpen = false }: { forceOpen?: boolean }) {
   const pathname = usePathname()
   const { isSidebarOpen, toggleSidebar } = useAppStore()
+  const isOpen = forceOpen || isSidebarOpen
 
   const navItems = [
     { href: '/dashboard', icon: LayoutDashboard, label: 'Command Center', desc: 'Real-time monitoring' },
@@ -41,11 +42,11 @@ export function AppSidebar() {
     <TooltipProvider delayDuration={0}>
       <div className={cn(
         "flex flex-col bg-card border-r border-border h-full shrink-0 z-50 overflow-hidden transition-all duration-300 ease-in-out relative",
-        isSidebarOpen ? "w-64" : "w-16"
+        isOpen ? "w-64" : "w-16"
       )}>
         {/* Brand Header */}
-        <div className={cn("p-4 flex items-center shrink-0 h-16 border-b border-border", isSidebarOpen ? "justify-between" : "justify-center px-0")}>
-          {isSidebarOpen ? (
+        <div className={cn("p-4 flex items-center shrink-0 h-16 border-b border-border", isOpen ? "justify-between" : "justify-center px-0")}>
+          {isOpen ? (
             <>
               <Link href="/dashboard" className="flex items-center gap-2">
                 <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center text-white font-black text-sm shadow-lg shadow-primary/20">
@@ -53,14 +54,16 @@ export function AppSidebar() {
                 </div>
                 <span className="text-sm font-black tracking-tight text-foreground uppercase">medistay.ai</span>
               </Link>
-              <Button 
-                variant="ghost" 
-                size="icon" 
-                onClick={toggleSidebar} 
-                className="h-8 w-8 rounded-lg hover:bg-muted text-muted-foreground"
-              >
-                <PanelLeftClose className="w-4 h-4" />
-              </Button>
+              {!forceOpen && (
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  onClick={toggleSidebar} 
+                  className="h-8 w-8 rounded-lg hover:bg-muted text-muted-foreground"
+                >
+                  <PanelLeftClose className="w-4 h-4" />
+                </Button>
+              )}
             </>
           ) : (
             <Button 
@@ -85,19 +88,19 @@ export function AppSidebar() {
                     href={item.href}
                     className={cn(
                       "flex items-center rounded-xl transition-all duration-200 group",
-                      isSidebarOpen ? "px-3 py-2.5 gap-3" : "justify-center py-3",
+                      isOpen ? "px-3 py-2.5 gap-3" : "justify-center py-3",
                       isActive 
                         ? "bg-primary/10 text-primary font-bold shadow-sm" 
                         : "text-muted-foreground hover:bg-muted hover:text-foreground"
                     )}
                   >
                     <item.icon className={cn("w-5 h-5", isActive ? "text-primary" : "text-muted-foreground group-hover:text-foreground")} />
-                    {isSidebarOpen && (
+                    {isOpen && (
                       <span className="text-[11px] font-bold uppercase tracking-widest truncate">{item.label}</span>
                     )}
                   </Link>
                 </TooltipTrigger>
-                {!isSidebarOpen && (
+                {!isOpen && (
                   <TooltipContent side="right">
                     <p className="font-bold text-xs uppercase">{item.label}</p>
                     <p className="text-[10px] opacity-70">{item.desc}</p>
@@ -108,8 +111,8 @@ export function AppSidebar() {
           })}
         </nav>
 
-        {/* CMS Disclaimer Rail (Mandatory Compliance) */}
-        {isSidebarOpen && (
+        {/* CMS Disclaimer Rail */}
+        {isOpen && (
           <div className="px-4 py-3 bg-muted/30 border-t border-border">
             <p className="text-[8px] font-bold text-muted-foreground leading-tight uppercase opacity-50">
               Not connected with or endorsed by the U.S. government or the federal Medicare program.
@@ -119,8 +122,8 @@ export function AppSidebar() {
 
         {/* Footer Nav */}
         <div className="p-3 mt-auto border-t border-border space-y-2">
-          <div className={cn("flex items-center", isSidebarOpen ? "justify-between px-2" : "justify-center px-0")}>
-            {isSidebarOpen && (
+          <div className={cn("flex items-center", isOpen ? "justify-between px-2" : "justify-center px-0")}>
+            {isOpen && (
               <div className="flex items-center gap-2">
                 <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
                 <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Live Sync</span>
@@ -133,12 +136,12 @@ export function AppSidebar() {
             href="/settings"
             className={cn(
               "flex items-center rounded-xl transition-all",
-              isSidebarOpen ? "px-3 py-2.5 gap-3" : "justify-center py-3",
+              isOpen ? "px-3 py-2.5 gap-3" : "justify-center py-3",
               pathname.startsWith('/settings') ? "bg-muted text-foreground font-bold shadow-sm" : "text-muted-foreground hover:bg-muted hover:text-foreground"
             )}
           >
             <Settings className="w-5 h-5" />
-            {isSidebarOpen && <span className="text-[11px] font-bold uppercase tracking-widest">Settings</span>}
+            {isOpen && <span className="text-[11px] font-bold uppercase tracking-widest">Settings</span>}
           </Link>
         </div>
       </div>

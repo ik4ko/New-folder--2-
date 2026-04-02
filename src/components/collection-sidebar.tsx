@@ -10,11 +10,13 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { useIsMobile } from "@/hooks/use-mobile"
 
-export function CollectionSidebar() {
-  const { members, isSidebarOpen, toggleSidebar } = useAppStore()
+export function CollectionSidebar({ forceMobile = false }: { forceMobile?: boolean }) {
+  const { members, isSidebarOpen, toggleSidebar, toggleRoster } = useAppStore()
   const [search, setSearch] = useState("")
   const pathname = usePathname()
+  const isMobile = useIsMobile()
 
   const filteredMembers = useMemo(() => {
     return members.filter(m => 
@@ -23,10 +25,15 @@ export function CollectionSidebar() {
     )
   }, [members, search])
 
+  const handleClose = () => {
+    if (isMobile) toggleRoster()
+    else toggleSidebar()
+  }
+
   return (
     <aside className={cn(
       "flex flex-col h-full bg-background border-r border-border shrink-0 z-40 overflow-hidden transition-all duration-300 ease-in-out",
-      isSidebarOpen ? "w-64 opacity-100" : "w-0 opacity-0 border-none pointer-events-none"
+      forceMobile ? "w-full" : (isMobile ? "hidden" : (isSidebarOpen ? "w-64 opacity-100" : "w-0 opacity-0 border-none pointer-events-none"))
     )}>
       {/* Header Area */}
       <div className="h-16 flex items-center justify-between px-4 border-b border-border shrink-0">
@@ -39,7 +46,7 @@ export function CollectionSidebar() {
             <Tooltip>
               <TooltipTrigger asChild>
                 <Button variant="ghost" size="icon" asChild className="h-8 w-8 rounded-lg text-muted-foreground hover:bg-primary/5 hover:text-primary">
-                  <Link href="/members/new">
+                  <Link href="/members/new" onClick={() => isMobile && toggleRoster()}>
                     <UserPlus className="h-4 w-4" />
                   </Link>
                 </Button>
@@ -51,7 +58,7 @@ export function CollectionSidebar() {
           <Button 
             variant="ghost" 
             size="icon" 
-            onClick={toggleSidebar} 
+            onClick={handleClose} 
             className="h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted"
           >
             <PanelLeftClose className="h-4 w-4" />
@@ -78,6 +85,7 @@ export function CollectionSidebar() {
             <Link 
               key={member.id}
               href={`/members/${member.id}`}
+              onClick={() => isMobile && toggleRoster()}
               className={cn(
                 "flex items-center gap-2.5 px-3 py-2 rounded-xl transition-all duration-150 group",
                 pathname === `/members/${member.id}` 
