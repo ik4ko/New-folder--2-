@@ -1,20 +1,21 @@
 "use client"
 
-import { CollectionSidebar } from "@/components/collection-sidebar"
 import { useAppStore } from "@/lib/store"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Tabs, TabsContent } from "@/components/ui/tabs"
 import { Switch } from "@/components/ui/switch"
+import { ScrollArea } from "@/components/ui/scroll-area"
 import { 
   Settings, Building2, User, ShieldCheck, Bell, 
   Save, Lock, Users2, Plus, 
   MoreVertical, BadgeCheck,
   CreditCard,
   Fingerprint, ExternalLink as LinkIcon,
-  ShoppingBag, ShieldAlert, Briefcase, PhoneCall, Mic2
+  ShoppingBag, ShieldAlert, Briefcase, PhoneCall, Mic2,
+  PanelLeftClose, Link2, Palette, Globe
 } from "lucide-react"
 import { toast } from "@/hooks/use-toast"
 import { useSearchParams, useRouter } from "next/navigation"
@@ -29,6 +30,71 @@ import {
   AlertDialogTrigger 
 } from "@/components/ui/alert-dialog"
 import { Textarea } from "@/components/ui/textarea"
+import { cn } from "@/lib/utils"
+
+function SettingsSidebar({ activeTab, onTabChange }: { activeTab: string, onTabChange: (tab: string) => void }) {
+  const { isSidebarOpen, toggleSidebar } = useAppStore()
+
+  const menuItems = [
+    { id: "identity", label: "Agency Identity", icon: Building2 },
+    { id: "team", label: "Team & Splits", icon: Users2 },
+    { id: "maya", label: "Maya AI Voice", icon: Mic2 },
+    { id: "carriers", label: "Carrier Contracts", icon: Briefcase },
+    { id: "alerts", label: "Sync Alerts", icon: Bell },
+    { id: "security", label: "HIPAA Security", icon: ShieldAlert },
+    { id: "billing", label: "Plan & Billing", icon: CreditCard },
+    { id: "compliance", label: "Compliance Logs", icon: ShieldCheck },
+  ]
+
+  return (
+    <aside className={cn(
+      "flex flex-col h-full bg-background border-r border-border shrink-0 z-40 overflow-hidden transition-all duration-300 ease-in-out",
+      isSidebarOpen ? "w-64 opacity-100" : "w-0 opacity-0 border-none pointer-events-none"
+    )}>
+      <div className="h-16 flex items-center justify-between px-4 border-b border-border shrink-0">
+        <h2 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground whitespace-nowrap px-2">
+          Agency Settings
+        </h2>
+        <Button 
+          variant="ghost" 
+          size="icon" 
+          onClick={toggleSidebar} 
+          className="h-8 w-8 rounded-lg text-muted-foreground hover:bg-muted"
+        >
+          <PanelLeftClose className="h-4 w-4" />
+        </Button>
+      </div>
+
+      <ScrollArea className="flex-1 px-3 py-4">
+        <div className="space-y-1">
+          {menuItems.map((item) => (
+            <button
+              key={item.id}
+              onClick={() => onTabChange(item.id)}
+              className={cn(
+                "w-full flex items-center gap-3 px-3 py-2.5 rounded-xl transition-all text-left group",
+                activeTab === item.id 
+                  ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20 font-bold" 
+                  : "text-muted-foreground hover:bg-muted hover:text-foreground"
+              )}
+            >
+              <item.icon className={cn("w-4 h-4", activeTab === item.id ? "text-white" : "text-muted-foreground group-hover:text-primary")} />
+              <span className="text-[11px] font-black uppercase tracking-widest truncate">{item.label}</span>
+            </button>
+          ))}
+        </div>
+      </ScrollArea>
+
+      <div className="p-4 border-t border-border bg-muted/5 shrink-0">
+        <div className="p-3 rounded-xl border border-dashed border-border bg-white/50 space-y-2">
+          <p className="text-[8px] font-black text-muted-foreground uppercase leading-tight text-center">
+            MediStay HIPAA Workspace v4.2
+          </p>
+        </div>
+      </div>
+    </aside>
+  )
+}
 
 function SettingsContent() {
   const searchParams = useSearchParams()
@@ -40,7 +106,7 @@ function SettingsContent() {
 
   useEffect(() => {
     const tab = searchParams.get("tab")
-    if (tab && ["identity", "branding", "alerts", "compliance", "team", "billing", "security", "carriers", "maya"].includes(tab)) {
+    if (tab) {
       setActiveTab(tab)
     }
   }, [searchParams])
@@ -99,30 +165,9 @@ function SettingsContent() {
         </div>
       </header>
 
-      <div className="flex-1 overflow-y-auto p-8 max-w-5xl mx-auto w-full space-y-8 bg-background">
-        <Tabs value={activeTab} onValueChange={handleTabChange} className="w-full">
-          <TabsList className="bg-muted p-1 rounded-2xl border border-border mb-8 flex flex-wrap h-auto gap-1 shadow-inner">
-            <TabsTrigger value="identity" className="rounded-xl flex-1 min-w-[120px] py-2.5 text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white">
-              <Building2 className="w-4 h-4 mr-2" /> Identity
-            </TabsTrigger>
-            <TabsTrigger value="team" className="rounded-xl flex-1 min-w-[120px] py-2.5 text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white">
-              <Users2 className="w-4 h-4 mr-2" /> Team
-            </TabsTrigger>
-            <TabsTrigger value="maya" className="rounded-xl flex-1 min-w-[120px] py-2.5 text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white">
-              <PhoneCall className="w-4 h-4 mr-2" /> Maya AI
-            </TabsTrigger>
-            <TabsTrigger value="carriers" className="rounded-xl flex-1 min-w-[120px] py-2.5 text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white">
-              <Briefcase className="w-4 h-4 mr-2" /> Carriers
-            </TabsTrigger>
-            <TabsTrigger value="security" className="rounded-xl flex-1 min-w-[120px] py-2.5 text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white">
-              <ShieldAlert className="w-4 h-4 mr-2" /> Security
-            </TabsTrigger>
-            <TabsTrigger value="billing" className="rounded-xl flex-1 min-w-[120px] py-2.5 text-[10px] font-black uppercase tracking-widest data-[state=active]:bg-primary data-[state=active]:text-white">
-              <CreditCard className="w-4 h-4 mr-2" /> Billing
-            </TabsTrigger>
-          </TabsList>
-
-          <TabsContent value="identity" className="space-y-6 animate-in fade-in duration-300">
+      <div className="flex-1 overflow-y-auto p-8 max-w-5xl mx-auto w-full bg-background">
+        <Tabs value={activeTab} className="w-full">
+          <TabsContent value="identity" className="space-y-6 m-0 animate-in fade-in duration-300">
             <Card className="rounded-3xl border border-border shadow-sm bg-card">
               <CardHeader>
                 <CardTitle className="text-sm font-black uppercase tracking-widest text-foreground flex items-center gap-2">
@@ -171,7 +216,7 @@ function SettingsContent() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="maya" className="space-y-6 animate-in fade-in duration-300">
+          <TabsContent value="maya" className="space-y-6 m-0 animate-in fade-in duration-300">
             <Card className="rounded-3xl border border-border shadow-sm bg-card">
               <CardHeader>
                 <CardTitle className="text-sm font-black uppercase tracking-widest text-foreground flex items-center gap-2">
@@ -226,7 +271,7 @@ function SettingsContent() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="carriers" className="space-y-6 animate-in fade-in duration-300">
+          <TabsContent value="carriers" className="space-y-6 m-0 animate-in fade-in duration-300">
             <Card className="rounded-3xl border border-border shadow-sm bg-card">
               <CardHeader>
                 <CardTitle className="text-sm font-black uppercase tracking-widest text-foreground flex items-center gap-2">
@@ -261,7 +306,7 @@ function SettingsContent() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="security" className="space-y-6 animate-in fade-in duration-300">
+          <TabsContent value="security" className="space-y-6 m-0 animate-in fade-in duration-300">
             <Card className="rounded-3xl border border-border shadow-sm bg-slate-950 text-white p-8 overflow-hidden relative">
               <div className="absolute top-0 right-0 p-6 opacity-10"><Lock className="w-32 h-32 text-white" /></div>
               <CardHeader className="px-0">
@@ -300,7 +345,7 @@ function SettingsContent() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="team" className="space-y-6 animate-in fade-in duration-300">
+          <TabsContent value="team" className="space-y-6 m-0 animate-in fade-in duration-300">
             <Card className="rounded-3xl border border-border shadow-sm bg-card overflow-hidden">
               <CardHeader className="flex flex-row items-center justify-between border-b bg-muted/30 py-4">
                 <div>
@@ -359,7 +404,7 @@ function SettingsContent() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="billing" className="space-y-8 animate-in fade-in duration-300">
+          <TabsContent value="billing" className="space-y-8 m-0 animate-in fade-in duration-300">
             <Card className="rounded-3xl border-2 border-primary bg-primary/5 shadow-xl overflow-hidden relative">
               <div className="absolute top-0 right-0 p-8 opacity-10"><ShoppingBag className="w-32 h-32 text-primary" /></div>
               <CardContent className="p-10 flex flex-col md:flex-row items-center justify-between gap-8 relative z-10">
@@ -416,7 +461,7 @@ function SettingsContent() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="alerts" className="space-y-6">
+          <TabsContent value="alerts" className="space-y-6 m-0">
             <Card className="rounded-3xl border border-border shadow-sm bg-card p-10">
               <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-4">
@@ -442,6 +487,49 @@ function SettingsContent() {
               </div>
             </Card>
           </TabsContent>
+
+          <TabsContent value="compliance" className="space-y-6 m-0">
+            <Card className="rounded-3xl border border-border shadow-sm bg-card overflow-hidden">
+              <CardHeader className="bg-muted/30 border-b p-8">
+                <div className="flex items-center gap-4">
+                  <div className="w-12 h-12 rounded-2xl bg-white border border-border flex items-center justify-center text-primary shadow-sm">
+                    <ShieldCheck className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <CardTitle className="text-lg font-black uppercase tracking-tight">Audit Trail Management</CardTitle>
+                    <CardDescription className="text-xs font-black uppercase opacity-60">Federally mandated record retention settings.</CardDescription>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="p-8 space-y-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                  <div className="p-6 rounded-2xl bg-background border border-border space-y-4">
+                    <h4 className="text-xs font-black uppercase tracking-widest flex items-center gap-2">
+                      <Globe className="w-4 h-4 text-primary" />
+                      Data Residency
+                    </h4>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed uppercase font-bold">
+                      All member PHI is stored in US-East-1 (HIPAA Compliant Availability Zone).
+                    </p>
+                    <Badge className="bg-emerald-50 text-emerald-700 border-none font-black text-[9px]">LOCKED</Badge>
+                  </div>
+                  <div className="p-6 rounded-2xl bg-background border border-border space-y-4">
+                    <h4 className="text-xs font-black uppercase tracking-widest flex items-center gap-2">
+                      <Save className="w-4 h-4 text-primary" />
+                      Retention Period
+                    </h4>
+                    <p className="text-[11px] text-muted-foreground leading-relaxed uppercase font-bold">
+                      CMS requirement: 10 Year Archive active for all SOA and enrollment logs.
+                    </p>
+                    <Badge className="bg-emerald-50 text-emerald-700 border-none font-black text-[9px]">ACTIVE</Badge>
+                  </div>
+                </div>
+                <Button variant="outline" className="w-full rounded-2xl h-12 border-primary/20 text-primary font-black uppercase text-[10px] tracking-widest">
+                  Download Annual Compliance Report
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
       </div>
     </div>
@@ -449,10 +537,14 @@ function SettingsContent() {
 }
 
 export default function AgencySettingsPage() {
+  const searchParams = useSearchParams()
+  const router = useRouter()
+  const activeTab = searchParams.get("tab") || "identity"
+
   return (
     <div className="flex h-full w-full bg-background">
-      <CollectionSidebar />
       <Suspense fallback={<div className="flex-1 p-20 text-center font-black uppercase tracking-widest opacity-30 text-foreground">Initializing HIPAA Workspace...</div>}>
+        <SettingsSidebar activeTab={activeTab} onTabChange={(tab) => router.push(`/settings?tab=${tab}`)} />
         <SettingsContent />
       </Suspense>
     </div>
