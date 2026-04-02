@@ -177,7 +177,7 @@ function SettingsContent({ activeTab }: { activeTab: string }) {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                <div className="flex flex-col gap-10 max-w-md">
                   <div className="space-y-3">
                     <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
                       {agencyProfile.isSolo ? "Broker Name" : "Agency Name"}
