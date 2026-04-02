@@ -108,7 +108,7 @@ export function AppSidebar() {
           })}
         </nav>
 
-        {/* CMS Disclaimer Rail (Mandatory) */}
+        {/* CMS Disclaimer Rail (Mandatory Compliance) */}
         {isSidebarOpen && (
           <div className="px-4 py-3 bg-muted/30 border-t border-border">
             <p className="text-[8px] font-bold text-muted-foreground leading-tight uppercase opacity-50">
