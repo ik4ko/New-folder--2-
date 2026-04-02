@@ -96,25 +96,11 @@ function SettingsSidebar({ activeTab, onTabChange }: { activeTab: string, onTabC
   )
 }
 
-function SettingsContent() {
-  const searchParams = useSearchParams()
+function SettingsContent({ activeTab }: { activeTab: string }) {
   const router = useRouter()
-  const [activeTab, setActiveTab] = useState("identity")
   const [isCheckoutOpen, setIsCheckoutOpen] = useState(false)
   
   const { agencyProfile, updateAgencyProfile, brokers, addBroker, mayaSettings, updateMayaSettings } = useAppStore()
-
-  useEffect(() => {
-    const tab = searchParams.get("tab")
-    if (tab) {
-      setActiveTab(tab)
-    }
-  }, [searchParams])
-
-  const handleTabChange = (val: string) => {
-    setActiveTab(val)
-    router.push(`/settings?tab=${val}`)
-  }
 
   const handleSave = () => {
     toast({ title: "Settings Saved", description: "Your agency preferences have been updated." })
@@ -355,9 +341,11 @@ function SettingsContent() {
                   </CardTitle>
                   <CardDescription className="text-xs font-black uppercase opacity-60">Manage permissions and NPNs for your roster.</CardDescription>
                 </div>
-                <Button onClick={handleAddUser} size="sm" className="rounded-xl font-black uppercase tracking-widest bg-primary hover:bg-primary/90 text-white text-[10px] h-9 px-4">
-                  <Plus className="w-4 h-4 mr-2" /> Add Broker
-                </Button>
+                {!agencyProfile.isSolo && (
+                  <Button onClick={handleAddUser} size="sm" className="rounded-xl font-black uppercase tracking-widest bg-primary hover:bg-primary/90 text-white text-[10px] h-9 px-4">
+                    <Plus className="w-4 h-4 mr-2" /> Add Broker
+                  </Button>
+                )}
               </CardHeader>
               <CardContent className="p-0">
                 <Table>
@@ -418,7 +406,7 @@ function SettingsContent() {
                       <p className="text-[10px] font-black text-primary uppercase tracking-widest">Autonomous Retention Entry</p>
                     </div>
                   </div>
-                  <p className="text-sm font-black text-foreground leading-relaxed max-w-lg uppercase opacity-80">
+                  <p className="text-sm font-black text-foreground leading-relaxed max-lg uppercase opacity-80">
                     The $29/mo plan provides full access to Module 1 (MARx Monitoring) and secure clinical GHL synchronization.
                   </p>
                 </div>
@@ -461,7 +449,7 @@ function SettingsContent() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="alerts" className="space-y-6 m-0">
+          <TabsContent value="alerts" className="space-y-6 m-0 animate-in fade-in duration-300">
             <Card className="rounded-3xl border border-border shadow-sm bg-card p-10">
               <div className="flex items-center justify-between mb-8">
                 <div className="flex items-center gap-4">
@@ -488,7 +476,7 @@ function SettingsContent() {
             </Card>
           </TabsContent>
 
-          <TabsContent value="compliance" className="space-y-6 m-0">
+          <TabsContent value="compliance" className="space-y-6 m-0 animate-in fade-in duration-300">
             <Card className="rounded-3xl border border-border shadow-sm bg-card overflow-hidden">
               <CardHeader className="bg-muted/30 border-b p-8">
                 <div className="flex items-center gap-4">
@@ -545,7 +533,7 @@ export default function AgencySettingsPage() {
     <div className="flex h-full w-full bg-background">
       <Suspense fallback={<div className="flex-1 p-20 text-center font-black uppercase tracking-widest opacity-30 text-foreground">Initializing HIPAA Workspace...</div>}>
         <SettingsSidebar activeTab={activeTab} onTabChange={(tab) => router.push(`/settings?tab=${tab}`)} />
-        <SettingsContent />
+        <SettingsContent activeTab={activeTab} />
       </Suspense>
     </div>
   )
