@@ -1,4 +1,3 @@
-
 "use client"
 
 import { Button } from "@/components/ui/button"
@@ -45,7 +44,7 @@ export default function TermsPage() {
               02. Subscription & Billing
             </h2>
             <p className="text-sm font-medium text-muted-foreground leading-relaxed uppercase opacity-80">
-              The $29/mo Entry Plan and other tiers are billed monthly. Cancellations take effect at the end of the current billing cycle. All transactions are handled via our BAA-compliant payment processor.
+              The $99/mo Entry Plan (or $999/year) and other tiers are billed monthly or annually. Cancellations take effect at the end of the current billing cycle. All transactions are handled via our BAA-compliant payment processor.
             </p>
           </div>
 

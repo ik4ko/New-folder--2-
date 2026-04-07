@@ -42,12 +42,12 @@ export default function AccountingPage() {
   }
 
   const navigateToBilling = () => {
-    router.push('/settings?tab=billing')
+    router.push('/settings/billing')
   }
 
   const getPlanCost = () => {
     switch (agencyProfile.billingPlan) {
-      case 'entry': return '29'
+      case 'entry': return '99'
       case 'starter': return '199'
       case 'pro': return '499'
       case 'enterprise': return '1499'

@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useAppStore } from "@/lib/store"
@@ -29,7 +28,7 @@ export default function BillingSettingsPage() {
       handleUpdatePlan('entry')
       toast({ 
         title: "Payment Successful", 
-        description: "Your $29 Monthly Entry Plan is now active.",
+        description: "Your $99 Monthly Entry Plan is now active.",
         className: "bg-emerald-50 border-emerald-200 text-emerald-900 font-black"
       })
     } else {
@@ -81,12 +80,12 @@ export default function BillingSettingsPage() {
                 </div>
               </div>
               <p className="text-sm font-black text-foreground leading-relaxed max-w-lg uppercase opacity-80 italic">
-                The $29/mo plan provides full access to Module 1 (MARx Monitoring) and secure clinical GHL synchronization.
+                The $99/mo plan (or $999/yr) provides full access to Module 1 (MARx Monitoring) and secure clinical GHL synchronization.
               </p>
             </div>
             <div className="text-center md:text-right space-y-6 bg-white p-10 rounded-[2.5rem] shadow-2xl border border-border min-w-[280px]">
               <div className="flex items-baseline justify-center md:justify-end gap-1">
-                <span className="text-5xl font-black text-foreground tracking-tighter">$29</span>
+                <span className="text-5xl font-black text-foreground tracking-tighter">$99</span>
                 <span className="text-xs font-black text-muted-foreground uppercase tracking-widest">/MO</span>
               </div>
               
@@ -105,14 +104,14 @@ export default function BillingSettingsPage() {
                   <div className="p-12 space-y-10 bg-white">
                     <div className="flex justify-between items-center border-b border-border pb-8 text-foreground font-black uppercase tracking-widest text-xs">
                       <span>MediStay Entry Subscription</span>
-                      <span className="text-lg">$29.00 / Month</span>
+                      <span className="text-lg">$99.00 / Month (or $999 / Year)</span>
                     </div>
                     <div className="grid grid-cols-2 gap-6">
                       <Button variant="outline" className="h-16 rounded-2xl font-black uppercase border-2 border-border text-[10px] hover:bg-muted" onClick={() => handleStripeCheckout('decline')}>
                         Cancel
                       </Button>
                       <Button className="h-16 rounded-2xl bg-[#635BFF] hover:bg-[#534be5] text-white font-black uppercase text-[10px] shadow-xl shadow-[#635BFF]/30" onClick={() => handleStripeCheckout('confirm')}>
-                        Authorize $29.00
+                        Authorize $99.00
                       </Button>
                     </div>
                   </div>
