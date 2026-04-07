@@ -118,11 +118,9 @@ export default function LandingPage() {
     setLoading(true)
     const auth = getAuth()
     try {
-      // Must authenticate to enter demo mode
       const userCredential = await signInAnonymously(auth)
       const db = getFirestore()
       
-      // Seed randomized data for the demo
       importFromGHL(12)
       
       await setDoc(doc(db, 'artifacts', 'medistay-production', 'users', userCredential.user.uid, 'profile', 'agency'), {
@@ -262,8 +260,8 @@ export default function LandingPage() {
         <section id="pricing" className="py-32 px-8 bg-slate-50 border-y border-border/50">
           <div className="max-w-7xl mx-auto space-y-20">
             <div className="text-center space-y-4">
-              <h2 className="text-5xl font-black uppercase tracking-tighter">Agency <span className="text-primary">Pricing</span></h2>
-              <p className="text-muted-foreground font-black uppercase tracking-widest text-xs">Clinical Grade Retention Plans for Agencies of all sizes.</p>
+              <h2 className="text-5xl font-black uppercase tracking-tighter text-black">Agency <span className="text-primary">Pricing</span></h2>
+              <p className="text-black font-black uppercase tracking-widest text-xs opacity-70">Clinical Grade Retention Plans for Agencies of all sizes.</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
               {pricingTiers.map((tier, i) => (
@@ -273,20 +271,20 @@ export default function LandingPage() {
                 )}>
                   <div>
                     <div className="flex justify-between items-start mb-8">
-                      <h3 className="text-2xl font-black uppercase tracking-tighter">{tier.name}</h3>
+                      <h3 className="text-2xl font-black uppercase tracking-tighter text-black">{tier.name}</h3>
                       {tier.highlight && <Badge className="rounded-lg font-black uppercase text-[10px] px-3 py-1 bg-primary text-white">Most Popular</Badge>}
                     </div>
                     <div className="mb-8">
                       <div className="flex items-baseline gap-1">
-                        <span className="text-6xl font-black tracking-tighter">{tier.price}</span>
-                        <span className="text-sm font-bold text-muted-foreground uppercase">/MO</span>
+                        <span className="text-6xl font-black tracking-tighter text-black">{tier.price}</span>
+                        <span className="text-sm font-bold text-black uppercase opacity-60">/MO</span>
                       </div>
                       <p className="text-[10px] font-bold text-primary uppercase mt-2 tracking-widest">OR {tier.yearly} / YEAR</p>
                     </div>
-                    <p className="text-sm font-bold text-muted-foreground mb-10 uppercase leading-snug opacity-70">{tier.desc}</p>
+                    <p className="text-sm font-bold text-black mb-10 uppercase leading-snug opacity-80">{tier.desc}</p>
                     <div className="space-y-5 mb-10">
                       {tier.features.map((f, j) => (
-                        <div key={j} className="flex items-center gap-4 text-xs font-black text-slate-600 uppercase tracking-tight">
+                        <div key={j} className="flex items-center gap-4 text-xs font-black text-black uppercase tracking-tight">
                           <CheckCircle2 size={16} className="text-primary shrink-0" />
                           <span>{f}</span>
                         </div>
