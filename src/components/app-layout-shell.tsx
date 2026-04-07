@@ -1,3 +1,4 @@
+
 "use client"
 
 import { usePathname } from "next/navigation"
@@ -11,11 +12,16 @@ import { CollectionSidebar } from "./collection-sidebar"
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
+  
+  // Routes that shouldn't use the standard app shell (sidebar, command bar, etc.)
   const isLandingPage = pathname === "/"
+  const isDocsPage = pathname.startsWith("/docs")
+  const isExcluded = isLandingPage || isDocsPage
+
   const isMobile = useIsMobile()
   const { isSidebarOpen, toggleSidebar, isRosterOpen, toggleRoster } = useAppStore()
 
-  if (isLandingPage) {
+  if (isExcluded) {
     return (
       <div className="h-screen w-screen overflow-y-auto bg-background">
         {children}

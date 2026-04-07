@@ -14,7 +14,7 @@ import {
   Loader2, PlayCircle, Quote, Star,
   Terminal, Printer, PhoneCall, Link2,
   Lock, MousePointer2, BarChart3, Search,
-  Database, UserCheck, ShieldPlus
+  Database, UserCheck, ShieldPlus, X
 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -142,7 +142,7 @@ export default function LandingPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-background text-foreground font-sans selection:bg-primary/10 scroll-smooth">
+    <div className="flex flex-col min-h-screen bg-background text-foreground font-sans selection:bg-primary/10 scroll-smooth overflow-y-auto">
       {/* Navigation */}
       <header className="h-20 border-b border-border/50 px-8 flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur-xl z-50">
         <div className="flex items-center gap-10">
@@ -154,9 +154,9 @@ export default function LandingPage() {
           </Link>
           <nav className="hidden md:flex items-center gap-8">
             <Link href="#features" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors">Features</Link>
-            <Link href="#platform" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors">Platform</Link>
             <Link href="#pricing" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors">Pricing</Link>
             <Link href="#reviews" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors">Reviews</Link>
+            <Link href="/docs/introduction" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors">Docs</Link>
           </nav>
         </div>
         <div className="flex items-center gap-4">
@@ -167,7 +167,7 @@ export default function LandingPage() {
 
       <main className="flex-1">
         {/* Hero Section - High Contrast Update */}
-        <section id="hero" className="relative py-20 md:py-32 px-8 overflow-hidden">
+        <section id="hero" className="relative py-20 md:py-32 px-8">
           <div className="max-w-7xl mx-auto bg-slate-900 rounded-[4rem] p-12 md:p-32 text-center space-y-10 border border-white/5 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.5)]">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-xs font-black uppercase tracking-widest border border-primary/20 mb-4">
               <Zap size={14} className="fill-primary" /> AGENT GRADE RETENTION OS
@@ -189,7 +189,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* 6 Core Demos - Editorial Content */}
+        {/* 6 Core Demos */}
         <section id="features" className="py-32 px-8 max-w-7xl mx-auto space-y-24">
           <div className="text-center space-y-4 max-w-2xl mx-auto">
             <h2 className="text-5xl font-black uppercase tracking-tighter">Retention <span className="text-primary">Intelligence</span></h2>
@@ -257,7 +257,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Pricing Section - Updated Tiers */}
+        {/* Pricing Section */}
         <section id="pricing" className="py-32 px-8 bg-slate-50 border-y border-border/50">
           <div className="max-w-7xl mx-auto space-y-20">
             <div className="text-center space-y-4">
@@ -362,6 +362,9 @@ export default function LandingPage() {
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-8">
           <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-xl" onClick={() => setAuthMode(null)}></div>
           <Card className="relative w-full max-w-md rounded-[3.5rem] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] p-12 text-center animate-in zoom-in-95 duration-300 overflow-hidden bg-white border-none">
+            <button onClick={() => setAuthMode(null)} className="absolute top-8 right-8 p-2 text-slate-400 hover:text-slate-900 transition-colors">
+              <X size={24} />
+            </button>
             <div className="w-20 h-20 bg-primary rounded-3xl flex items-center justify-center mx-auto mb-10 font-black text-white text-4xl italic shadow-2xl shadow-primary/20">M</div>
             <h2 className="text-4xl font-black mb-3 text-slate-900 uppercase tracking-tighter">{authMode === 'login' ? 'Agency Access' : 'Provision Node'}</h2>
             <p className="text-center text-slate-400 text-xs font-black mb-10 uppercase tracking-widest opacity-70">MediStay Retention OS</p>
