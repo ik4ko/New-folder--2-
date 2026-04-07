@@ -1,3 +1,4 @@
+
 "use client"
 
 import { CollectionSidebar } from "@/components/collection-sidebar"
@@ -48,7 +49,7 @@ export default function AccountingPage() {
   const getPlanCost = () => {
     switch (agencyProfile.billingPlan) {
       case 'entry': return '99'
-      case 'starter': return '199'
+      case 'starter': return '299'
       case 'pro': return '499'
       case 'enterprise': return '1499'
       default: return '0'
@@ -221,7 +222,7 @@ export default function AccountingPage() {
                     Commissions are auto-split based on broker assignment rules defined in <strong>Settings &gt; Team</strong>.
                   </p>
                   <div className="space-y-3">
-                    {brokers.slice(0, 3).map((broker, i) => (
+                    {brokers?.slice(0, 3).map((broker, i) => (
                       <div key={i} className="flex items-center justify-between p-3 rounded-xl bg-muted/20 border border-border/50">
                         <div className="flex flex-col">
                           <span className="text-[10px] font-black text-foreground uppercase">{broker.name}</span>

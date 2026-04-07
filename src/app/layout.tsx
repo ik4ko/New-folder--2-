@@ -1,3 +1,4 @@
+
 import type { Metadata } from 'next';
 import './globals.css';
 import { CommandBar } from '@/components/command-bar';
@@ -23,7 +24,7 @@ export default function RootLayout({
         <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
         <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5" />
       </head>
-      <body className="font-body antialiased bg-background text-foreground overflow-hidden selection:bg-primary/10">
+      <body className="font-body antialiased bg-background text-foreground selection:bg-primary/10" suppressHydrationWarning>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
