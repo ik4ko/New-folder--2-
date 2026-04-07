@@ -8,13 +8,12 @@ import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { 
-  ShieldCheck, Zap, Activity, Users, 
+  ShieldCheck, Zap, Activity, 
   ArrowRight, CheckCircle2, 
-  Sparkles, ShieldAlert,
   Loader2, PlayCircle, Quote, Star,
-  Terminal, Printer, PhoneCall, Link2,
-  Lock, MousePointer2, BarChart3, Search,
-  Database, UserCheck, ShieldPlus, X
+  Terminal, Printer, PhoneCall, 
+  Lock, Search,
+  ShieldPlus, X
 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -166,7 +165,7 @@ export default function LandingPage() {
               <Zap size={14} className="fill-primary" /> AGENT GRADE RETENTION OS
             </div>
             <h1 className="text-6xl md:text-9xl font-black tracking-tighter leading-[0.85] text-white">
-              <span className="text-white">Capture Every</span> <br/><span className="text-primary">Switch Trigger.</span>
+              <span className="text-white">Capture Every</span> <br/><span className="text-white">Switch Trigger.</span>
             </h1>
             <p className="text-xl md:text-2xl text-slate-400 font-medium leading-relaxed max-w-3xl mx-auto mb-12">
               The first autonomous Medicare platform that stops churn by detecting disenrollment attempts in real-time, months before they finalize.
@@ -233,7 +232,7 @@ export default function LandingPage() {
                   <feature.icon className="w-8 h-8" />
                 </div>
                 <div className="space-y-3">
-                  <h3 className="text-2xl font-black uppercase tracking-tight">{feature.title}</h3>
+                  <h3 className="text-2xl font-black uppercase tracking-tight text-black">{feature.title}</h3>
                   <p className="text-sm font-bold text-muted-foreground uppercase leading-relaxed opacity-70">
                     {feature.desc}
                   </p>
