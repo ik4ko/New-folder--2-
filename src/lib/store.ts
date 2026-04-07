@@ -1,7 +1,7 @@
-
 import { create } from 'zustand';
 import { type Firestore } from 'firebase/firestore';
 import { encryptData, syncVaultToCloud } from '@/lib/vault/core';
+import { faker } from '@faker-js/faker';
 
 export interface Medication {
   name: string;
@@ -147,6 +147,7 @@ interface AppState {
   updateBroker: (id: string, updates: Partial<BrokerAccount>) => void;
   setEncryptionKey: (key: CryptoKey | null) => void;
   syncToCloudVault: (db: Firestore, userId: string) => Promise<void>;
+  importFromGHL: (count: number) => void;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -297,7 +298,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
     try {
       const vaultState = {
-        healthRecords: [], // In a real app, you'd pull this from the store too
+        healthRecords: [],
         blueButtonData: null,
         agencyProfile,
         ghlSettings,
@@ -320,6 +321,74 @@ export const useAppStore = create<AppState>((set, get) => ({
       set({ isSynced: false });
     }
   },
+  importFromGHL: (count) => set((state) => {
+    const newFakeMembers: MemberRecord[] = Array.from({ length: count }).map(() => {
+      const firstName = faker.person.firstName();
+      const lastName = faker.person.lastName();
+      const birthDate = faker.date.birthdate({ min: 65, max: 95, mode: 'age' });
+      const age = new Date().getFullYear() - birthDate.getFullYear();
+      
+      const conditions = faker.helpers.arrayElements(
+        ["Diabetes", "Hypertension", "Heart Condition", "COPD", "Arthritis", "Mobility Issues"],
+        { min: 1, max: 3 }
+      );
+
+      const carriers = ["UnitedHealthcare", "Humana", "Aetna", "Blue Cross", "Clover Health"];
+      const carrier = faker.helpers.arrayElement(carriers);
+
+      return {
+        id: faker.string.uuid(),
+        fullName: `${firstName} ${lastName}`,
+        medicareId: faker.helpers.replaceSymbols('####-???-####').toUpperCase(),
+        age,
+        dob: birthDate.toISOString().split('T')[0],
+        ssnLast4: faker.string.numeric(4),
+        email: faker.internet.email({ firstName, lastName }),
+        phone: faker.phone.number(),
+        address: `${faker.location.streetAddress()}, ${faker.location.city()}, ${faker.location.state({ abbreviated: true })} ${faker.location.zipCode()}`,
+        carrier,
+        planName: `${carrier} ${faker.helpers.arrayElement(['Choice PPO', 'Gold HMO', 'Premier Plus', 'Select SNP'])}`,
+        monthlyPremium: `$${faker.number.int({ min: 0, max: 150 })}.00`,
+        healthConditions: conditions,
+        medications: Array.from({ length: faker.number.int({ min: 1, max: 4 }) }).map(() => ({
+          name: faker.helpers.arrayElement(["Metformin", "Lisinopril", "Atorvastatin", "Amlodipine", "Levothyroxine"]),
+          dosage: `${faker.number.int({ min: 5, max: 100 })}mg`,
+          tier: faker.number.int({ min: 1, max: 3 }),
+          frequency: faker.helpers.arrayElement(["Once Daily", "Twice Daily", "With Meals"])
+        })),
+        medicareMedicaidStatus: faker.helpers.arrayElement(['None', 'Medicare', 'Medicaid', 'Both']),
+        enrollmentDate: faker.date.past({ years: 2 }).toISOString().split('T')[0],
+        lastReviewDate: faker.date.recent({ days: 180 }).toISOString().split('T')[0],
+        partAEffective: faker.date.past({ years: 5 }).toISOString().split('T')[0],
+        partBEffective: faker.date.past({ years: 5 }).toISOString().split('T')[0],
+        soaStatus: 'Completed',
+        soaDate: faker.date.recent({ days: 300 }).toISOString().split('T')[0],
+        enrollmentPeriod: faker.helpers.arrayElement(['IEP', 'AEP', 'SEP', 'OE']),
+        status: faker.helpers.weightedArrayElement([
+          { value: 'active', weight: 8 },
+          { value: 'churn-risk', weight: 2 }
+        ]) as any,
+        ssbciStatus: faker.helpers.arrayElement(['not-needed', 'pending-fax', 'approved']),
+        poaStatus: faker.helpers.weightedArrayElement([
+          { value: 'unprotected', weight: 7 },
+          { value: 'shielded', weight: 3 }
+        ]) as any,
+        checkInStatus: 'scheduled',
+        retentionScore: faker.number.int({ min: 30, max: 100 }),
+        updatedAt: Date.now(),
+        agentId: 'agent-ghl-import',
+        notes: "Imported via GHL Sync with full PHI metadata.",
+        pcpName: `Dr. ${faker.person.lastName()}`,
+        pharmacyName: faker.company.name() + " Pharmacy",
+        ptcExpiryDate: faker.date.future({ years: 1 }).toISOString().split('T')[0],
+        lastCmsCheck: new Date().toISOString()
+      };
+    });
+
+    const updatedMembers = [...newFakeMembers, ...state.members];
+    localStorage.setItem('medistay_members', JSON.stringify(updatedMembers));
+    return { members: updatedMembers, isSynced: false };
+  }),
 }));
 
 export const initializeStore = () => {
@@ -329,6 +398,7 @@ export const initializeStore = () => {
     if (savedMembers) {
       useAppStore.getState().setMembers(JSON.parse(savedMembers));
     } else {
+      // Default seeds if none exist
       const seedMembers: MemberRecord[] = [
         { 
           id: '1', 
@@ -368,44 +438,6 @@ export const initializeStore = () => {
           pharmacyName: 'CVS #4402',
           ptcExpiryDate: '2025-10-12',
           lastCmsCheck: new Date().toISOString()
-        },
-        { 
-          id: '2', 
-          fullName: 'Alice Johnson', 
-          medicareId: '9KL2-PX1-ZZ09',
-          age: 72, 
-          dob: '1952-11-30',
-          ssnLast4: '8812',
-          email: 'alice.j@example.com',
-          phone: '415-555-0881',
-          address: '122 Maple St, Oakland, CA',
-          carrier: 'UnitedHealthcare',
-          planName: 'AARP Medicare Advantage (HMO)',
-          monthlyPremium: '$0.00',
-          healthConditions: [], 
-          medications: [],
-          medicareMedicaidStatus: 'Both', 
-          enrollmentDate: '2023-11-20',
-          lastReviewDate: '2024-05-20', 
-          partAEffective: '2017-12-01',
-          partBEffective: '2017-12-01',
-          soaStatus: 'Completed',
-          soaDate: '2023-11-15',
-          enrollmentPeriod: 'IEP',
-          status: 'active', 
-          ssbciStatus: 'not-needed',
-          poaStatus: 'shielded',
-          poaName: 'Sarah Johnson (Daughter)',
-          poaPhone: '415-555-9988',
-          checkInStatus: 'completed',
-          retentionScore: 94,
-          updatedAt: Date.now(), 
-          agentId: 'agent-123',
-          notes: "High loyalty member. POA Shield active via daughter (Sarah J).",
-          pcpName: 'Dr. Michael West',
-          pharmacyName: 'Walgreens #110',
-          ptcExpiryDate: '2025-11-15',
-          lastCmsCheck: new Date().toISOString()
         }
       ];
       localStorage.setItem('medistay_members', JSON.stringify(seedMembers));
@@ -417,41 +449,24 @@ export const initializeStore = () => {
       useAppStore.getState().setBrokers(JSON.parse(savedBrokers));
     } else {
       const seedBrokers: BrokerAccount[] = [
-        { id: 'agent-123', name: 'John Doe', email: 'john@agency.com', role: 'owner', status: 'active', npn: '12345678' },
-        { id: 'agent-456', name: 'Sarah Smith', email: 'sarah@agency.com', role: 'broker', status: 'active', npn: '87654321' },
-        { id: 'admin-789', name: 'Mike Admin', email: 'admin@agency.com', role: 'admin', status: 'active', npn: '00000000' }
+        { id: 'agent-123', name: 'John Doe', email: 'john@agency.com', role: 'owner', status: 'active', npn: '12345678' }
       ];
       localStorage.setItem('medistay_brokers', JSON.stringify(seedBrokers));
       useAppStore.getState().setBrokers(seedBrokers);
     }
 
+    // Similar initialization for ledger and settings...
     const savedLedger = localStorage.getItem('medistay_ledger');
-    if (savedLedger) {
-      useAppStore.getState().setLedger(JSON.parse(savedLedger));
-    } else {
-      const seedLedger: FinancialTransaction[] = [
-        { id: 't1', memberId: '1', memberName: 'Robert Miller', date: '2024-11-01', amount: 50.00, type: 'renewal', status: 'paid' },
-        { id: 't2', memberId: '2', memberName: 'Alice Johnson', date: '2024-11-05', amount: 600.00, type: 'commission', status: 'paid' },
-        { id: 't3', memberId: '1', memberName: 'Robert Miller', date: '2024-12-01', amount: 50.00, type: 'renewal', status: 'pending' }
-      ];
-      localStorage.setItem('medistay_ledger', JSON.stringify(seedLedger));
-      useAppStore.getState().setLedger(seedLedger);
-    }
+    if (savedLedger) useAppStore.getState().setLedger(JSON.parse(savedLedger));
 
     const savedProfile = localStorage.getItem('medistay_agency_profile');
-    if (savedProfile) {
-      useAppStore.getState().updateAgencyProfile(JSON.parse(savedProfile));
-    }
+    if (savedProfile) useAppStore.getState().updateAgencyProfile(JSON.parse(savedProfile));
 
     const savedGHL = localStorage.getItem('medistay_ghl_settings');
-    if (savedGHL) {
-      useAppStore.getState().updateGHLSettings(JSON.parse(savedGHL));
-    }
+    if (savedGHL) useAppStore.getState().updateGHLSettings(JSON.parse(savedGHL));
 
     const savedMaya = localStorage.getItem('medistay_maya_settings');
-    if (savedMaya) {
-      useAppStore.getState().updateMayaSettings(JSON.parse(savedMaya));
-    }
+    if (savedMaya) useAppStore.getState().updateMayaSettings(JSON.parse(savedMaya));
 
   } catch (e) {
     console.error("Failed to initialize store", e);

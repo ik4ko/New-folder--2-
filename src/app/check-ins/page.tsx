@@ -1,7 +1,7 @@
 "use client"
 
 import { CollectionSidebar } from "@/components/collection-sidebar"
-import { useAppStore } from "@/lib/store"
+import { useAppStore, initializeStore } from "@/lib/store"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -9,19 +9,24 @@ import {
   PhoneCall, Play, Headphones, MessageSquare, 
   TrendingUp, Sparkles, BrainCircuit, RefreshCw, 
   Settings2, Calendar, UserPlus, Search, 
-  Mic2, AlertTriangle, CheckCircle2, History
+  Mic2, AlertTriangle, CheckCircle2, History, Phone
 } from "lucide-react"
 import { Progress } from "@/components/ui/progress"
 import { toast } from "@/hooks/use-toast"
-import { useMemo, useState } from "react"
+import { useMemo, useState, useEffect } from "react"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 
 export default function CheckInsPage() {
+  useEffect(() => {
+    initializeStore()
+  }, [])
+
   const members = useAppStore((state) => state.members)
   const mayaSettings = useAppStore((state) => state.mayaSettings)
   const updateMayaSettings = useAppStore((state) => state.updateMayaSettings)
+  const updateMember = useAppStore((state) => state.updateMember)
   const [search, setSearch] = useState("")
   
   const callLogs = useMemo(() => {
@@ -30,6 +35,7 @@ export default function CheckInsPage() {
       .map(m => ({
         id: m.id,
         name: m.fullName,
+        phone: m.phone,
         type: m.status === 'active' ? "Day 30" : "Retention Outreach",
         sentiment: m.lastCallSentiment || (m.retentionScore > 85 ? "Positive" : m.retentionScore > 60 ? "Neutral" : "Negative"),
         duration: "2:45",
@@ -61,7 +67,8 @@ export default function CheckInsPage() {
   }
 
   const handleTriggerNow = (id: string) => {
-    toast({ title: "Maya AI Triggered", description: "Outbound call initiated via Twilio Bridge." })
+    toast({ title: "Maya AI Triggered", description: "Outbound call initiated via Twilio HIPAA Bridge." })
+    updateMember(id, { checkInStatus: 'called' })
   }
 
   return (
@@ -147,10 +154,10 @@ export default function CheckInsPage() {
                             <Headphones className="w-5 h-5" />
                           </div>
                           <div>
-                            <p className="text-sm font-bold text-foreground">{log.name}</p>
+                            <p className="text-sm font-bold text-foreground uppercase">{log.name}</p>
                             <div className="flex items-center gap-2 mt-0.5">
                               <Badge variant="outline" className="text-[9px] uppercase font-bold px-1.5 border-primary/20 bg-primary/5">{log.type}</Badge>
-                              <span className="text-[10px] text-muted-foreground font-medium">Duration: {log.duration}</span>
+                              <span className="text-[10px] text-muted-foreground font-medium">{log.phone}</span>
                             </div>
                           </div>
                         </div>
@@ -206,17 +213,17 @@ export default function CheckInsPage() {
                       <div key={member.id} className="p-4 rounded-xl border bg-card flex items-center justify-between group hover:border-primary/30 transition-all">
                         <div className="flex items-center gap-3">
                           <div className="w-8 h-8 rounded-lg bg-muted flex items-center justify-center text-muted-foreground">
-                            <PhoneCall className="w-4 h-4" />
+                            <Phone className="w-4 h-4" />
                           </div>
                           <div>
-                            <p className="text-sm font-bold">{member.fullName}</p>
-                            <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">Trigger: Day 30 Check-in</p>
+                            <p className="text-sm font-bold uppercase">{member.fullName}</p>
+                            <p className="text-[10px] text-muted-foreground uppercase font-bold tracking-widest">{member.phone}</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-3">
-                          <Badge variant="secondary" className="text-[9px] font-bold uppercase">Scheduled</Badge>
-                          <Button onClick={() => handleTriggerNow(member.id)} variant="outline" size="sm" className="h-8 rounded-lg text-[10px] font-bold border-primary/20 text-primary">
-                            Trigger Manual Call
+                          <Badge variant="secondary" className="text-[9px] font-bold uppercase">Scheduled: Day 30</Badge>
+                          <Button onClick={() => handleTriggerNow(member.id)} variant="outline" size="sm" className="h-8 rounded-lg text-[10px] font-black border-primary/20 text-primary hover:bg-primary/5 uppercase tracking-widest">
+                            Call Now
                           </Button>
                         </div>
                       </div>
@@ -249,7 +256,7 @@ export default function CheckInsPage() {
                         className="rounded-lg h-8 text-[9px] font-bold uppercase"
                         onClick={() => updateMayaSettings({ voiceName: 'Algenib' })}
                       >
-                        Algenib (Female)
+                        Algenib (F)
                       </Button>
                       <Button 
                         variant={mayaSettings.voiceName === 'Achernar' ? 'default' : 'outline'} 
@@ -257,13 +264,13 @@ export default function CheckInsPage() {
                         className="rounded-lg h-8 text-[9px] font-bold uppercase"
                         onClick={() => updateMayaSettings({ voiceName: 'Achernar' })}
                       >
-                        Achernar (Male)
+                        Achernar (M)
                       </Button>
                     </div>
                   </div>
 
                   <div className="space-y-2">
-                    <label className="text-[10px] font-black uppercase text-primary tracking-widest">Primary Script</label>
+                    <label className="text-[10px] font-black uppercase text-primary tracking-widest">Global Script</label>
                     <textarea 
                       className="w-full min-h-[120px] rounded-xl border-primary/20 bg-white/50 p-3 text-[11px] leading-relaxed font-medium italic focus:ring-1 focus:ring-primary outline-none"
                       value={mayaSettings.script}
@@ -272,7 +279,7 @@ export default function CheckInsPage() {
                   </div>
 
                   <Button className="w-full rounded-xl h-10 bg-primary text-white font-black uppercase text-[10px] tracking-widest shadow-lg shadow-primary/20">
-                    Save Global Script
+                    Save Personality
                   </Button>
                 </Card>
               </div>
@@ -283,11 +290,11 @@ export default function CheckInsPage() {
                   <h4 className="text-[10px] font-black uppercase tracking-widest">Live Whisper Mode</h4>
                 </div>
                 <p className="text-[11px] leading-relaxed text-slate-300 italic font-medium">
-                  "Listening for keywords: provider switch, premium increase, AARP outreach, dissatisfaction."
+                  "Detecting keywords: 'switcher', 'leaving', 'premium increase', 'unhappy'."
                 </p>
                 <div className="flex items-center gap-2 pt-2">
                   <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                  <span className="text-[9px] font-bold uppercase tracking-tighter text-emerald-400">Real-time analysis active</span>
+                  <span className="text-[9px] font-bold uppercase tracking-tighter text-emerald-400">Analysis Active</span>
                 </div>
               </div>
 
