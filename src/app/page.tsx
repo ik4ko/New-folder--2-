@@ -4,7 +4,7 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
+import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { 
@@ -118,6 +118,7 @@ export default function LandingPage() {
     setLoading(true)
     const auth = getAuth()
     try {
+      // Must authenticate to enter demo mode
       const userCredential = await signInAnonymously(auth)
       const db = getFirestore()
       
@@ -142,7 +143,7 @@ export default function LandingPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-background text-foreground font-sans selection:bg-primary/10 scroll-smooth overflow-y-auto">
+    <div className="flex flex-col min-h-screen bg-background text-foreground selection:bg-primary/10 scroll-smooth">
       {/* Navigation */}
       <header className="h-20 border-b border-border/50 px-8 flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur-xl z-50">
         <div className="flex items-center gap-10">
@@ -166,7 +167,7 @@ export default function LandingPage() {
       </header>
 
       <main className="flex-1">
-        {/* Hero Section - High Contrast Update */}
+        {/* Hero Section - High Contrast */}
         <section id="hero" className="relative py-20 md:py-32 px-8">
           <div className="max-w-7xl mx-auto bg-slate-900 rounded-[4rem] p-12 md:p-32 text-center space-y-10 border border-white/5 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.5)]">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-xs font-black uppercase tracking-widest border border-primary/20 mb-4">
