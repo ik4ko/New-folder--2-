@@ -94,13 +94,16 @@ export default function LandingPage() {
       } else {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password)
         const db = getFirestore()
-        await setDoc(doc(db, 'artifacts', 'medistay-production', 'users', userCredential.user.uid, 'profile', 'agency'), {
+        // Initialize agency in Firestore and start 14-day trial
+        await setDoc(doc(db, 'agencies', userCredential.user.uid), {
           agencyName,
           email,
           createdAt: new Date().toISOString(),
-          tier: 'Basic'
+          trialExpires: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
+          status: 'trialing',
+          tier: 'Entry'
         })
-        toast({ title: "Agency Provisioned", description: "Workspace initialized successfully." })
+        toast({ title: "Agency Provisioned", description: "14-Day Free Trial initiated." })
       }
       router.push('/dashboard')
     } catch (error: any) {
@@ -118,19 +121,10 @@ export default function LandingPage() {
     setLoading(true)
     const auth = getAuth()
     try {
-      const userCredential = await signInAnonymously(auth)
-      const db = getFirestore()
-      
+      // Secure demo with anonymous auth
+      await signInAnonymously(auth)
+      // Seed randomized data
       importFromGHL(12)
-      
-      await setDoc(doc(db, 'artifacts', 'medistay-production', 'users', userCredential.user.uid, 'profile', 'agency'), {
-        agencyName: "Elite Demo Group",
-        email: "demo@medistay.ai",
-        createdAt: new Date().toISOString(),
-        tier: 'Enterprise',
-        isDemo: true
-      })
-
       toast({ title: "Demo Mode Ready", description: "Launching sandbox with simulated carrier data..." })
       router.push('/dashboard')
     } catch (error: any) {
@@ -141,7 +135,7 @@ export default function LandingPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-background text-foreground selection:bg-primary/10 scroll-smooth">
+    <div className="flex flex-col min-h-screen bg-background text-foreground selection:bg-primary/10 scroll-smooth overflow-y-auto">
       {/* Navigation */}
       <header className="h-20 border-b border-border/50 px-8 flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur-xl z-50">
         <div className="flex items-center gap-10">
@@ -165,21 +159,21 @@ export default function LandingPage() {
       </header>
 
       <main className="flex-1">
-        {/* Hero Section - High Contrast */}
+        {/* Hero Section - High Contrast Deep Blue */}
         <section id="hero" className="relative py-20 md:py-32 px-8">
-          <div className="max-w-7xl mx-auto bg-slate-900 rounded-[4rem] p-12 md:p-32 text-center space-y-10 border border-white/5 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.5)]">
+          <div className="max-w-7xl mx-auto bg-slate-950 rounded-[4rem] p-12 md:p-32 text-center space-y-10 border border-white/5 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.5)]">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-xs font-black uppercase tracking-widest border border-primary/20 mb-4">
               <Zap size={14} className="fill-primary" /> AGENT GRADE RETENTION OS
             </div>
             <h1 className="text-6xl md:text-9xl font-black tracking-tighter leading-[0.85] text-white">
-              Capture Every <br/><span className="text-primary">Switch Trigger.</span>
+              <span className="text-white">Capture Every</span> <br/><span className="text-primary">Switch Trigger.</span>
             </h1>
             <p className="text-xl md:text-2xl text-slate-400 font-medium leading-relaxed max-w-3xl mx-auto mb-12">
               The first autonomous Medicare platform that stops churn by detecting disenrollment attempts in real-time, months before they finalize.
             </p>
             <div className="flex flex-wrap justify-center gap-6">
               <Button size="lg" onClick={() => setAuthMode('signup')} className="h-20 px-16 rounded-[2.5rem] text-xl font-black shadow-2xl shadow-primary/30 transition-all hover:scale-105 bg-primary hover:bg-primary/90 text-white">
-                Start Production Node
+                Start 14-Day Free Trial
               </Button>
               <Button size="lg" variant="outline" onClick={startDemoMode} className="h-20 px-16 rounded-[2.5rem] text-xl font-black border-2 border-white/10 text-white hover:bg-white/5 transition-all flex items-center gap-3">
                 {loading ? <Loader2 className="animate-spin" /> : <PlayCircle size={24} />} Launch Demo
@@ -199,39 +193,39 @@ export default function LandingPage() {
             {[
               { 
                 title: 'MARx Switch Detection', 
-                desc: 'Instantly detect carrier switches via nightly snapshot polls from CMS. 24-hour retention window.', 
+                desc: 'Instantly detect carrier switches via nightly snapshot polls from CMS. Catch "stealth" disenrollements within 24 hours.', 
                 icon: Activity, 
-                demo: 'Detected "Stealth" switch for Member ID 9KL2...' 
+                demo: 'Detected Switch: Member #9KL2 moved to Clover Health. Alert sent.' 
               },
               { 
                 title: 'EDI Operations', 
                 desc: 'Secure X12 handshakes via Stedi Core for real-time eligibility checks and enrollment validation.', 
                 icon: Terminal,
-                demo: 'Eligibility 270/271 verified in 42ms.'
+                demo: 'Stedi 270/271 Handshake: Medicare Eligibility Verified in 42ms.'
               },
               { 
                 title: 'Maya AI Voice Agent', 
                 desc: 'Autonomous milestone check-ins at Day 7, 30, and 75. Detects dissatisfaction tone before it turns into churn.', 
                 icon: PhoneCall,
-                demo: 'Maya: "Ensuring you received your ID card..."'
+                demo: 'Maya: "Ensuring you received your ID card... Sentiment: POSITIVE."'
               },
               { 
                 title: 'SSBCI Fax Automation', 
                 desc: 'Auto-verify chronic conditions with PCP offices via secure Spruce Health clinical fax bridge.', 
                 icon: Printer,
-                demo: 'Clinical verification transmitted to Provider NPI-992.'
+                demo: 'Fax Sent: SSBCI Condition Form transmitted to NPI-99201.'
               },
               { 
                 title: 'LIS Gap Analysis', 
                 desc: 'Scan your roster for members eligible for LIS/Extra Help. Increase loyalty by saving them $5,000+/yr.', 
                 icon: Search,
-                demo: 'Identified 14 members for LIS enrollment.'
+                demo: 'Audit: 14 members identified for Low Income Subsidy eligibility.'
               },
               { 
                 title: 'AEP Shield Orchestrator', 
-                desc: 'Orchestrate loyalty campaigns and preference mapping (SMS/Mail) before the high-churn windows.', 
+                desc: 'Orchestrate loyalty campaigns and preference mapping (SMS/Mail) before high-churn windows.', 
                 icon: ShieldPlus,
-                demo: 'AEP Shield: 98% Protection Score active.'
+                demo: 'AEP Shield: 98% Protection Score active. Loyalty triggers locked.'
               },
             ].map((feature, i) => (
               <Card key={i} className="p-10 rounded-[3rem] border border-border space-y-8 hover:border-primary/30 transition-all group bg-card shadow-sm">
@@ -256,7 +250,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Pricing Section */}
+        {/* Pricing Section - Black Text */}
         <section id="pricing" className="py-32 px-8 bg-slate-50 border-y border-border/50">
           <div className="max-w-7xl mx-auto space-y-20">
             <div className="text-center space-y-4">
@@ -292,7 +286,7 @@ export default function LandingPage() {
                     </div>
                   </div>
                   <Button className="w-full h-16 rounded-3xl font-black uppercase text-xs tracking-widest shadow-xl bg-slate-900 text-white hover:bg-primary transition-all" onClick={() => setAuthMode('signup')}>
-                    Choose {tier.name}
+                    Start Trial
                   </Button>
                 </Card>
               ))}
@@ -404,7 +398,7 @@ export default function LandingPage() {
                 />
               </div>
               <Button type="submit" disabled={loading} className="w-full h-20 rounded-3xl bg-slate-900 hover:bg-slate-800 text-white font-black text-xl mt-6 shadow-2xl uppercase tracking-tighter transition-all">
-                {loading ? <Loader2 className="animate-spin" /> : (authMode === 'login' ? 'Enter Command Center' : 'Initialize Workspace')}
+                {loading ? <Loader2 className="animate-spin" /> : (authMode === 'login' ? 'Enter Command Center' : 'Initialize Trial')}
               </Button>
             </form>
 
@@ -420,7 +414,7 @@ export default function LandingPage() {
               disabled={loading}
               className="w-full h-14 rounded-2xl font-black uppercase tracking-widest text-[10px] border-2 border-primary/20 text-primary hover:bg-primary/5 transition-all"
             >
-              Launch Demo Environment
+              Launch Demo Node (Anonymous)
             </Button>
 
             <div className="mt-10 flex justify-between items-center text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">

@@ -57,7 +57,7 @@ export default function AccountingPage() {
   }
 
   return (
-    <div className="flex h-full w-full bg-background">
+    <div className="flex h-full w-full bg-background overflow-hidden">
       <CollectionSidebar />
       
       <div className="flex-1 flex flex-col h-full overflow-hidden">
