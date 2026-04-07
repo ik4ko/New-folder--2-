@@ -1,20 +1,18 @@
 
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { 
   ShieldCheck, Zap, Activity, Users, 
-  ArrowRight, CheckCircle2, Lock, 
-  Sparkles, Scale, Eye, ShieldAlert,
+  ArrowRight, CheckCircle2, 
+  Sparkles, ShieldAlert,
   Loader2, PlayCircle, Quote, Star,
-  Smartphone, Mail, MessageSquare, Terminal,
-  ExternalLink, BarChart3, PieChart, Info,
-  Printer, PhoneCall, Link2
+  Terminal, Printer, PhoneCall, Link2
 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -116,7 +114,6 @@ export default function LandingPage() {
     setLoading(true)
     const auth = getAuth()
     try {
-      // Ensure all demo sessions are at least anonymously authenticated
       const userCredential = await signInAnonymously(auth)
       const db = getFirestore()
       
@@ -138,14 +135,21 @@ export default function LandingPage() {
   }
 
   return (
-    <div className="flex flex-col min-h-screen bg-background text-foreground font-sans selection:bg-primary/10">
+    <div className="flex flex-col min-h-screen bg-background text-foreground font-sans selection:bg-primary/10 overflow-y-auto">
       {/* Navigation */}
       <header className="h-20 border-b border-border/50 px-8 flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur-xl z-50">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-primary flex items-center justify-center text-white font-black text-xl shadow-lg shadow-primary/20">
-            M
-          </div>
-          <span className="text-xl font-black tracking-tighter uppercase">MediStay</span>
+        <div className="flex items-center gap-10">
+          <Link href="/" className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-primary flex items-center justify-center text-white font-black text-xl shadow-lg shadow-primary/20">
+              M
+            </div>
+            <span className="text-xl font-black tracking-tighter uppercase">MediStay</span>
+          </Link>
+          <nav className="hidden md:flex items-center gap-8">
+            <Link href="#features" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors">Features</Link>
+            <Link href="#pricing" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors">Pricing</Link>
+            <Link href="#reviews" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors">Reviews</Link>
+          </nav>
         </div>
         <div className="flex items-center gap-4">
           <Button variant="ghost" onClick={() => setAuthMode('login')} className="text-xs font-black uppercase tracking-widest">Log In</Button>
@@ -159,8 +163,8 @@ export default function LandingPage() {
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-xs font-black uppercase tracking-widest border border-primary/20 mb-4">
             <Zap size={14} className="fill-primary" /> FOR HIGH-VOLUME MEDICARE AGENCIES
           </div>
-          <h1 className="text-6xl md:text-8xl font-black tracking-tighter leading-[0.85] text-slate-900">
-            Capture Every <br/><span className="text-primary">Switch Trigger.</span>
+          <h1 className="text-6xl md:text-8xl font-black tracking-tighter leading-[0.85] text-slate-400">
+            <span className="text-slate-900">Capture Every</span> <br/><span className="text-primary">Switch Trigger.</span>
           </h1>
           <p className="text-xl md:text-2xl text-slate-500 font-medium leading-relaxed max-w-3xl mx-auto mb-12">
             The first autonomous Medicare OS that stops churn by detecting disenrollment attempts in real-time, months before they finalize.
@@ -175,8 +179,41 @@ export default function LandingPage() {
           </div>
         </section>
 
+        {/* Features */}
+        <section id="features" className="py-24 px-8 max-w-6xl mx-auto space-y-20 border-t border-border/50">
+          <div className="text-center space-y-4">
+            <h2 className="text-4xl font-black uppercase tracking-tighter">Retention <span className="text-primary">Intelligence</span></h2>
+            <p className="text-muted-foreground font-black uppercase tracking-widest text-xs">Clinical grade member protection modules.</p>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {[
+              { title: 'MARx Switch Detection', desc: 'Instantly detect carrier switches via nightly snapshot polls from CMS.', icon: Activity, href: "/docs/cms-switch" },
+              { title: 'EDI Operations', desc: 'Secure X12 handshakes via Stedi Core for real-time eligibility checks.', icon: Terminal, href: "/docs/introduction" },
+              { title: 'Maya AI Voice Agent', desc: 'Autonomous milestone check-ins at Day 7, 30, and 75 to gauge sentiment.', icon: PhoneCall, href: "/docs/maya-voice" },
+              { title: 'SSBCI Fax Automation', desc: 'Auto-verify chronic conditions with PCP offices via secure clinical fax.', icon: Printer, href: "/docs/spruce-fax" },
+              { title: 'AEP Shield', desc: 'Orchestrate loyalty campaigns before the high-churn disenrollment window.', icon: ShieldCheck, href: "/docs/compliance-vault" },
+              { title: 'CRM Sync Bridge', desc: 'Two-way synchronization with GoHighLevel for automated outreach.', icon: Link2, href: "/docs/ghl-sync" },
+            ].map((feature, i) => (
+              <Card key={i} className="p-10 rounded-[2.5rem] border border-border space-y-6 hover:border-primary/30 transition-all group cursor-pointer" onClick={() => router.push(feature.href)}>
+                <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
+                  <feature.icon className="w-7 h-7" />
+                </div>
+                <div className="space-y-2">
+                  <h3 className="text-2xl font-black uppercase tracking-tight">{feature.title}</h3>
+                  <p className="text-sm font-bold text-muted-foreground uppercase leading-relaxed opacity-70">
+                    {feature.desc}
+                  </p>
+                </div>
+                <div className="pt-4 flex items-center gap-2 text-[10px] font-black text-primary uppercase tracking-widest group-hover:translate-x-2 transition-transform">
+                  Explore Module <ArrowRight className="w-3 h-3" />
+                </div>
+              </Card>
+            ))}
+          </div>
+        </section>
+
         {/* Pricing Section */}
-        <section className="py-24 px-8 max-w-6xl mx-auto space-y-16">
+        <section id="pricing" className="py-24 px-8 max-w-6xl mx-auto space-y-16 border-t border-border/50">
           <div className="text-center space-y-4">
             <h2 className="text-4xl font-black uppercase tracking-tighter">Agency <span className="text-primary">Pricing</span></h2>
             <p className="text-muted-foreground font-black uppercase tracking-widest text-xs">Clinical Grade Retention Plans</p>
@@ -218,7 +255,7 @@ export default function LandingPage() {
         </section>
 
         {/* Social Proof */}
-        <section className="py-24 bg-slate-900 text-white px-8">
+        <section id="reviews" className="py-24 bg-slate-900 text-white px-8">
           <div className="max-w-[1400px] mx-auto grid lg:grid-cols-2 gap-16 items-center">
             <div className="space-y-8">
               <Quote className="text-primary mb-8 w-16 h-16 opacity-50" />
@@ -238,7 +275,7 @@ export default function LandingPage() {
             </div>
             <div className="space-y-6">
               {reviews.map((rev, i) => (
-                <Card key={i} className="bg-white/5 border border-white/10 p-10 rounded-[2.5rem] backdrop-blur-sm">
+                <div key={i} className="bg-white/5 border border-white/10 p-10 rounded-[2.5rem] backdrop-blur-sm">
                   <div className="flex gap-1 mb-6">
                     {[...Array(rev.rating)].map((_, j) => <Star key={j} size={16} className="fill-primary text-primary" />)}
                   </div>
@@ -252,42 +289,9 @@ export default function LandingPage() {
                       <p className="text-primary text-[10px] font-black uppercase tracking-[0.2em]">{rev.role}</p>
                     </div>
                   </div>
-                </Card>
+                </div>
               ))}
             </div>
-          </div>
-        </section>
-
-        {/* Features */}
-        <section className="py-24 px-8 max-w-6xl mx-auto space-y-20">
-          <div className="text-center space-y-4">
-            <h2 className="text-4xl font-black uppercase tracking-tighter">Retention <span className="text-primary">Intelligence</span></h2>
-            <p className="text-muted-foreground font-black uppercase tracking-widest text-xs">Clinical grade member protection modules.</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[
-              { title: 'MARx Switch Detection', desc: 'Instantly detect carrier switches via nightly snapshot polls from CMS.', icon: Activity, href: "/docs/cms-switch" },
-              { title: 'EDI Operations', desc: 'Secure X12 handshakes via Stedi Core for real-time eligibility checks.', icon: Terminal, href: "/docs/introduction" },
-              { title: 'Maya AI Voice Agent', desc: 'Autonomous milestone check-ins at Day 7, 30, and 75 to gauge sentiment.', icon: PhoneCall, href: "/docs/maya-voice" },
-              { title: 'SSBCI Fax Automation', desc: 'Auto-verify chronic conditions with PCP offices via secure clinical fax.', icon: Printer, href: "/docs/spruce-fax" },
-              { title: 'AEP Shield', desc: 'Orchestrate loyalty campaigns before the high-churn disenrollment window.', icon: ShieldCheck, href: "/docs/compliance-vault" },
-              { title: 'CRM Sync Bridge', desc: 'Two-way synchronization with GoHighLevel for automated outreach.', icon: Link2, href: "/docs/ghl-sync" },
-            ].map((feature, i) => (
-              <Card key={i} className="p-10 rounded-[2.5rem] border border-border space-y-6 hover:border-primary/30 transition-all group cursor-pointer" onClick={() => router.push(feature.href)}>
-                <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center text-primary group-hover:scale-110 transition-transform">
-                  <feature.icon className="w-7 h-7" />
-                </div>
-                <div className="space-y-2">
-                  <h3 className="text-2xl font-black uppercase tracking-tight">{feature.title}</h3>
-                  <p className="text-sm font-bold text-muted-foreground uppercase leading-relaxed opacity-70">
-                    {feature.desc}
-                  </p>
-                </div>
-                <div className="pt-4 flex items-center gap-2 text-[10px] font-black text-primary uppercase tracking-widest group-hover:translate-x-2 transition-transform">
-                  Explore Module <ArrowRight className="w-3 h-3" />
-                </div>
-              </Card>
-            ))}
           </div>
         </section>
       </main>
@@ -310,7 +314,7 @@ export default function LandingPage() {
       {authMode && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-8">
           <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-xl" onClick={() => setAuthMode(null)}></div>
-          <Card className="relative w-full max-w-md rounded-[3rem] shadow-2xl p-12 text-center animate-in zoom-in duration-300">
+          <Card className="relative w-full max-w-md rounded-[3rem] shadow-2xl p-12 text-center animate-in zoom-in duration-300 overflow-hidden">
             <div className="w-16 h-16 bg-primary rounded-3xl flex items-center justify-center mx-auto mb-8 font-black text-white text-3xl italic">M</div>
             <h2 className="text-3xl font-black mb-2 text-slate-900 uppercase tracking-tighter">{authMode === 'login' ? 'Agency Access' : 'Provision Node'}</h2>
             <p className="text-center text-slate-400 text-xs font-black mb-8 uppercase tracking-widest opacity-70">MediStay Retention OS</p>
@@ -354,6 +358,21 @@ export default function LandingPage() {
                 {loading ? <Loader2 className="animate-spin" /> : (authMode === 'login' ? 'Enter Command Center' : 'Initialize Workspace')}
               </Button>
             </form>
+
+            <div className="my-6 flex items-center gap-4">
+              <div className="h-px flex-1 bg-border" />
+              <span className="text-[8px] font-black text-muted-foreground uppercase">OR</span>
+              <div className="h-px flex-1 bg-border" />
+            </div>
+
+            <Button 
+              variant="outline" 
+              onClick={startDemoMode} 
+              disabled={loading}
+              className="w-full h-12 rounded-2xl font-black uppercase tracking-widest text-[9px] border-primary/20 text-primary hover:bg-primary/5"
+            >
+              Launch Demo Environment
+            </Button>
 
             <div className="mt-8 flex justify-between items-center text-[10px] font-black text-slate-400 uppercase tracking-widest">
               <button onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')} className="hover:text-primary">

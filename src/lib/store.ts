@@ -39,6 +39,7 @@ export interface MemberRecord {
   partAEffective: string;
   partBEffective: string;
   healthConditions: string[];
+  lastCmsCheck?: number;
 }
 
 export interface ClientRecord extends Partial<MemberRecord> {
@@ -229,7 +230,8 @@ export const useAppStore = create<AppState>((set, get) => ({
       soaStatus: "Completed",
       partAEffective: "2020-01-01",
       partBEffective: "2020-01-01",
-      healthConditions: []
+      healthConditions: [],
+      lastCmsCheck: Date.now() - (Math.random() * 10000000)
     }));
     set(s => ({ members: [...s.members, ...newMembers] }));
   },
@@ -259,7 +261,7 @@ export const initializeStore = () => {
   if (store.members.length === 0) {
     store.importFromGHL(12);
     // Seed some ledger data
-    set({
+    useAppStore.setState({
       ledger: [
         { id: '1', memberId: 'M1', memberName: 'Robert Miller', amount: 600, date: '2024-11-01', status: 'paid', type: 'Renewal' },
         { id: '2', memberId: 'M2', memberName: 'Sarah Jenkins', amount: 600, date: '2024-11-05', status: 'pending', type: 'Renewal' }
