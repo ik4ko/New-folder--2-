@@ -25,8 +25,8 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 
 export function AppSidebar({ forceOpen = false }: { forceOpen?: boolean }) {
   const pathname = usePathname()
-  const { isSidebarOpen, toggleSidebar } = useAppStore()
-  const isOpen = forceOpen || isSidebarOpen
+  // Sidebar is fixed open; user cannot resize
+  const isOpen = true
 
   const navItems = [
     { href: '/dashboard', icon: LayoutDashboard, label: 'Command Center', desc: 'Real-time monitoring' },
@@ -55,26 +55,10 @@ export function AppSidebar({ forceOpen = false }: { forceOpen?: boolean }) {
                 </div>
                 <span className="text-sm font-black tracking-tight text-foreground uppercase">medistay.ai</span>
               </Link>
-              {!forceOpen && (
-                <Button 
-                  variant="ghost" 
-                  size="icon" 
-                  onClick={toggleSidebar} 
-                  className="h-8 w-8 rounded-lg hover:bg-muted text-muted-foreground"
-                >
-                  <PanelLeftClose className="w-4 h-4" />
-                </Button>
-              )}
+              {/* Toggle button removed to prevent resizing */}
             </>
           ) : (
-            <Button 
-              variant="ghost" 
-              size="icon" 
-              onClick={toggleSidebar} 
-              className="h-10 w-10 rounded-xl hover:bg-muted text-primary"
-            >
-              <PanelLeft className="w-5 h-5" />
-            </Button>
+            {/* Toggle button removed to prevent resizing */}
           )}
         </div>
 
