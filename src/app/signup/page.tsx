@@ -1,7 +1,6 @@
-
 "use client"
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,8 +19,13 @@ export default function SignupPage() {
   const [password, setPassword] = useState('');
   const [agencyName, setAgencyName] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,6 +33,7 @@ export default function SignupPage() {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       
+      // Initialize Agency Record
       await setDoc(doc(db, 'agencies', userCredential.user.uid), {
         agencyName,
         email,
@@ -51,9 +56,11 @@ export default function SignupPage() {
     }
   };
 
+  if (!isMounted) return null;
+
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground selection:bg-primary/10">
-      <header className="h-20 border-b border-border/50 px-8 flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur-xl z-50">
+      <header className="h-20 border-b border-border px-8 flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur-xl z-50">
         <Link href="/">
           <Logo />
         </Link>
