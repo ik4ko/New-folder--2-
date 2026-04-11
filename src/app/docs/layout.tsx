@@ -13,6 +13,7 @@ import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { useState } from "react"
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet"
+import { Logo } from "@/components/logo"
 
 export default function DocsLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
@@ -39,10 +40,7 @@ export default function DocsLayout({ children }: { children: React.ReactNode }) 
     <div className="flex flex-col h-full bg-card">
       <div className="h-20 border-b border-border flex items-center px-8 gap-3">
         <Link href="/" className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center text-white font-black text-sm">
-            M
-          </div>
-          <span className="text-sm font-black uppercase tracking-tighter">MediStay Docs</span>
+          <Logo />
         </Link>
       </div>
       

@@ -8,12 +8,13 @@ import { Card } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { 
-  ShieldCheck, Zap, Activity, 
+  Activity, 
   ArrowRight, CheckCircle2, 
   Loader2, PlayCircle, Quote, Star,
   Terminal, Printer, PhoneCall, 
-  Lock, Search,
-  ShieldPlus, X
+  Search,
+  ShieldPlus, X,
+  Zap
 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -29,6 +30,7 @@ import { getFirestore, doc, setDoc } from "firebase/firestore"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 import { useAppStore } from "@/lib/store"
+import { Logo } from "@/components/logo"
 
 export default function LandingPage() {
   const router = useRouter()
@@ -93,7 +95,6 @@ export default function LandingPage() {
       } else {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password)
         const db = getFirestore()
-        // Initialize agency in Firestore and start 14-day trial
         await setDoc(doc(db, 'agencies', userCredential.user.uid), {
           agencyName,
           email,
@@ -120,9 +121,7 @@ export default function LandingPage() {
     setLoading(true)
     const auth = getAuth()
     try {
-      // Secure demo with anonymous auth
       await signInAnonymously(auth)
-      // Seed randomized data
       importFromGHL(12)
       toast({ title: "Demo Mode Ready", description: "Launching sandbox with simulated carrier data..." })
       router.push('/dashboard')
@@ -138,11 +137,8 @@ export default function LandingPage() {
       {/* Navigation */}
       <header className="h-20 border-b border-border/50 px-8 flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur-xl z-50">
         <div className="flex items-center gap-10">
-          <Link href="/" className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-primary flex items-center justify-center text-white font-black text-xl shadow-lg shadow-primary/20">
-              M
-            </div>
-            <span className="text-xl font-black tracking-tighter uppercase">MediStay</span>
+          <Link href="/">
+            <Logo />
           </Link>
           <nav className="hidden md:flex items-center gap-8">
             <Link href="#features" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors">Features</Link>
@@ -158,7 +154,7 @@ export default function LandingPage() {
       </header>
 
       <main className="flex-1">
-        {/* Hero Section - High Contrast Deep Blue */}
+        {/* Hero Section */}
         <section id="hero" className="relative py-20 md:py-32 px-8">
           <div className="max-w-7xl mx-auto bg-slate-950 rounded-[4rem] p-12 md:p-32 text-center space-y-10 border border-white/5 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.5)]">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-xs font-black uppercase tracking-widest border border-primary/20 mb-4">
@@ -249,7 +245,7 @@ export default function LandingPage() {
           </div>
         </section>
 
-        {/* Pricing Section - Black Text */}
+        {/* Pricing Section */}
         <section id="pricing" className="py-32 px-8 bg-slate-50 border-y border-border/50">
           <div className="max-w-7xl mx-auto space-y-20">
             <div className="text-center space-y-4">
@@ -338,8 +334,7 @@ export default function LandingPage() {
       {/* Footer */}
       <footer className="py-32 px-8 border-t border-border/50 text-center">
         <div className="flex items-center justify-center gap-3 mb-10">
-          <div className="w-10 h-10 bg-slate-900 rounded-xl flex items-center justify-center text-white font-black text-xl shadow-xl">M</div>
-          <span className="text-2xl font-black tracking-tighter uppercase">MediStay</span>
+          <Logo />
         </div>
         <p className="text-slate-400 text-sm font-bold uppercase tracking-widest mb-10">© 2026 MediStay Intelligence Inc. HIPAA Compliant.</p>
         <div className="flex justify-center gap-10 text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">
@@ -357,7 +352,9 @@ export default function LandingPage() {
             <button onClick={() => setAuthMode(null)} className="absolute top-8 right-8 p-2 text-slate-400 hover:text-slate-900 transition-colors">
               <X size={24} />
             </button>
-            <div className="w-20 h-20 bg-primary rounded-3xl flex items-center justify-center mx-auto mb-10 font-black text-white text-4xl italic shadow-2xl shadow-primary/20">M</div>
+            <div className="flex justify-center mb-10">
+              <Logo iconOnly className="scale-150" />
+            </div>
             <h2 className="text-4xl font-black mb-3 text-slate-900 uppercase tracking-tighter">{authMode === 'login' ? 'Agency Access' : 'Provision Node'}</h2>
             <p className="text-center text-slate-400 text-xs font-black mb-10 uppercase tracking-widest opacity-70">MediStay Retention OS</p>
             

@@ -1,6 +1,7 @@
+
 "use client"
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,13 +12,19 @@ import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import { Logo } from '@/components/logo';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
+  const [isMounted, setIsMounted] = useState(false);
   const router = useRouter();
   const { toast } = useToast();
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,14 +45,13 @@ export default function LoginPage() {
     }
   };
 
+  if (!isMounted) return null;
+
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground selection:bg-primary/10">
       <header className="h-20 border-b border-border px-8 flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur-xl z-50">
-        <Link href="/" className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-primary flex items-center justify-center text-white font-black text-xl shadow-lg shadow-primary/20">
-            M
-          </div>
-          <span className="text-xl font-black tracking-tighter uppercase">MediStay</span>
+        <Link href="/">
+          <Logo />
         </Link>
         <Button variant="ghost" size="sm" asChild className="rounded-xl font-black uppercase text-[10px] tracking-widest">
           <Link href="/"><ArrowLeft className="w-4 h-4 mr-2" /> Back to Home</Link>
@@ -55,6 +61,9 @@ export default function LoginPage() {
       <main className="flex-1 flex items-center justify-center p-8">
         <Card className="max-w-md w-full rounded-[3rem] shadow-2xl p-12 border-none bg-card">
           <div className="text-center space-y-2 mb-10">
+            <div className="flex justify-center mb-6">
+              <Logo iconOnly className="scale-125" />
+            </div>
             <h2 className="text-4xl font-black uppercase tracking-tighter">Agency Access</h2>
             <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">MediStay Retention OS</p>
           </div>

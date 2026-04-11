@@ -1,3 +1,4 @@
+
 "use client"
 
 import * as React from "react"
@@ -10,8 +11,6 @@ import {
   Printer,
   Link2,
   LayoutDashboard,
-  PanelLeftClose,
-  PanelLeft,
   Banknote,
   GraduationCap
 } from "lucide-react"
@@ -22,10 +21,10 @@ import { useAppStore } from "@/lib/store"
 import { Button } from "@/components/ui/button"
 import { ModeToggle } from "@/components/mode-toggle"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Logo } from "./logo"
 
 export function AppSidebar({ forceOpen = false }: { forceOpen?: boolean }) {
   const pathname = usePathname()
-  // Sidebar is fixed open; user cannot resize
   const isOpen = true
 
   const navItems = [
@@ -48,17 +47,11 @@ export function AppSidebar({ forceOpen = false }: { forceOpen?: boolean }) {
         {/* Brand Header */}
         <div className={cn("p-4 flex items-center shrink-0 h-16 border-b border-border", isOpen ? "justify-between" : "justify-center px-0")}>
           {isOpen ? (
-            <>
-              <Link href="/dashboard" className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-primary flex items-center justify-center text-white font-black text-sm shadow-lg shadow-primary/20">
-                  M
-                </div>
-                <span className="text-sm font-black tracking-tight text-foreground uppercase">medistay.ai</span>
-              </Link>
-              {/* Toggle button removed to prevent resizing */}
-            </>
+            <Link href="/dashboard" className="flex items-center gap-2">
+              <Logo className="scale-90" />
+            </Link>
           ) : (
-            {/* Toggle button removed to prevent resizing */}
+            <Logo iconOnly className="scale-75" />
           )}
         </div>
 

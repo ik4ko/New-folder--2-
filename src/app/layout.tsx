@@ -9,6 +9,14 @@ import { AppShell } from '@/components/app-layout-shell';
 export const metadata: Metadata = {
   title: 'MediStay | Medicare Retention SaaS',
   description: 'Enterprise-grade Medicare member retention platform for agencies',
+  icons: {
+    icon: [
+      {
+        url: '/icon.svg',
+        type: 'image/svg+xml',
+      },
+    ],
+  },
 };
 
 export default function RootLayout({

@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useState } from 'react';
@@ -10,8 +11,9 @@ import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, ArrowLeft, ShieldCheck } from 'lucide-react';
+import { Loader2, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import { Logo } from '@/components/logo';
 
 export default function SignupPage() {
   const [email, setEmail] = useState('');
@@ -27,7 +29,6 @@ export default function SignupPage() {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       
-      // Initialize agency profile in Firestore
       await setDoc(doc(db, 'agencies', userCredential.user.uid), {
         agencyName,
         email,
@@ -52,12 +53,9 @@ export default function SignupPage() {
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground selection:bg-primary/10">
-      <header className="h-20 border-b border-border px-8 flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur-xl z-50">
-        <Link href="/" className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-primary flex items-center justify-center text-white font-black text-xl shadow-lg shadow-primary/20">
-            M
-          </div>
-          <span className="text-xl font-black tracking-tighter uppercase">MediStay</span>
+      <header className="h-20 border-b border-border/50 px-8 flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur-xl z-50">
+        <Link href="/">
+          <Logo />
         </Link>
         <Button variant="ghost" size="sm" asChild className="rounded-xl font-black uppercase text-[10px] tracking-widest">
           <Link href="/"><ArrowLeft className="w-4 h-4 mr-2" /> Back to Home</Link>
@@ -67,8 +65,8 @@ export default function SignupPage() {
       <main className="flex-1 flex items-center justify-center p-8">
         <Card className="max-w-md w-full rounded-[3rem] shadow-2xl p-12 border-none bg-card">
           <div className="text-center space-y-2 mb-10">
-            <div className="w-16 h-16 rounded-[1.5rem] bg-primary/10 flex items-center justify-center text-primary mx-auto mb-4">
-              <ShieldCheck className="w-8 h-8" />
+            <div className="flex justify-center mb-6">
+              <Logo iconOnly className="scale-125" />
             </div>
             <h2 className="text-4xl font-black uppercase tracking-tighter">Provision Node</h2>
             <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Start 14-Day Free Trial</p>

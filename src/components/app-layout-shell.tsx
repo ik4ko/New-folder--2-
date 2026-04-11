@@ -9,6 +9,7 @@ import { Menu, Users } from "lucide-react"
 import { useAppStore } from "@/lib/store"
 import { Sheet, SheetContent, SheetTitle } from "./ui/sheet"
 import { CollectionSidebar } from "./collection-sidebar"
+import { Logo } from "./logo"
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname()
@@ -16,7 +17,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   // Routes that shouldn't use the standard app shell (sidebar, command bar, etc.)
   const isLandingPage = pathname === "/"
   const isDocsPage = pathname.startsWith("/docs")
-  const isExcluded = isLandingPage || isDocsPage
+  const isAuthPage = pathname === "/login" || pathname === "/signup"
+  const isExcluded = isLandingPage || isDocsPage || isAuthPage
 
   const isMobile = useIsMobile()
   const { isSidebarOpen, toggleSidebar, isRosterOpen, toggleRoster } = useAppStore()
@@ -34,12 +36,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       {/* Mobile Header */}
       {isMobile && (
         <header className="h-14 border-b bg-card flex items-center justify-between px-4 shrink-0 z-50">
-          <div className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center text-white font-black text-sm">
-              M
-            </div>
-            <span className="text-[10px] font-black uppercase tracking-tight text-foreground">medistay.ai</span>
-          </div>
+          <Logo iconOnly className="scale-75" />
           <div className="flex items-center gap-1">
              <Button variant="ghost" size="icon" className="h-9 w-9" onClick={toggleRoster}>
                 <Users className="w-5 h-5 text-muted-foreground" />
