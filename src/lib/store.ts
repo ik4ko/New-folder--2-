@@ -40,6 +40,9 @@ export interface MemberRecord {
   partBEffective: string;
   healthConditions: string[];
   lastCmsCheck?: number;
+  futureContract?: string;
+  futurePlanName?: string;
+  futureEffectiveDate?: string;
 }
 
 export interface ClientRecord extends Partial<MemberRecord> {
@@ -231,7 +234,9 @@ export const useAppStore = create<AppState>((set, get) => ({
       partAEffective: "2020-01-01",
       partBEffective: "2020-01-01",
       healthConditions: [],
-      lastCmsCheck: Date.now() - (Math.random() * 10000000)
+      lastCmsCheck: Date.now() - (Math.random() * 10000000),
+      futureContract: Math.random() > 0.8 ? 'H' + faker.string.numeric(4) : undefined,
+      futurePlanName: Math.random() > 0.8 ? faker.helpers.arrayElement(['Humana Gold', 'Aetna Select', 'UHC Choice']) : undefined
     }));
     set(s => ({ members: [...s.members, ...newMembers] }));
   },

@@ -36,7 +36,7 @@
       enable = true;
       previews = {
         web = {
-          command = ["bun" "run" "dev" "--" "--port" "$PORT" "--hostname" "0.0.0.0"];
+          command = ["bun" "dev" "--" "--port" "$PORT" "--hostname" "0.0.0.0"];
           manager = "web";
         };
       };
