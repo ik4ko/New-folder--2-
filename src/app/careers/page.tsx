@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Users, Briefcase, Globe, ArrowLeft } from "lucide-react"
 import Link from "next/link"
+import { Logo } from "@/components/logo"
 
 export default function CareersPage() {
   const jobs = [
@@ -18,8 +19,7 @@ export default function CareersPage() {
     <div className="min-h-screen bg-background text-foreground selection:bg-primary/10">
       <header className="h-20 border-b border-border/50 px-8 flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur-xl z-50">
         <Link href="/" className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-2xl bg-primary flex items-center justify-center text-white font-black text-xl shadow-lg">M</div>
-          <span className="text-xl font-black tracking-tighter uppercase">MediStay</span>
+          <Logo />
         </Link>
         <Button variant="ghost" size="sm" asChild className="rounded-xl font-black uppercase text-[10px] tracking-widest">
           <Link href="/"><ArrowLeft className="w-4 h-4 mr-2" /> Back</Link>
