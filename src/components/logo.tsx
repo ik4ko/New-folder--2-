@@ -20,8 +20,8 @@ export function Logo({ className, iconOnly = false }: LogoProps) {
           className="absolute inset-0 w-full h-full fill-muted/30 p-2"
           aria-hidden="true"
         >
-          <rect x="40" y="20" width="20" height="60" rx="4" />
-          <rect x="20" y="40" width="60" height="20" rx="4" />
+          <rect x="42" y="25" width="16" height="50" rx="4" />
+          <rect x="25" y="42" width="50" height="16" rx="4" />
         </svg>
 
         {/* Staff and Serpent */}
@@ -41,18 +41,18 @@ export function Logo({ className, iconOnly = false }: LogoProps) {
             </linearGradient>
           </defs>
           
-          {/* Staff */}
-          <rect x="46" y="10" width="8" height="80" rx="4" fill="url(#staffGradient)" />
+          {/* Staff (Centered) */}
+          <rect x="47" y="15" width="6" height="70" rx="3" fill="url(#staffGradient)" />
           
-          {/* Serpent */}
+          {/* Serpent (Coiled around staff) */}
           <path
-            d="M30 75C30 75 70 70 70 50C70 30 30 35 30 25C30 15 55 10 55 10"
+            d="M35 70C35 70 65 65 65 50C65 35 35 38 35 28C35 18 55 15 55 15"
             stroke="url(#serpentGradient)"
-            strokeWidth="8"
+            strokeWidth="7"
             strokeLinecap="round"
             fill="none"
           />
-          <circle cx="55" cy="10" r="5" fill="url(#serpentGradient)" />
+          <circle cx="55" cy="15" r="4" fill="url(#serpentGradient)" />
         </svg>
       </div>
       {!iconOnly && (

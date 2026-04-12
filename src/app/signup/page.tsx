@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useState, useEffect } from 'react';
@@ -34,6 +33,8 @@ export default function SignupPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!auth || !db) return;
+
     setLoading(true);
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
@@ -61,26 +62,26 @@ export default function SignupPage() {
     }
   };
 
-  if (!isMounted) return null;
-
   return (
-    <div className="relative flex flex-col min-h-screen bg-background text-foreground selection:bg-primary/10 overflow-hidden">
+    <div className="relative flex flex-col min-h-screen bg-slate-950 text-foreground selection:bg-primary/10 overflow-hidden">
       {/* Full Screen Background Image */}
       <div className="absolute inset-0 z-0">
-        <Image
-          src={authBg?.imageUrl || "https://picsum.photos/seed/med1/2400/1600"}
-          alt="Authentication Background"
-          fill
-          className="object-cover"
-          priority
-          data-ai-hint="medical laboratory"
-        />
-        <div className="absolute inset-0 bg-slate-950/60 backdrop-blur-[4px]" />
+        {isMounted && (
+          <Image
+            src={authBg?.imageUrl || "https://picsum.photos/seed/med1/2400/1600"}
+            alt="Authentication Background"
+            fill
+            className="object-cover opacity-60"
+            priority
+            data-ai-hint="medical laboratory"
+          />
+        )}
+        <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-[2px]" />
       </div>
 
       <header className="relative h-20 px-8 flex items-center justify-between z-10">
         <Link href="/">
-          <Logo className="text-white brightness-200" />
+          <Logo className="brightness-200" />
         </Link>
         <Button variant="ghost" size="sm" asChild className="rounded-xl font-black uppercase text-[10px] tracking-widest text-white hover:bg-white/10 hover:text-white">
           <Link href="/"><ArrowLeft className="w-4 h-4 mr-2" /> Back to Home</Link>
@@ -88,7 +89,7 @@ export default function SignupPage() {
       </header>
 
       <main className="relative flex-1 flex items-center justify-center p-8 z-10">
-        <Card className="max-w-md w-full rounded-[3rem] shadow-2xl p-10 border border-white/20 bg-white/10 dark:bg-slate-900/40 backdrop-blur-2xl animate-in zoom-in-95 duration-500">
+        <Card className="max-w-md w-full rounded-[3.5rem] shadow-2xl p-10 border border-white/10 bg-white/5 dark:bg-slate-900/20 backdrop-blur-2xl animate-in zoom-in-95 duration-500">
           <div className="text-center space-y-2 mb-8">
             <div className="flex justify-center mb-4">
               <Logo iconOnly className="scale-125 brightness-200" />
