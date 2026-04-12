@@ -10,7 +10,7 @@ import { createUserWithEmailAndPassword } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, ArrowLeft } from 'lucide-react';
+import { Loader2, ArrowLeft, Rocket } from 'lucide-react';
 import Link from 'next/link';
 import { Logo } from '@/components/logo';
 
@@ -33,14 +33,15 @@ export default function SignupPage() {
     try {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       
-      // Initialize Agency Record
+      // Initialize Agency Record in Firestore
       await setDoc(doc(db, 'agencies', userCredential.user.uid), {
         agencyName,
         email,
         createdAt: new Date().toISOString(),
         trialExpires: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
         status: 'trialing',
-        tier: 'Entry'
+        tier: 'Entry',
+        billingPlan: 'entry'
       });
 
       toast({ title: "Agency Provisioned", description: "Your 14-day free trial has been initialized." });
@@ -69,8 +70,8 @@ export default function SignupPage() {
         </Button>
       </header>
 
-      <main className="flex-1 flex items-center justify-center p-8">
-        <Card className="max-w-md w-full rounded-[3rem] shadow-2xl p-12 border-none bg-card">
+      <main className="flex-1 flex items-center justify-center p-8 bg-slate-50/50">
+        <Card className="max-w-md w-full rounded-[3rem] shadow-2xl p-12 border border-border bg-card">
           <div className="text-center space-y-2 mb-10">
             <div className="flex justify-center mb-6">
               <Logo iconOnly className="scale-125" />
@@ -85,7 +86,7 @@ export default function SignupPage() {
               <Input
                 required
                 placeholder="e.g. Elite Medicare Group"
-                className="h-16 rounded-2xl bg-muted/50 border-border font-bold px-6 focus:ring-primary shadow-inner"
+                className="h-16 rounded-2xl bg-muted/30 border-border font-bold px-6 focus:ring-primary shadow-inner"
                 value={agencyName}
                 onChange={(e) => setAgencyName(e.target.value)}
               />
@@ -96,7 +97,7 @@ export default function SignupPage() {
                 required
                 type="email"
                 placeholder="name@agency.com"
-                className="h-16 rounded-2xl bg-muted/50 border-border font-bold px-6 focus:ring-primary shadow-inner"
+                className="h-16 rounded-2xl bg-muted/30 border-border font-bold px-6 focus:ring-primary shadow-inner"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
@@ -107,7 +108,7 @@ export default function SignupPage() {
                 required
                 type="password"
                 placeholder="••••••••"
-                className="h-16 rounded-2xl bg-muted/50 border-border font-bold px-6 focus:ring-primary shadow-inner"
+                className="h-16 rounded-2xl bg-muted/30 border-border font-bold px-6 focus:ring-primary shadow-inner"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
@@ -115,9 +116,9 @@ export default function SignupPage() {
             <Button
               type="submit"
               disabled={loading}
-              className="w-full h-20 rounded-3xl bg-slate-900 hover:bg-slate-800 text-white font-black text-xl mt-4 shadow-2xl uppercase tracking-tighter transition-all"
+              className="w-full h-20 rounded-3xl bg-slate-900 hover:bg-slate-800 text-white font-black text-xl mt-4 shadow-2xl uppercase tracking-tighter transition-all flex items-center justify-center gap-3"
             >
-              {loading ? <Loader2 className="animate-spin" /> : "Initialize Trial"}
+              {loading ? <Loader2 className="animate-spin" /> : <>Initialize Trial <Rocket className="w-5 h-5" /></>}
             </Button>
           </form>
 

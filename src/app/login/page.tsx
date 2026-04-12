@@ -9,7 +9,7 @@ import { auth } from '@/lib/firebase';
 import { signInWithEmailAndPassword, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, ArrowLeft } from 'lucide-react';
+import { Loader2, ArrowLeft, Lock } from 'lucide-react';
 import Link from 'next/link';
 import { Logo } from '@/components/logo';
 
@@ -57,8 +57,8 @@ export default function LoginPage() {
         </Button>
       </header>
 
-      <main className="flex-1 flex items-center justify-center p-8">
-        <Card className="max-w-md w-full rounded-[3rem] shadow-2xl p-12 border-none bg-card">
+      <main className="flex-1 flex items-center justify-center p-8 bg-slate-50/50">
+        <Card className="max-w-md w-full rounded-[3rem] shadow-2xl p-12 border border-border bg-card">
           <div className="text-center space-y-2 mb-10">
             <div className="flex justify-center mb-6">
               <Logo iconOnly className="scale-125" />
@@ -74,7 +74,7 @@ export default function LoginPage() {
                 required
                 type="email"
                 placeholder="name@agency.com"
-                className="h-16 rounded-2xl bg-muted/50 border-border font-bold px-6 focus:ring-primary shadow-inner"
+                className="h-16 rounded-2xl bg-muted/30 border-border font-bold px-6 focus:ring-primary shadow-inner"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
               />
@@ -85,7 +85,7 @@ export default function LoginPage() {
                 required
                 type="password"
                 placeholder="••••••••"
-                className="h-16 rounded-2xl bg-muted/50 border-border font-bold px-6 focus:ring-primary shadow-inner"
+                className="h-16 rounded-2xl bg-muted/30 border-border font-bold px-6 focus:ring-primary shadow-inner"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
               />
@@ -93,9 +93,9 @@ export default function LoginPage() {
             <Button
               type="submit"
               disabled={loading}
-              className="w-full h-20 rounded-3xl bg-slate-900 hover:bg-slate-800 text-white font-black text-xl mt-4 shadow-2xl uppercase tracking-tighter transition-all"
+              className="w-full h-20 rounded-3xl bg-slate-900 hover:bg-slate-800 text-white font-black text-xl mt-4 shadow-2xl uppercase tracking-tighter transition-all flex items-center justify-center gap-3"
             >
-              {loading ? <Loader2 className="animate-spin" /> : "Log In"}
+              {loading ? <Loader2 className="animate-spin" /> : <>Log In <Lock className="w-5 h-5" /></>}
             </Button>
           </form>
 
