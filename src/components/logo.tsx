@@ -12,29 +12,29 @@ export function Logo({ className, iconOnly = false }: LogoProps) {
   return (
     <div className={cn("flex items-center gap-3", className)}>
       <div className="relative w-10 h-10 flex items-center justify-center shrink-0">
-        {/* Background Cross */}
+        {/* Background Cross - Scaled to fit comfortably inside the circle */}
         <svg
           viewBox="0 0 100 100"
-          className="absolute inset-0 w-full h-100 fill-muted/40"
+          className="absolute inset-0 w-full h-full fill-muted/30"
           aria-hidden="true"
         >
-          <rect x="35" y="10" width="30" height="80" rx="8" />
-          <rect x="10" y="35" width="80" height="30" rx="8" />
+          <rect x="38" y="15" width="24" height="70" rx="6" />
+          <rect x="15" y="38" width="70" height="24" rx="6" />
         </svg>
         
         {/* Outer Ring */}
         <svg
           viewBox="0 0 100 100"
-          className="absolute inset-0 w-full h-full fill-none stroke-primary/30 stroke-[2]"
+          className="absolute inset-0 w-full h-full fill-none stroke-primary/20 stroke-[3]"
           aria-hidden="true"
         >
-          <circle cx="50" cy="50" r="42" />
+          <circle cx="50" cy="50" r="44" />
         </svg>
 
-        {/* Staff and Serpent */}
+        {/* Staff and Serpent - Re-centered and scaled */}
         <svg
           viewBox="0 0 100 100"
-          className="relative z-10 w-8 h-8"
+          className="relative z-10 w-7 h-7"
           aria-hidden="true"
         >
           <defs>
@@ -49,17 +49,17 @@ export function Logo({ className, iconOnly = false }: LogoProps) {
           </defs>
           
           {/* Staff */}
-          <rect x="46" y="15" width="8" height="70" rx="4" fill="url(#staffGradient)" />
+          <rect x="47" y="10" width="6" height="80" rx="3" fill="url(#staffGradient)" />
           
-          {/* Serpent */}
+          {/* Serpent - Wound tighter around the staff */}
           <path
-            d="M40 75C40 75 65 70 65 55C65 40 35 45 35 30C35 15 60 15 60 15"
+            d="M35 75C35 75 65 70 65 50C65 30 35 35 35 25C35 15 55 10 55 10"
             stroke="url(#serpentGradient)"
-            strokeWidth="8"
+            strokeWidth="7"
             strokeLinecap="round"
             fill="none"
           />
-          <circle cx="60" cy="15" r="4" fill="url(#serpentGradient)" />
+          <circle cx="55" cy="10" r="4" fill="url(#serpentGradient)" />
         </svg>
       </div>
       {!iconOnly && (

@@ -148,8 +148,12 @@ export default function LandingPage() {
           </nav>
         </div>
         <div className="flex items-center gap-4">
-          <Button variant="ghost" onClick={() => setAuthMode('login')} className="text-xs font-black uppercase tracking-widest">Log In</Button>
-          <Button onClick={() => setAuthMode('signup')} className="rounded-xl h-11 px-6 font-black uppercase tracking-widest shadow-lg shadow-primary/20 text-xs">Get Access</Button>
+          <Link href="/login">
+            <Button variant="ghost" className="text-xs font-black uppercase tracking-widest">Log In</Button>
+          </Link>
+          <Link href="/signup">
+            <Button className="rounded-xl h-11 px-6 font-black uppercase tracking-widest shadow-lg shadow-primary/20 text-xs">Get Access</Button>
+          </Link>
         </div>
       </header>
 
