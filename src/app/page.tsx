@@ -148,12 +148,12 @@ export default function LandingPage() {
           </nav>
         </div>
         <div className="flex items-center gap-4">
-          <Link href="/login">
-            <Button variant="ghost" className="text-xs font-black uppercase tracking-widest">Log In</Button>
-          </Link>
-          <Link href="/signup">
-            <Button className="rounded-xl h-11 px-6 font-black uppercase tracking-widest shadow-lg shadow-primary/20 text-xs">Get Access</Button>
-          </Link>
+          <Button variant="ghost" asChild className="text-xs font-black uppercase tracking-widest">
+            <Link href="/login">Log In</Link>
+          </Button>
+          <Button asChild className="rounded-xl h-11 px-6 font-black uppercase tracking-widest shadow-lg shadow-primary/20 text-xs">
+            <Link href="/signup">Get Access</Link>
+          </Button>
         </div>
       </header>
 

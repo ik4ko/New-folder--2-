@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useState, useEffect } from 'react';
@@ -69,7 +70,7 @@ export default function LoginPage() {
 
       <header className="relative h-20 px-8 flex items-center justify-between z-10">
         <Link href="/">
-          <Logo className="brightness-200" />
+          <Logo />
         </Link>
         <Button variant="ghost" size="sm" asChild className="rounded-xl font-black uppercase text-[10px] tracking-widest text-white hover:bg-white/10 hover:text-white">
           <Link href="/"><ArrowLeft className="w-4 h-4 mr-2" /> Back to Home</Link>
@@ -80,7 +81,7 @@ export default function LoginPage() {
         <Card className="max-w-md w-full rounded-[3.5rem] shadow-2xl p-10 border border-white/10 bg-white/5 dark:bg-slate-900/20 backdrop-blur-2xl animate-in zoom-in-95 duration-500">
           <div className="text-center space-y-2 mb-8">
             <div className="flex justify-center mb-4">
-              <Logo iconOnly className="scale-125 brightness-200" />
+              <Logo iconOnly className="scale-125" />
             </div>
             <h2 className="text-3xl font-black uppercase tracking-tighter text-white">Agency Access</h2>
             <p className="text-[10px] font-black uppercase tracking-widest text-white/60">MediStay Retention Intelligence</p>
