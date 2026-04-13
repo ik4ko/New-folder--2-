@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useState, useEffect } from 'react';
@@ -37,13 +36,29 @@ export default function LoginPage() {
 
   useEffect(() => {
     setIsMounted(true);
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      if (user && agencyProfile.isTrialInitialized) {
-        router.push('/dashboard');
+    if (!auth) return;
+
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        // If logged in, check if they are already initialized
+        try {
+          const agencySnap = await getDoc(doc(db, 'agencies', user.uid));
+          const agencyData = agencySnap.data();
+          
+          if (agencyData?.isTrialInitialized) {
+            updateAgencyProfile({ ...agencyData as any });
+            router.push('/dashboard');
+          } else if (step === 'auth') {
+            // If logged in but not initialized and still on auth step, move to provisioning
+            setStep('provisioning');
+          }
+        } catch (e) {
+          console.error("Error fetching agency status:", e);
+        }
       }
     });
     return () => unsubscribe();
-  }, [agencyProfile.isTrialInitialized, router]);
+  }, [router, updateAgencyProfile, step]);
 
   // Provisioning countdown logic
   useEffect(() => {
@@ -58,7 +73,10 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!auth) return;
+    if (!auth) {
+      toast({ variant: "destructive", title: "Connection Error", description: "Firebase is not initialized." });
+      return;
+    }
     
     setLoading(true);
     try {
@@ -67,19 +85,26 @@ export default function LoginPage() {
       
       // Check Firestore for trial status
       const agencySnap = await getDoc(doc(db, 'agencies', userCredential.user.uid));
-      const agencyData = agencySnap.data();
-
-      if (agencyData?.isTrialInitialized) {
-        updateAgencyProfile({ ...agencyData as any });
-        router.push('/dashboard');
+      
+      if (agencySnap.exists()) {
+        const agencyData = agencySnap.data();
+        if (agencyData?.isTrialInitialized) {
+          updateAgencyProfile({ ...agencyData as any });
+          toast({ title: "Welcome Back", description: "Identity verified. Redirecting to Command Center." });
+          router.push('/dashboard');
+        } else {
+          setStep('provisioning');
+        }
       } else {
+        // Doc doesn't exist? (Maybe demo or manually created user)
         setStep('provisioning');
       }
     } catch (error: any) {
+      console.error(error);
       toast({ 
         variant: "destructive", 
         title: "Login Failed", 
-        description: error.message 
+        description: error.code === 'auth/invalid-credential' ? "Invalid email or password." : error.message 
       });
     } finally {
       setLoading(false);
@@ -89,21 +114,44 @@ export default function LoginPage() {
   const handleLaunchStripe = async () => {
     setLoading(true);
     try {
-      if (!auth.currentUser) return;
+      if (!auth || !auth.currentUser) {
+        toast({ variant: "destructive", title: "Error", description: "User context lost. Please log in again." });
+        setStep('auth');
+        setLoading(false);
+        return;
+      }
       
       // Simulate Stripe Redirection & Payment Completion
-      toast({ title: "Stripe Gateway", description: "Verifying agency billing profile..." });
+      toast({ title: "Stripe Gateway", description: "Authorizing 14-day free agency trial..." });
       
       setTimeout(async () => {
-        await updateDoc(doc(db, 'agencies', auth.currentUser!.uid), {
-          isTrialInitialized: true,
-          status: 'active',
-          trialStartedAt: new Date().toISOString()
-        });
-        
-        updateAgencyProfile({ isTrialInitialized: true });
-        toast({ title: "Trial Initialized", description: "Welcome to MediStay. Your 14-day free period is active." });
-        router.push('/dashboard');
+        try {
+          await updateDoc(doc(db, 'agencies', auth.currentUser!.uid), {
+            isTrialInitialized: true,
+            status: 'active',
+            trialStartedAt: new Date().toISOString()
+          });
+          
+          updateAgencyProfile({ isTrialInitialized: true });
+          toast({ title: "Success", description: "Trial Initialized. Welcome to MediStay." });
+          router.push('/dashboard');
+        } catch (e) {
+          // If doc doesn't exist, use setDoc instead
+          await updateDoc(doc(db, 'agencies', auth.currentUser!.uid), {
+            isTrialInitialized: true,
+            status: 'active'
+          }).catch(async () => {
+             const { setDoc } = await import('firebase/firestore');
+             await setDoc(doc(db, 'agencies', auth.currentUser!.uid), {
+                isTrialInitialized: true,
+                status: 'active',
+                email: auth.currentUser?.email,
+                trialStartedAt: new Date().toISOString()
+             });
+          });
+          updateAgencyProfile({ isTrialInitialized: true });
+          router.push('/dashboard');
+        }
       }, 2000);
     } catch (error: any) {
       toast({ variant: "destructive", title: "Billing Error", description: "Could not establish Stripe session." });
@@ -111,19 +159,19 @@ export default function LoginPage() {
     }
   };
 
+  if (!isMounted) return <div className="min-h-screen bg-slate-950" />;
+
   return (
     <div className="relative flex flex-col min-h-screen bg-slate-950 text-foreground selection:bg-primary/10 overflow-hidden">
       <div className="absolute inset-0 z-0">
-        {isMounted && (
-          <Image
-            src={authBg?.imageUrl || "https://picsum.photos/seed/med1/2400/1600"}
-            alt="Authentication Background"
-            fill
-            className="object-cover opacity-60"
-            priority
-            data-ai-hint="medical laboratory"
-          />
-        )}
+        <Image
+          src={authBg?.imageUrl || "https://picsum.photos/seed/med1/2400/1600"}
+          alt="Authentication Background"
+          fill
+          className="object-cover opacity-60"
+          priority
+          data-ai-hint="medical laboratory"
+        />
         <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-[2px]" />
       </div>
 

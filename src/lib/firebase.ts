@@ -18,15 +18,19 @@ let app: FirebaseApp;
 let auth: Auth;
 let db: Firestore;
 
-if (typeof window !== 'undefined') {
-  app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
-  auth = getAuth(app);
-  db = getFirestore(app);
-} else {
-  // Fallbacks for SSR phase
-  app = null as any;
-  auth = null as any;
-  db = null as any;
+try {
+  if (typeof window !== 'undefined') {
+    app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+    auth = getAuth(app);
+    db = getFirestore(app);
+  } else {
+    // Fallbacks for SSR phase to prevent build-time crashes
+    app = null as any;
+    auth = null as any;
+    db = null as any;
+  }
+} catch (error) {
+  console.error("Firebase initialization failed:", error);
 }
 
 export { auth, db };
