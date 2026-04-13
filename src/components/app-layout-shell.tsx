@@ -32,30 +32,43 @@ export function AppShell({ children }: { children: React.ReactNode }) {
     if (!auth) return;
 
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      // If we are on a landing or auth page, we don't strictly enforce redirection
+      // to avoid interfering with the login/signup flow.
+      if (isExcluded) {
+        setIsCheckingAuth(false)
+        return
+      }
+
       if (!user) {
-        // If not logged in and trying to access private route
-        if (!isExcluded) {
-          router.push('/login')
-        }
+        // Not logged in and trying to access a protected route
+        router.push('/login')
         setIsCheckingAuth(false)
       } else {
-        // If logged in, check trial status for private routes
-        if (!isExcluded) {
-          try {
-            const agencySnap = await getDoc(doc(db, 'agencies', user.uid));
-            if (agencySnap.exists()) {
-              const data = agencySnap.data();
-              updateAgencyProfile(data as any);
-              if (!data.isTrialInitialized) {
-                router.push('/login');
-              }
-            } else {
-              // No agency doc? Send to login to handle provisioning
+        // Authenticated users
+        if (user.isAnonymous) {
+          // Demo mode users skip trial check
+          updateAgencyProfile({ isTrialInitialized: true });
+          setIsCheckingAuth(false);
+          return;
+        }
+
+        try {
+          const agencySnap = await getDoc(doc(db, 'agencies', user.uid));
+          if (agencySnap.exists()) {
+            const data = agencySnap.data();
+            updateAgencyProfile(data as any);
+            
+            // If the trial isn't initialized, force them to the login/provisioning flow
+            if (!data.isTrialInitialized) {
               router.push('/login');
             }
-          } catch (e) {
-            console.error("Auth check failed:", e);
+          } else {
+            // Document doesn't exist? Send to login to handle provisioning
+            router.push('/login');
           }
+        } catch (e) {
+          console.error("Auth check failed:", e);
+          // On error, we still allow them to stay but maybe they'll hit Firestore errors later
         }
         setIsCheckingAuth(false)
       }

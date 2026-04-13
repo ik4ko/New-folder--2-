@@ -1,4 +1,3 @@
-
 "use client"
 
 import { useState } from "react"
@@ -40,7 +39,7 @@ export default function LandingPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [agencyName, setAgencyName] = useState('')
-  const importFromGHL = useAppStore(s => s.importFromGHL)
+  const { importFromGHL, updateAgencyProfile } = useAppStore()
 
   const reviews = [
     {
@@ -101,7 +100,8 @@ export default function LandingPage() {
           createdAt: new Date().toISOString(),
           trialExpires: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
           status: 'trialing',
-          tier: 'Entry'
+          tier: 'Entry',
+          isTrialInitialized: false
         })
         toast({ title: "Agency Provisioned", description: "14-Day Free Trial initiated." })
       }
@@ -122,6 +122,8 @@ export default function LandingPage() {
     const auth = getAuth()
     try {
       await signInAnonymously(auth)
+      // Set trial as initialized for demo mode to bypass redirection
+      updateAgencyProfile({ isTrialInitialized: true })
       importFromGHL(12)
       toast({ title: "Demo Mode Ready", description: "Launching sandbox with simulated carrier data..." })
       router.push('/dashboard')

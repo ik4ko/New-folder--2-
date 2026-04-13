@@ -7,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { auth, db } from '@/lib/firebase';
 import { signInWithEmailAndPassword, setPersistence, browserLocalPersistence, onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc, updateDoc } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, ArrowLeft, Lock, Mail, Key, ShieldCheck, Zap, CreditCard, Timer } from 'lucide-react';
@@ -30,7 +30,7 @@ export default function LoginPage() {
   
   const router = useRouter();
   const { toast } = useToast();
-  const { agencyProfile, updateAgencyProfile } = useAppStore();
+  const { updateAgencyProfile } = useAppStore();
 
   const authBg = PlaceHolderImages.find(img => img.id === 'auth-bg');
 
@@ -40,20 +40,29 @@ export default function LoginPage() {
 
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        // If logged in, check if they are already initialized
+        if (user.isAnonymous) {
+          updateAgencyProfile({ isTrialInitialized: true });
+          router.push('/dashboard');
+          return;
+        }
+
         try {
           const agencySnap = await getDoc(doc(db, 'agencies', user.uid));
-          const agencyData = agencySnap.data();
-          
-          if (agencyData?.isTrialInitialized) {
+          if (agencySnap.exists()) {
+            const agencyData = agencySnap.data();
             updateAgencyProfile({ ...agencyData as any });
-            router.push('/dashboard');
-          } else if (step === 'auth') {
-            // If logged in but not initialized and still on auth step, move to provisioning
-            setStep('provisioning');
+            
+            if (agencyData?.isTrialInitialized) {
+              router.push('/dashboard');
+            } else if (step === 'auth') {
+              setStep('provisioning');
+            }
+          } else {
+            // If user is logged in but no agency record exists, we must provision
+            if (step === 'auth') setStep('provisioning');
           }
         } catch (e) {
-          console.error("Error fetching agency status:", e);
+          console.error("Error checking agency status:", e);
         }
       }
     });
@@ -73,30 +82,25 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!auth) {
-      toast({ variant: "destructive", title: "Connection Error", description: "Firebase is not initialized." });
-      return;
-    }
+    if (!auth) return;
     
     setLoading(true);
     try {
       await setPersistence(auth, browserLocalPersistence);
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
       
-      // Check Firestore for trial status
       const agencySnap = await getDoc(doc(db, 'agencies', userCredential.user.uid));
       
       if (agencySnap.exists()) {
         const agencyData = agencySnap.data();
+        updateAgencyProfile({ ...agencyData as any });
         if (agencyData?.isTrialInitialized) {
-          updateAgencyProfile({ ...agencyData as any });
           toast({ title: "Welcome Back", description: "Identity verified. Redirecting to Command Center." });
           router.push('/dashboard');
         } else {
           setStep('provisioning');
         }
       } else {
-        // Doc doesn't exist? (Maybe demo or manually created user)
         setStep('provisioning');
       }
     } catch (error: any) {
@@ -112,49 +116,41 @@ export default function LoginPage() {
   };
 
   const handleLaunchStripe = async () => {
+    if (!auth?.currentUser) return;
     setLoading(true);
+    
     try {
-      if (!auth || !auth.currentUser) {
-        toast({ variant: "destructive", title: "Error", description: "User context lost. Please log in again." });
-        setStep('auth');
-        setLoading(false);
-        return;
-      }
-      
-      // Simulate Stripe Redirection & Payment Completion
       toast({ title: "Stripe Gateway", description: "Authorizing 14-day free agency trial..." });
       
-      setTimeout(async () => {
-        try {
-          await updateDoc(doc(db, 'agencies', auth.currentUser!.uid), {
-            isTrialInitialized: true,
-            status: 'active',
-            trialStartedAt: new Date().toISOString()
-          });
-          
-          updateAgencyProfile({ isTrialInitialized: true });
-          toast({ title: "Success", description: "Trial Initialized. Welcome to MediStay." });
-          router.push('/dashboard');
-        } catch (e) {
-          // If doc doesn't exist, use setDoc instead
-          await updateDoc(doc(db, 'agencies', auth.currentUser!.uid), {
-            isTrialInitialized: true,
-            status: 'active'
-          }).catch(async () => {
-             const { setDoc } = await import('firebase/firestore');
-             await setDoc(doc(db, 'agencies', auth.currentUser!.uid), {
-                isTrialInitialized: true,
-                status: 'active',
-                email: auth.currentUser?.email,
-                trialStartedAt: new Date().toISOString()
-             });
-          });
-          updateAgencyProfile({ isTrialInitialized: true });
-          router.push('/dashboard');
-        }
-      }, 2000);
+      const uid = auth.currentUser.uid;
+      const agencyRef = doc(db, 'agencies', uid);
+      const trialData = {
+        isTrialInitialized: true,
+        status: 'active',
+        trialStartedAt: new Date().toISOString()
+      };
+
+      // Atomic update to ensure trial is marked as started
+      try {
+        await updateDoc(agencyRef, trialData);
+      } catch (e) {
+        // Fallback: create doc if update fails (e.g. doc doesn't exist)
+        await setDoc(agencyRef, {
+          ...trialData,
+          email: auth.currentUser.email,
+          createdAt: new Date().toISOString(),
+        }, { merge: true });
+      }
+      
+      updateAgencyProfile(trialData);
+      
+      // Artificial delay to allow Firestore propagation and Stripe "feel"
+      setTimeout(() => {
+        toast({ title: "Success", description: "Trial Initialized. Welcome to MediStay." });
+        router.push('/dashboard');
+      }, 1500);
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Billing Error", description: "Could not establish Stripe session." });
+      toast({ variant: "destructive", title: "Billing Error", description: "Could not activate trial subscription." });
       setLoading(false);
     }
   };
@@ -170,7 +166,7 @@ export default function LoginPage() {
           fill
           className="object-cover opacity-60"
           priority
-          data-ai-hint="medical laboratory"
+          data-ai-hint="medical office"
         />
         <div className="absolute inset-0 bg-slate-950/40 backdrop-blur-[2px]" />
       </div>
