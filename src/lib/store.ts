@@ -65,6 +65,8 @@ export interface AgencyProfile {
   email: string;
   billingPlan: 'entry' | 'starter' | 'pro' | 'enterprise';
   isSubscriptionActive: boolean;
+  isTrialInitialized: boolean;
+  trialStartedAt?: string;
   isSolo: boolean;
   licenseNumber: string;
   tier: 'Basic' | 'Growth' | 'Enterprise';
@@ -138,6 +140,7 @@ export const useAppStore = create<AppState>((set, get) => ({
     email: "",
     billingPlan: 'entry',
     isSubscriptionActive: true,
+    isTrialInitialized: false,
     isSolo: false,
     licenseNumber: "NPN-882100",
     tier: 'Basic'

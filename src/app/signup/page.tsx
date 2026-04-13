@@ -47,11 +47,14 @@ export default function SignupPage() {
         trialExpires: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
         status: 'trialing',
         tier: 'Entry',
-        billingPlan: 'entry'
+        billingPlan: 'entry',
+        isTrialInitialized: false
       });
 
-      toast({ title: "Agency Provisioned", description: "Your 14-day free trial has been initialized." });
-      router.push('/dashboard');
+      toast({ title: "Account Created", description: "Identity verified. Please log in to initialize your agency trial." });
+      
+      // Redirect to login as requested
+      router.push('/login');
     } catch (error: any) {
       toast({ 
         variant: "destructive", 
@@ -146,7 +149,7 @@ export default function SignupPage() {
               disabled={loading}
               className="w-full h-16 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black text-lg mt-4 shadow-xl shadow-primary/20 uppercase tracking-tighter transition-all flex items-center justify-center gap-3"
             >
-              {loading ? <Loader2 className="animate-spin" /> : <>Initialize Trial <Rocket className="w-5 h-5" /></>}
+              {loading ? <Loader2 className="animate-spin" /> : <>Register & Continue <Rocket className="w-5 h-5" /></>}
             </Button>
           </form>
 
