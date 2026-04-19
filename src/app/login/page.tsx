@@ -38,7 +38,7 @@ export default function LoginPage() {
     setIsMounted(true);
     
     // Safety check for SSR or missing auth
-    if (typeof window === 'undefined' || !auth?.onAuthStateChanged) {
+    if (typeof window === 'undefined' || !auth) {
       setStep('auth');
       return;
     }
@@ -63,7 +63,6 @@ export default function LoginPage() {
               setStep('provisioning');
             }
           } else {
-            // User exists but document doesn't - needs provisioning
             setStep('provisioning');
           }
         } catch (e) {
@@ -75,7 +74,15 @@ export default function LoginPage() {
       }
     });
 
-    return () => unsubscribe();
+    // Timeout safety for the "checking" phase
+    const timer = setTimeout(() => {
+      if (step === 'checking') setStep('auth');
+    }, 3000);
+
+    return () => {
+      unsubscribe();
+      clearTimeout(timer);
+    };
   }, [router, updateAgencyProfile]);
 
   // Provisioning countdown logic
@@ -125,7 +132,7 @@ export default function LoginPage() {
   };
 
   const handleLaunchStripe = async () => {
-    if (!auth?.currentUser) return;
+    if (!auth?.currentUser || !db) return;
     setLoading(true);
     
     try {
@@ -136,7 +143,8 @@ export default function LoginPage() {
       const trialData = {
         isTrialInitialized: true,
         status: 'active',
-        trialStartedAt: new Date().toISOString()
+        trialStartedAt: new Date().toISOString(),
+        updatedAt: Date.now()
       };
 
       await setDoc(agencyRef, trialData, { merge: true });
@@ -152,7 +160,6 @@ export default function LoginPage() {
     }
   };
 
-  // Prevent blank screen during hydration or initial state check
   if (!isMounted) {
     return <div className="min-h-screen bg-slate-950" />;
   }

@@ -1,8 +1,8 @@
 'use client';
 
 import { initializeApp, getApps, getApp, FirebaseApp } from "firebase/app";
-import { getAuth, Auth } from "firebase/auth";
-import { getFirestore, Firestore } from "firebase/firestore";
+import { getAuth, Auth, connectAuthEmulator } from "firebase/auth";
+import { getFirestore, Firestore, connectFirestoreEmulator } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY || "AIzaSyPlaceholderKey-12345",
@@ -13,26 +13,29 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "placeholder-app-id",
 };
 
-// Initialize Firebase safely for client-side usage with fallbacks
+// Initialize Firebase safely for client-side usage
 let app: FirebaseApp;
 let auth: Auth;
 let db: Firestore;
 
-const isClient = typeof window !== 'undefined';
-
-if (isClient) {
+if (typeof window !== 'undefined') {
   try {
-    app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+    if (getApps().length > 0) {
+      app = getApp();
+    } else {
+      app = initializeApp(firebaseConfig);
+    }
     auth = getAuth(app);
     db = getFirestore(app);
   } catch (error) {
     console.error("Firebase client initialization failed:", error);
-    // Minimal mock to prevent crashes if initialization fails
-    auth = {} as Auth;
-    db = {} as Firestore;
+    // Fallback to minimal initialized state to prevent crashes
+    app = initializeApp(firebaseConfig);
+    auth = getAuth(app);
+    db = getFirestore(app);
   }
 } else {
-  // SSR mocks
+  // SSR mocks to prevent Next.js build errors
   auth = null as any;
   db = null as any;
 }

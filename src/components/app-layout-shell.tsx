@@ -26,27 +26,26 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const isExcluded = isLandingPage || isDocsPage || isAuthPage
 
   const isMobile = useIsMobile()
-  const { isSidebarOpen, toggleSidebar, isRosterOpen, toggleRoster, updateAgencyProfile, agencyProfile } = useAppStore()
+  const { isSidebarOpen, toggleSidebar, isRosterOpen, toggleRoster, updateAgencyProfile } = useAppStore()
 
   useEffect(() => {
-    if (!auth) return;
+    if (!auth || !db) {
+      setIsCheckingAuth(false);
+      return;
+    }
 
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       // If we are on a landing or auth page, we don't strictly enforce redirection
-      // to avoid interfering with the login/signup flow.
       if (isExcluded) {
         setIsCheckingAuth(false)
         return
       }
 
       if (!user) {
-        // Not logged in and trying to access a protected route
         router.push('/login')
         setIsCheckingAuth(false)
       } else {
-        // Authenticated users
         if (user.isAnonymous) {
-          // Demo mode users skip trial check
           updateAgencyProfile({ isTrialInitialized: true });
           setIsCheckingAuth(false);
           return;
@@ -58,17 +57,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             const data = agencySnap.data();
             updateAgencyProfile(data as any);
             
-            // If the trial isn't initialized, force them to the login/provisioning flow
             if (!data.isTrialInitialized) {
               router.push('/login');
             }
           } else {
-            // Document doesn't exist? Send to login to handle provisioning
             router.push('/login');
           }
         } catch (e) {
           console.error("Auth check failed:", e);
-          // On error, we still allow them to stay but maybe they'll hit Firestore errors later
+          // If error occurs, let them stay to prevent loop, but they may hit restricted paths
         }
         setIsCheckingAuth(false)
       }
@@ -98,7 +95,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-background flex-col md:flex-row">
-      {/* Mobile Header */}
       {isMobile && (
         <header className="h-14 border-b bg-card flex items-center justify-between px-4 shrink-0 z-50">
           <Logo iconOnly className="scale-75" />
@@ -113,10 +109,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </header>
       )}
 
-      {/* Desktop Navigation Sidebar */}
       {!isMobile && <AppSidebar />}
       
-      {/* Mobile Navigation Drawer */}
       {isMobile && (
         <Sheet open={isSidebarOpen} onOpenChange={toggleSidebar}>
           <SheetContent side="left" className="p-0 w-64 border-r-0">
@@ -126,7 +120,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </Sheet>
       )}
 
-      {/* Mobile Roster Drawer */}
       {isMobile && (
         <Sheet open={isRosterOpen} onOpenChange={toggleRoster}>
           <SheetContent side="left" className="p-0 w-72 border-r-0">
@@ -136,7 +129,6 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </Sheet>
       )}
       
-      {/* Main Application Area */}
       <main className="flex-1 flex overflow-hidden relative">
         {children}
       </main>
