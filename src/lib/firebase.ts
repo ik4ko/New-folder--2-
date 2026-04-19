@@ -13,24 +13,28 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID || "placeholder-app-id",
 };
 
-// Initialize Firebase safely for client-side usage
+// Initialize Firebase safely for client-side usage with fallbacks
 let app: FirebaseApp;
 let auth: Auth;
 let db: Firestore;
 
-try {
-  if (typeof window !== 'undefined') {
+const isClient = typeof window !== 'undefined';
+
+if (isClient) {
+  try {
     app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
     auth = getAuth(app);
     db = getFirestore(app);
-  } else {
-    // Fallbacks for SSR phase to prevent build-time crashes
-    app = null as any;
-    auth = null as any;
-    db = null as any;
+  } catch (error) {
+    console.error("Firebase client initialization failed:", error);
+    // Minimal mock to prevent crashes if initialization fails
+    auth = {} as Auth;
+    db = {} as Firestore;
   }
-} catch (error) {
-  console.error("Firebase initialization failed:", error);
+} else {
+  // SSR mocks
+  auth = null as any;
+  db = null as any;
 }
 
 export { auth, db };

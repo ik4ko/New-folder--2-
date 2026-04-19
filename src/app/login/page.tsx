@@ -1,4 +1,3 @@
-
 "use client"
 
 import React, { useState, useEffect } from 'react';
@@ -8,7 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { auth, db } from '@/lib/firebase';
 import { signInWithEmailAndPassword, setPersistence, browserLocalPersistence, onAuthStateChanged } from 'firebase/auth';
-import { doc, getDoc, updateDoc, setDoc } from 'firebase/firestore';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, ArrowLeft, Lock, Mail, Key, ShieldCheck, Zap, CreditCard, Timer } from 'lucide-react';
@@ -37,11 +36,15 @@ export default function LoginPage() {
 
   useEffect(() => {
     setIsMounted(true);
-    if (!auth) return;
+    
+    // Safety check for SSR or missing auth
+    if (typeof window === 'undefined' || !auth?.onAuthStateChanged) {
+      setStep('auth');
+      return;
+    }
 
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
-        // If the user is already authenticated (e.g. just signed up), detect and transition
         if (user.isAnonymous) {
           updateAgencyProfile({ isTrialInitialized: true });
           router.push('/dashboard');
@@ -60,17 +63,18 @@ export default function LoginPage() {
               setStep('provisioning');
             }
           } else {
-            // Document missing? The user exists, so let's allow them to provision
+            // User exists but document doesn't - needs provisioning
             setStep('provisioning');
           }
         } catch (e) {
-          console.error("Error checking agency status:", e);
+          console.error("Error fetching agency record:", e);
           setStep('auth');
         }
       } else {
         setStep('auth');
       }
     });
+
     return () => unsubscribe();
   }, [router, updateAgencyProfile]);
 
@@ -100,7 +104,7 @@ export default function LoginPage() {
         const agencyData = agencySnap.data();
         updateAgencyProfile({ ...agencyData as any });
         if (agencyData?.isTrialInitialized) {
-          toast({ title: "Welcome Back", description: "Identity verified. Redirecting to Command Center." });
+          toast({ title: "Identity Verified", description: "Loading agency workspace..." });
           router.push('/dashboard');
         } else {
           setStep('provisioning');
@@ -125,7 +129,7 @@ export default function LoginPage() {
     setLoading(true);
     
     try {
-      toast({ title: "Stripe Gateway", description: "Authorizing 14-day free agency trial..." });
+      toast({ title: "Stripe Connection", description: "Authorizing 14-day agency trial..." });
       
       const uid = auth.currentUser.uid;
       const agencyRef = doc(db, 'agencies', uid);
@@ -135,25 +139,25 @@ export default function LoginPage() {
         trialStartedAt: new Date().toISOString()
       };
 
-      await setDoc(agencyRef, {
-        ...trialData,
-        email: auth.currentUser.email,
-        createdAt: new Date().toISOString(),
-      }, { merge: true });
-      
+      await setDoc(agencyRef, trialData, { merge: true });
       updateAgencyProfile(trialData);
       
       setTimeout(() => {
-        toast({ title: "Success", description: "Trial Initialized. Welcome to MediStay." });
+        toast({ title: "Provisioning Complete", description: "Agency environment is live." });
         router.push('/dashboard');
       }, 1500);
     } catch (error: any) {
-      toast({ variant: "destructive", title: "Billing Error", description: "Could not activate trial subscription." });
+      toast({ variant: "destructive", title: "Setup Failed", description: "Could not initialize agency document." });
       setLoading(false);
     }
   };
 
-  if (!isMounted || step === 'checking') {
+  // Prevent blank screen during hydration or initial state check
+  if (!isMounted) {
+    return <div className="min-h-screen bg-slate-950" />;
+  }
+
+  if (step === 'checking') {
     return (
       <div className="flex h-screen w-screen items-center justify-center bg-slate-950">
         <div className="flex flex-col items-center gap-4 text-white">
@@ -168,8 +172,8 @@ export default function LoginPage() {
     <div className="relative flex flex-col min-h-screen bg-slate-950 text-foreground selection:bg-primary/10 overflow-hidden">
       <div className="absolute inset-0 z-0">
         <Image
-          src={authBg?.imageUrl || "https://picsum.photos/seed/med1/2400/1600"}
-          alt="Authentication Background"
+          src={authBg?.imageUrl || "https://picsum.photos/seed/medical-auth/2400/1600"}
+          alt="Auth Background"
           fill
           className="object-cover opacity-60"
           priority
@@ -182,8 +186,8 @@ export default function LoginPage() {
         <Link href="/">
           <Logo />
         </Link>
-        <Button variant="ghost" size="sm" asChild className="rounded-xl font-black uppercase text-[10px] tracking-widest text-white hover:bg-white/10 hover:text-white">
-          <Link href="/"><ArrowLeft className="w-4 h-4 mr-2" /> Back to Home</Link>
+        <Button variant="ghost" size="sm" asChild className="rounded-xl font-black uppercase text-[10px] tracking-widest text-white hover:bg-white/10">
+          <Link href="/"><ArrowLeft className="w-4 h-4 mr-2" /> Home</Link>
         </Button>
       </header>
 
@@ -208,7 +212,7 @@ export default function LoginPage() {
                       required
                       type="email"
                       placeholder="name@agency.com"
-                      className="h-14 rounded-2xl bg-white/5 border-white/10 text-white pl-12 font-bold placeholder:text-white/20 focus:ring-primary focus:border-primary/50 shadow-inner"
+                      className="h-14 rounded-2xl bg-white/5 border-white/10 text-white pl-12 font-bold placeholder:text-white/20 focus:ring-primary shadow-inner"
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                     />
@@ -222,7 +226,7 @@ export default function LoginPage() {
                       required
                       type="password"
                       placeholder="••••••••"
-                      className="h-14 rounded-2xl bg-white/5 border-white/10 text-white pl-12 font-bold placeholder:text-white/20 focus:ring-primary focus:border-primary/50 shadow-inner"
+                      className="h-14 rounded-2xl bg-white/5 border-white/10 text-white pl-12 font-bold placeholder:text-white/20 focus:ring-primary shadow-inner"
                       value={password}
                       onChange={(e) => setPassword(e.target.value)}
                     />
@@ -231,15 +235,15 @@ export default function LoginPage() {
                 <Button
                   type="submit"
                   disabled={loading}
-                  className="w-full h-16 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black text-lg mt-4 shadow-xl shadow-primary/20 uppercase tracking-tighter transition-all flex items-center justify-center gap-3"
+                  className="w-full h-16 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black text-lg mt-4 shadow-xl shadow-primary/20 uppercase tracking-tighter flex items-center justify-center gap-3 transition-all"
                 >
                   {loading ? <Loader2 className="animate-spin" /> : <>Log In <Lock className="w-5 h-5" /></>}
                 </Button>
               </form>
 
               <div className="mt-8 pt-8 border-t border-white/10 flex justify-between items-center text-[10px] font-black text-white/50 uppercase tracking-widest px-2">
-                <Link href="/signup" className="hover:text-primary transition-colors">Register Agency</Link>
-                <button type="button" className="hover:text-primary transition-colors">Recover Key</button>
+                <Link href="/signup" className="hover:text-primary">Register Agency</Link>
+                <button type="button" className="hover:text-primary">Forgot Key</button>
               </div>
             </div>
           )}
@@ -273,7 +277,7 @@ export default function LoginPage() {
               </div>
               <div className="space-y-2">
                 <h3 className="text-2xl font-black uppercase text-white tracking-tighter">Establishing Agency Node</h3>
-                <p className="text-[10px] font-black uppercase tracking-widest text-white/60">MediStay Cloud Virtualization</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-white/60">Cloud Virtualization in Progress</p>
               </div>
               <div className="space-y-4">
                 <Progress value={(10 - countdown) * 10} className="h-2 bg-white/10" />
@@ -291,17 +295,17 @@ export default function LoginPage() {
                 <Zap className="w-10 h-10 text-emerald-500" />
               </div>
               <div className="space-y-2">
-                <h3 className="text-3xl font-black uppercase text-white tracking-tighter">Initialize Trial</h3>
-                <p className="text-[10px] font-black uppercase tracking-widest text-white/60">Secure BAA Payment Activation</p>
+                <h3 className="text-3xl font-black uppercase text-white tracking-tighter">Start Trial</h3>
+                <p className="text-[10px] font-black uppercase tracking-widest text-white/60">Secure Payment HANDSHAKE</p>
               </div>
               <div className="p-6 rounded-3xl bg-white/5 border border-white/10 space-y-4 text-left">
                 <div className="flex items-center justify-between text-white font-black text-xs uppercase tracking-widest">
-                  <span>Entry Subscription</span>
+                  <span>Starter Plan</span>
                   <span>$0.00 / 14 Days</span>
                 </div>
                 <div className="h-px bg-white/10" />
                 <p className="text-[10px] text-white/60 font-bold leading-relaxed uppercase">
-                  A payment method is required to activate the trial. You will not be charged until the 14-day period expires.
+                  A payment method is required to activate the trial. No charges occur until the 14-day window expires.
                 </p>
               </div>
               <Button
@@ -309,10 +313,10 @@ export default function LoginPage() {
                 disabled={loading}
                 className="w-full h-20 rounded-[2rem] bg-emerald-500 hover:bg-emerald-400 text-white font-black text-lg shadow-2xl shadow-emerald-500/30 uppercase tracking-tighter flex items-center justify-center gap-3 transition-all"
               >
-                {loading ? <Loader2 className="animate-spin" /> : <>Launch Stripe Checkout <CreditCard className="w-6 h-6" /></>}
+                {loading ? <Loader2 className="animate-spin" /> : <>Launch Stripe Portal <CreditCard className="w-6 h-6" /></>}
               </Button>
               <div className="flex items-center justify-center gap-2 text-[9px] text-white/40 font-black uppercase tracking-widest">
-                <ShieldCheck className="w-3 h-3" /> PCI-DSS & HIPAA Compliant
+                <ShieldCheck className="w-3 h-3" /> HIPAA & BAA COMPLIANT GATEWAY
               </div>
             </div>
           )}

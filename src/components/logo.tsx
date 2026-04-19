@@ -1,4 +1,3 @@
-
 "use client"
 
 import { cn } from "@/lib/utils"
@@ -44,7 +43,6 @@ export function Logo({ className, iconOnly = false }: LogoProps) {
           <path
             d="M40 15h20v25h25v20H60v25H40V60H15V40h25V15z"
             fill="#E2E8F0"
-            rx="4"
             className="opacity-80"
           />
           
