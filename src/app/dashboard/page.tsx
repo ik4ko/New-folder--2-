@@ -1,3 +1,4 @@
+
 "use client"
 
 import { CollectionSidebar } from "@/components/collection-sidebar"
@@ -15,9 +16,11 @@ import Link from "next/link"
 import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { TutorialOverlay } from "@/components/tutorial-overlay"
+import { useTranslation } from "@/lib/i18n"
 
 export default function Dashboard() {
-  const { members, startTutorial } = useAppStore()
+  const { members, startTutorial, language } = useAppStore()
+  const { t } = useTranslation()
 
   useEffect(() => {
     initializeStore()
@@ -46,7 +49,7 @@ export default function Dashboard() {
   }, [members])
 
   return (
-    <div className="flex h-full w-full bg-background overflow-hidden relative">
+    <div className="flex h-full w-full bg-background overflow-hidden relative" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       <CollectionSidebar />
       <TutorialOverlay />
       
@@ -56,9 +59,9 @@ export default function Dashboard() {
             {/* Header */}
             <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
               <div className="space-y-1">
-                <h1 className="text-xl md:text-3xl font-black tracking-tight text-foreground uppercase">Retention Command Center</h1>
+                <h1 className="text-xl md:text-3xl font-black tracking-tight text-foreground uppercase">{t('dashboard.title')}</h1>
                 <p className="text-muted-foreground font-black text-[10px] md:text-sm uppercase tracking-tight opacity-70">
-                  Autonomous Medicare Monitoring
+                  {t('dashboard.subtitle')}
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -122,7 +125,7 @@ export default function Dashboard() {
               <Link href="/members" className="block">
                 <Card className="bg-muted/30 border-none rounded-3xl p-5 flex flex-col justify-between min-h-[140px] shadow-sm hover:bg-muted/40 transition-colors cursor-pointer group">
                   <div className="flex justify-between items-start">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Book of <br />Business</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t('dashboard.bookOfBusiness')}</span>
                     <Users className="w-4 h-4 text-primary opacity-50 group-hover:scale-110 transition-transform" />
                   </div>
                   <div>
@@ -134,7 +137,7 @@ export default function Dashboard() {
 
               <Card className="bg-muted/30 border-none rounded-3xl p-5 flex flex-col justify-between min-h-[140px] shadow-sm cursor-default">
                 <div className="flex justify-between items-start">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500">Avg <br />Retention Score</span>
+                  <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500">{t('dashboard.retentionScore')}</span>
                   <ShieldCheck className="w-4 h-4 text-emerald-500 opacity-50" />
                 </div>
                 <div>
@@ -148,7 +151,7 @@ export default function Dashboard() {
               <Link href="/members" className="block">
                 <Card className="bg-muted/30 border-none rounded-3xl p-5 flex flex-col justify-between min-h-[140px] shadow-sm hover:bg-destructive/5 transition-colors cursor-pointer border border-transparent hover:border-destructive/20 group">
                   <div className="flex justify-between items-start">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-destructive">CMS <br />Switch Alerts</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-destructive">{t('dashboard.switchAlerts')}</span>
                     <Activity className="w-4 h-4 text-destructive opacity-50 group-hover:scale-110 transition-transform" />
                   </div>
                   <div>
@@ -161,7 +164,7 @@ export default function Dashboard() {
               <Link href="/fax" className="block">
                 <Card className="bg-muted/30 border-none rounded-3xl p-5 flex flex-col justify-between min-h-[140px] shadow-sm hover:bg-muted/40 transition-colors cursor-pointer group">
                   <div className="flex justify-between items-start">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Pending <br />SSBCI Faxes</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t('dashboard.pendingFaxes')}</span>
                     <Printer className="w-4 h-4 text-primary opacity-50 group-hover:scale-110 transition-transform" />
                   </div>
                   <div>

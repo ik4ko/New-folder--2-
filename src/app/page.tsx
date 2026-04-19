@@ -1,3 +1,4 @@
+
 "use client"
 
 import { useState } from "react"
@@ -30,10 +31,13 @@ import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 import { useAppStore } from "@/lib/store"
 import { Logo } from "@/components/logo"
+import { useTranslation } from "@/lib/i18n"
+import { LanguageSelector } from "@/components/language-selector"
 
 export default function LandingPage() {
   const router = useRouter()
   const { toast } = useToast()
+  const { t } = useTranslation()
   const [authMode, setAuthMode] = useState<'login' | 'signup' | null>(null)
   const [loading, setLoading] = useState(false)
   const [email, setEmail] = useState('')
@@ -150,11 +154,12 @@ export default function LandingPage() {
           </nav>
         </div>
         <div className="flex items-center gap-4">
+          <LanguageSelector variant="ghost" className="hidden sm:flex" />
           <Button variant="ghost" asChild className="text-xs font-black uppercase tracking-widest">
-            <Link href="/login">Log In</Link>
+            <Link href="/login">{t('common.login')}</Link>
           </Button>
           <Button asChild className="rounded-xl h-11 px-6 font-black uppercase tracking-widest shadow-lg shadow-primary/20 text-xs">
-            <Link href="/signup">Get Access</Link>
+            <Link href="/signup">{t('common.signup')}</Link>
           </Button>
         </div>
       </header>
@@ -164,20 +169,20 @@ export default function LandingPage() {
         <section id="hero" className="relative py-20 md:py-32 px-8">
           <div className="max-w-7xl mx-auto bg-slate-950 rounded-[4rem] p-12 md:p-32 text-center space-y-10 border border-white/5 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.5)]">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-xs font-black uppercase tracking-widest border border-primary/20 mb-4">
-              <Zap size={14} className="fill-primary" /> AGENT GRADE RETENTION OS
+              <Zap size={14} className="fill-primary" /> {t('landing.badge')}
             </div>
             <h1 className="text-6xl md:text-9xl font-black tracking-tighter leading-[0.85] text-white">
-              <span className="text-white">Capture Every</span> <br/><span className="text-white">Switch Trigger.</span>
+              {t('landing.heroTitle')}
             </h1>
             <p className="text-xl md:text-2xl text-slate-400 font-medium leading-relaxed max-w-3xl mx-auto mb-12">
-              The first autonomous Medicare platform that stops churn by detecting disenrollment attempts in real-time, months before they finalize.
+              {t('landing.heroSubtitle')}
             </p>
             <div className="flex flex-wrap justify-center gap-6">
               <Button size="lg" onClick={() => setAuthMode('signup')} className="h-20 px-16 rounded-[2.5rem] text-xl font-black shadow-2xl shadow-primary/30 transition-all hover:scale-105 bg-primary hover:bg-primary/90 text-white">
-                Start 14-Day Free Trial
+                {t('common.trial')}
               </Button>
               <Button size="lg" variant="outline" onClick={startDemoMode} className="h-20 px-16 rounded-[2.5rem] text-xl font-black border-2 border-white/10 text-white hover:bg-white/5 transition-all flex items-center gap-3">
-                {loading ? <Loader2 className="animate-spin" /> : <PlayCircle size={24} />} Launch Demo
+                {loading ? <Loader2 className="animate-spin" /> : <PlayCircle size={24} />} {t('common.demo')}
               </Button>
             </div>
           </div>

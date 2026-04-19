@@ -20,22 +20,25 @@ import { usePathname } from "next/navigation"
 import { useAppStore } from "@/lib/store"
 import { Button } from "@/components/ui/button"
 import { ModeToggle } from "@/components/mode-toggle"
+import { LanguageSelector } from "@/components/language-selector"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { Logo } from "./logo"
+import { useTranslation } from "@/lib/i18n"
 
 export function AppSidebar({ forceOpen = false }: { forceOpen?: boolean }) {
   const pathname = usePathname()
   const isOpen = true
+  const { t } = useTranslation()
 
   const navItems = [
-    { href: '/dashboard', icon: LayoutDashboard, label: 'Command Center', desc: 'Real-time monitoring' },
-    { href: '/members', icon: Users, label: 'Member Roster', desc: 'Personal book of business' },
-    { href: '/accounting', icon: Banknote, label: 'Accounting', desc: 'Commissions & Splits' },
-    { href: '/fax', icon: Printer, label: 'SSBCI Fax', desc: 'Clinical documentation' },
-    { href: '/check-ins', icon: PhoneCall, label: 'AI Check-ins', desc: 'Maya AI outreach' },
-    { href: '/ghl', icon: Link2, label: 'CRM Sync', desc: 'GHL Integration' },
-    { href: '/compliance', icon: ShieldCheck, label: 'Vault', desc: 'Secure PHI archive' },
-    { href: '/ai', icon: Sparkles, label: 'Retention AI', isSpecial: true, desc: 'Predictive churn' },
+    { href: '/dashboard', icon: LayoutDashboard, label: t('common.dashboard'), desc: 'Real-time monitoring' },
+    { href: '/members', icon: Users, label: t('common.members'), desc: 'Personal book of business' },
+    { href: '/accounting', icon: Banknote, label: t('common.accounting'), desc: 'Commissions & Splits' },
+    { href: '/fax', icon: Printer, label: t('common.fax'), desc: 'Clinical documentation' },
+    { href: '/check-ins', icon: PhoneCall, label: t('common.checkins'), desc: 'Maya AI outreach' },
+    { href: '/ghl', icon: Link2, label: t('common.ghl'), desc: 'GHL Integration' },
+    { href: '/compliance', icon: ShieldCheck, label: t('common.vault'), desc: 'Secure PHI archive' },
+    { href: '/ai', icon: Sparkles, label: t('common.ai'), isSpecial: true, desc: 'Predictive churn' },
   ]
 
   return (
@@ -108,14 +111,9 @@ export function AppSidebar({ forceOpen = false }: { forceOpen?: boolean }) {
 
         {/* Footer Nav */}
         <div className="p-3 mt-auto border-t border-border space-y-2">
-          <div className={cn("flex items-center", isOpen ? "justify-between px-2" : "justify-center px-0")}>
-            {isOpen && (
-              <div className="flex items-center gap-2">
-                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <span className="text-[9px] font-black text-emerald-600 uppercase tracking-widest">Live Sync</span>
-              </div>
-            )}
+          <div className={cn("flex items-center gap-2", isOpen ? "justify-between px-1" : "justify-center px-0")}>
             <ModeToggle />
+            {isOpen && <LanguageSelector align="start" variant="ghost" className="h-8 px-2" />}
           </div>
 
           <Link 
@@ -127,7 +125,7 @@ export function AppSidebar({ forceOpen = false }: { forceOpen?: boolean }) {
             )}
           >
             <Settings className="w-5 h-5" />
-            {isOpen && <span className="text-[11px] font-bold uppercase tracking-widest">Settings</span>}
+            {isOpen && <span className="text-[11px] font-bold uppercase tracking-widest">{t('common.settings')}</span>}
           </Link>
         </div>
       </div>

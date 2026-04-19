@@ -7,6 +7,8 @@ import { Firestore, doc, setDoc } from 'firebase/firestore';
  * @fileOverview Application state management for MediStay.
  */
 
+export type Language = 'en' | 'es' | 'fr' | 'de' | 'zh' | 'ja' | 'pt' | 'it' | 'ru' | 'ar';
+
 export interface MemberRecord {
   id: string;
   fullName: string;
@@ -94,6 +96,8 @@ export interface GHLSettings {
 }
 
 interface AppState {
+  language: Language;
+  setLanguage: (lang: Language) => void;
   members: MemberRecord[];
   clients: ClientRecord[];
   ledger: Transaction[];
@@ -129,6 +133,8 @@ interface AppState {
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
+  language: 'en',
+  setLanguage: (lang) => set({ language: lang }),
   members: [],
   clients: [],
   ledger: [],
