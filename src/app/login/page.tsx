@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useState, useEffect } from 'react';
@@ -18,14 +19,14 @@ import { PlaceHolderImages } from '@/lib/placeholder-images';
 import { useAppStore } from '@/lib/store';
 import { Progress } from '@/components/ui/progress';
 
-type LoginStep = 'auth' | 'provisioning' | 'stripe';
+type LoginStep = 'checking' | 'auth' | 'provisioning' | 'stripe';
 
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [isMounted, setIsMounted] = useState(false);
-  const [step, setStep] = useState<LoginStep>('auth');
+  const [step, setStep] = useState<LoginStep>('checking');
   const [countdown, setCountdown] = useState(10);
   
   const router = useRouter();
@@ -40,6 +41,7 @@ export default function LoginPage() {
 
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       if (user) {
+        // If the user is already authenticated (e.g. just signed up), detect and transition
         if (user.isAnonymous) {
           updateAgencyProfile({ isTrialInitialized: true });
           router.push('/dashboard');
@@ -54,20 +56,23 @@ export default function LoginPage() {
             
             if (agencyData?.isTrialInitialized) {
               router.push('/dashboard');
-            } else if (step === 'auth') {
+            } else {
               setStep('provisioning');
             }
           } else {
-            // If user is logged in but no agency record exists, we must provision
-            if (step === 'auth') setStep('provisioning');
+            // Document missing? The user exists, so let's allow them to provision
+            setStep('provisioning');
           }
         } catch (e) {
           console.error("Error checking agency status:", e);
+          setStep('auth');
         }
+      } else {
+        setStep('auth');
       }
     });
     return () => unsubscribe();
-  }, [router, updateAgencyProfile, step]);
+  }, [router, updateAgencyProfile]);
 
   // Provisioning countdown logic
   useEffect(() => {
@@ -130,21 +135,14 @@ export default function LoginPage() {
         trialStartedAt: new Date().toISOString()
       };
 
-      // Atomic update to ensure trial is marked as started
-      try {
-        await updateDoc(agencyRef, trialData);
-      } catch (e) {
-        // Fallback: create doc if update fails (e.g. doc doesn't exist)
-        await setDoc(agencyRef, {
-          ...trialData,
-          email: auth.currentUser.email,
-          createdAt: new Date().toISOString(),
-        }, { merge: true });
-      }
+      await setDoc(agencyRef, {
+        ...trialData,
+        email: auth.currentUser.email,
+        createdAt: new Date().toISOString(),
+      }, { merge: true });
       
       updateAgencyProfile(trialData);
       
-      // Artificial delay to allow Firestore propagation and Stripe "feel"
       setTimeout(() => {
         toast({ title: "Success", description: "Trial Initialized. Welcome to MediStay." });
         router.push('/dashboard');
@@ -155,7 +153,16 @@ export default function LoginPage() {
     }
   };
 
-  if (!isMounted) return <div className="min-h-screen bg-slate-950" />;
+  if (!isMounted || step === 'checking') {
+    return (
+      <div className="flex h-screen w-screen items-center justify-center bg-slate-950">
+        <div className="flex flex-col items-center gap-4 text-white">
+          <Logo iconOnly className="animate-pulse scale-125" />
+          <p className="text-[10px] font-black uppercase tracking-widest opacity-50">Checking Agency Session...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative flex flex-col min-h-screen bg-slate-950 text-foreground selection:bg-primary/10 overflow-hidden">

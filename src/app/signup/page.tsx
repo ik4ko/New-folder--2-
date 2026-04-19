@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { auth, db } from '@/lib/firebase';
-import { createUserWithEmailAndPassword } from 'firebase/auth';
+import { createUserWithEmailAndPassword, setPersistence, browserLocalPersistence } from 'firebase/auth';
 import { doc, setDoc } from 'firebase/firestore';
 import { useRouter } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
@@ -38,6 +38,9 @@ export default function SignupPage() {
 
     setLoading(true);
     try {
+      // Ensure persistence is set before creating user
+      await setPersistence(auth, browserLocalPersistence);
+      
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       
       await setDoc(doc(db, 'agencies', userCredential.user.uid), {
@@ -51,9 +54,9 @@ export default function SignupPage() {
         isTrialInitialized: false
       });
 
-      toast({ title: "Account Created", description: "Identity verified. Please log in to initialize your agency trial." });
+      toast({ title: "Account Created", description: "Identity verified. Redirecting to initialization sequence." });
       
-      // Redirect to login as requested
+      // Redirect to login which will now automatically detect the new session
       router.push('/login');
     } catch (error: any) {
       toast({ 
@@ -61,14 +64,12 @@ export default function SignupPage() {
         title: "Registration Failed", 
         description: error.message 
       });
-    } finally {
       setLoading(false);
     }
   };
 
   return (
     <div className="relative flex flex-col min-h-screen bg-slate-950 text-foreground selection:bg-primary/10 overflow-hidden">
-      {/* Full Screen Background Image */}
       <div className="absolute inset-0 z-0">
         {isMounted && (
           <Image
