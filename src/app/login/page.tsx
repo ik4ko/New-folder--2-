@@ -1,3 +1,4 @@
+
 "use client"
 
 import React, { useState, useEffect } from 'react';
@@ -249,8 +250,8 @@ export default function LoginPage() {
               </form>
 
               <div className="mt-8 pt-8 border-t border-white/10 flex justify-between items-center text-[10px] font-black text-white/50 uppercase tracking-widest px-2">
-                <Link href="/signup" className="hover:text-primary">Register Agency</Link>
-                <button type="button" className="hover:text-primary">Forgot Key</button>
+                <Link href="/signup" className="hover:text-primary transition-colors">Register Agency</Link>
+                <button type="button" className="hover:text-primary transition-colors">Forgot Key</button>
               </div>
             </div>
           )}

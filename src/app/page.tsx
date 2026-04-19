@@ -20,13 +20,8 @@ import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { 
   getAuth, 
-  signInWithEmailAndPassword, 
-  createUserWithEmailAndPassword,
-  setPersistence,
-  browserLocalPersistence,
   signInAnonymously
 } from "firebase/auth"
-import { getFirestore, doc, setDoc } from "firebase/firestore"
 import { useToast } from "@/hooks/use-toast"
 import { cn } from "@/lib/utils"
 import { useAppStore } from "@/lib/store"
@@ -38,11 +33,7 @@ export default function LandingPage() {
   const router = useRouter()
   const { toast } = useToast()
   const { t } = useTranslation()
-  const [authMode, setAuthMode] = useState<'login' | 'signup' | null>(null)
   const [loading, setLoading] = useState(false)
-  const [email, setEmail] = useState('')
-  const [password, setPassword] = useState('')
-  const [agencyName, setAgencyName] = useState('')
   const { importFromGHL, updateAgencyProfile } = useAppStore()
 
   const reviews = [
@@ -84,42 +75,6 @@ export default function LandingPage() {
       features: ["Predictive Churn AI", "AEP Shield Prep", "Full Maya AI Agent", "Enterprise BAA & Audit Log"]
     }
   ]
-
-  const handleAuth = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    const auth = getAuth()
-    
-    try {
-      await setPersistence(auth, browserLocalPersistence)
-      if (authMode === 'login') {
-        await signInWithEmailAndPassword(auth, email, password)
-        toast({ title: "Welcome Back", description: "Accessing agency node..." })
-      } else {
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password)
-        const db = getFirestore()
-        await setDoc(doc(db, 'agencies', userCredential.user.uid), {
-          agencyName,
-          email,
-          createdAt: new Date().toISOString(),
-          trialExpires: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString(),
-          status: 'trialing',
-          tier: 'Entry',
-          isTrialInitialized: false
-        })
-        toast({ title: "Agency Provisioned", description: "14-Day Free Trial initiated." })
-      }
-      router.push('/dashboard')
-    } catch (error: any) {
-      toast({ 
-        variant: "destructive", 
-        title: "Authentication Failed", 
-        description: error.message 
-      })
-    } finally {
-      setLoading(false)
-    }
-  }
 
   const startDemoMode = async () => {
     setLoading(true)
@@ -178,8 +133,8 @@ export default function LandingPage() {
               {t('landing.heroSubtitle')}
             </p>
             <div className="flex flex-wrap justify-center gap-6">
-              <Button size="lg" onClick={() => setAuthMode('signup')} className="h-20 px-16 rounded-[2.5rem] text-xl font-black shadow-2xl shadow-primary/30 transition-all hover:scale-105 bg-primary hover:bg-primary/90 text-white">
-                {t('common.trial')}
+              <Button size="lg" asChild className="h-20 px-16 rounded-[2.5rem] text-xl font-black shadow-2xl shadow-primary/30 transition-all hover:scale-105 bg-primary hover:bg-primary/90 text-white">
+                <Link href="/signup">{t('common.trial')}</Link>
               </Button>
               <Button size="lg" variant="outline" onClick={startDemoMode} className="h-20 px-16 rounded-[2.5rem] text-xl font-black border-2 border-white/10 text-white hover:bg-white/5 transition-all flex items-center gap-3">
                 {loading ? <Loader2 className="animate-spin" /> : <PlayCircle size={24} />} {t('common.demo')}
@@ -291,8 +246,8 @@ export default function LandingPage() {
                       ))}
                     </div>
                   </div>
-                  <Button className="w-full h-16 rounded-3xl font-black uppercase text-xs tracking-widest shadow-xl bg-slate-900 text-white hover:bg-primary transition-all" onClick={() => setAuthMode('signup')}>
-                    Start Trial
+                  <Button asChild className="w-full h-16 rounded-3xl font-black uppercase text-xs tracking-widest shadow-xl bg-slate-900 text-white hover:bg-primary transition-all">
+                    <Link href="/signup">Start Trial</Link>
                   </Button>
                 </Card>
               ))}
@@ -354,85 +309,6 @@ export default function LandingPage() {
           <Link href="/docs/baa-agreement" className="hover:text-primary transition-colors">BAA Agreement</Link>
         </div>
       </footer>
-
-      {/* Auth Modal */}
-      {authMode && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-8">
-          <div className="absolute inset-0 bg-slate-950/80 backdrop-blur-xl" onClick={() => setAuthMode(null)}></div>
-          <Card className="relative w-full max-w-md rounded-[3.5rem] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] p-12 text-center animate-in zoom-in-95 duration-300 overflow-hidden bg-white border-none">
-            <button onClick={() => setAuthMode(null)} className="absolute top-8 right-8 p-2 text-slate-400 hover:text-slate-900 transition-colors">
-              <X size={24} />
-            </button>
-            <div className="flex justify-center mb-10">
-              <Logo iconOnly className="scale-150" />
-            </div>
-            <h2 className="text-4xl font-black mb-3 text-slate-900 uppercase tracking-tighter">{authMode === 'login' ? 'Agency Access' : 'Provision Node'}</h2>
-            <p className="text-center text-slate-400 text-xs font-black mb-10 uppercase tracking-widest opacity-70">MediStay Retention OS</p>
-            
-            <form onSubmit={handleAuth} className="space-y-5">
-              {authMode === 'signup' && (
-                <div className="space-y-2 text-left">
-                  <Label className="text-[10px] font-black uppercase tracking-widest ml-2 text-slate-400">Legal Agency Name</Label>
-                  <Input 
-                    required
-                    placeholder="e.g. Elite Medicare Group" 
-                    className="h-16 rounded-2xl bg-slate-50 border-slate-100 font-bold px-6 focus:ring-primary shadow-inner"
-                    value={agencyName}
-                    onChange={(e) => setAgencyName(e.target.value)}
-                  />
-                </div>
-              )}
-              <div className="space-y-2 text-left">
-                <Label className="text-[10px] font-black uppercase tracking-widest ml-2 text-slate-400">Agent Email</Label>
-                <Input 
-                  required
-                  type="email"
-                  placeholder="name@agency.com" 
-                  className="h-16 rounded-2xl bg-slate-50 border-slate-100 font-bold px-6 focus:ring-primary shadow-inner"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2 text-left">
-                <Label className="text-[10px] font-black uppercase tracking-widest ml-2 text-slate-400">Secure Password</Label>
-                <Input 
-                  required
-                  type="password"
-                  placeholder="••••••••" 
-                  className="h-16 rounded-2xl bg-slate-50 border-slate-100 font-bold px-6 focus:ring-primary shadow-inner"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </div>
-              <Button type="submit" disabled={loading} className="w-full h-20 rounded-3xl bg-slate-900 hover:bg-slate-800 text-white font-black text-xl mt-6 shadow-2xl uppercase tracking-tighter transition-all">
-                {loading ? <Loader2 className="animate-spin" /> : (authMode === 'login' ? 'Enter Command Center' : 'Initialize Trial')}
-              </Button>
-            </form>
-
-            <div className="my-8 flex items-center gap-4">
-              <div className="h-px flex-1 bg-border" />
-              <span className="text-[9px] font-black text-muted-foreground uppercase tracking-widest">OR</span>
-              <div className="h-px flex-1 bg-border" />
-            </div>
-
-            <Button 
-              variant="outline" 
-              onClick={startDemoMode} 
-              disabled={loading}
-              className="w-full h-14 rounded-2xl font-black uppercase tracking-widest text-[10px] border-2 border-primary/20 text-primary hover:bg-primary/5 transition-all"
-            >
-              Launch Demo Node (Anonymous)
-            </Button>
-
-            <div className="mt-10 flex justify-between items-center text-[10px] font-black text-slate-400 uppercase tracking-widest px-2">
-              <button onClick={() => setAuthMode(authMode === 'login' ? 'signup' : 'login')} className="hover:text-primary transition-colors">
-                {authMode === 'login' ? "Create Agency Account" : "Back to Login"}
-              </button>
-              <button className="hover:text-primary transition-colors">Forgot Key</button>
-            </div>
-          </Card>
-        </div>
-      )}
     </div>
   )
 }
