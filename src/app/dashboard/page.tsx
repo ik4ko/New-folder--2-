@@ -17,6 +17,7 @@ import { Button } from "@/components/ui/button"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { TutorialOverlay } from "@/components/tutorial-overlay"
 import { useTranslation } from "@/lib/i18n"
+import { RiskAlertFeed } from "@/components/risk-alert-feed"
 
 export default function Dashboard() {
   const { members, startTutorial, language } = useAppStore()
@@ -75,6 +76,9 @@ export default function Dashboard() {
                 </Badge>
               </div>
             </div>
+
+            {/* Integrity Engine — Provisional Disenrollment Alert Feed */}
+            <RiskAlertFeed />
 
             {/* Agent Heartbeat Section */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

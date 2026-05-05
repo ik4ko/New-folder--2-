@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc *)",
+      "Bash(./node_modules/.bin/tsc --noEmit)",
+      "Bash(bun run *)",
+      "Bash(./node_modules/.bin/next build *)",
+      "Bash(bunx next *)",
+      "Bash(node --input-type=module)",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\('node engines:', d.get\\('engines',{}\\)\\); [print\\(k\\) for k in d.get\\('dependencies',{}\\) if 'firebase' in k]\")",
+      "Bash(node -e \"const d=require\\('./package.json'\\); console.log\\(Object.keys\\(d.dependencies||{}\\).filter\\(k=>k.includes\\('firebase'\\)\\)\\)\")",
+      "Bash(npm install *)",
+      "Bash(npm run *)",
+      "Bash(npm config)",
+      "Bash(python3 -c \"import json,sys; d=json.load\\(sys.stdin\\); print\\(json.dumps\\({k:v for k,v in {**d.get\\('dependencies',{}\\),**d.get\\('devDependencies',{}\\)}.items\\(\\)}, indent=2\\)\\)\")",
+      "Bash(node -e \"const f = require\\('/home/user/studio/functions/node_modules/firebase-functions/v1'\\); console.log\\(Object.keys\\(f\\).filter\\(k=>!k.startsWith\\('_'\\)\\).join\\(', '\\)\\)\")",
+      "Bash(node *)",
+      "Bash(node_modules/.bin/tsc --noEmit)",
+      "Bash(node_modules\\\\.bin\\\\tsc --noEmit)",
+      "PowerShell(Get-Command *)"
+    ]
+  }
+}
