@@ -19,6 +19,10 @@ const ClientChurnPredictionInputSchema = z.object({
       'The date of the client\'s last policy review in "YYYY-MM-DD" format. Optional.'
     ),
 });
+
+const ClientChurnPredictionPromptSchema = ClientChurnPredictionInputSchema.extend({
+  currentDate: z.string().describe('The current date in YYYY-MM-DD format.'),
+});
 export type ClientChurnPredictionInput = z.infer<
   typeof ClientChurnPredictionInputSchema
 >;
@@ -46,7 +50,7 @@ export async function predictClientChurn(
 
 const predictClientChurnPrompt = ai.definePrompt({
   name: 'predictClientChurnPrompt',
-  input: {schema: ClientChurnPredictionInputSchema},
+  input: {schema: ClientChurnPredictionPromptSchema},
   output: {schema: ClientChurnPredictionOutputSchema},
   prompt: `You are an AI assistant tasked with identifying clients who might need a policy review or new coverage to prevent churn.
 

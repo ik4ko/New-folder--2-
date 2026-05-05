@@ -35,7 +35,7 @@ export default function SSBCIAutomationLP() {
                 <p className="text-xs font-bold text-muted-foreground uppercase leading-relaxed">We scan your roster for diabetes, hypertension, and heart conditions, matching them to available supplemental benefits.</p>
               </div>
               <div className="space-y-4">
-                <Badge variant="outline" className="text-[9px] uppercase font-black tracking-widest border-primary/20 text-primary">Autonomous Faxing</p>
+                <Badge variant="outline" className="text-[9px] uppercase font-black tracking-widest border-primary/20 text-primary">Autonomous Faxing</Badge>
                 <h3 className="text-2xl font-black uppercase tracking-tighter">PCP Bridge</h3>
                 <p className="text-xs font-bold text-muted-foreground uppercase leading-relaxed">One-click faxing to physician offices via Spruce Health to confirm clinical status.</p>
               </div>

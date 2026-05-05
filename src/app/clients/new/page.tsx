@@ -45,7 +45,7 @@ export default function NewClientPage() {
           ...prev,
           fullName: data.fullName || data.firstName + " " + data.lastName || prev.fullName,
           address: data.address || prev.address,
-          documentNumber: data.documentNumber || prev.documentNumber,
+          medicareId: data.documentNumber || prev.medicareId,
         }))
         toast({ title: "OCR Success", description: "Data extracted from document." })
       } catch (err) {
@@ -156,8 +156,8 @@ export default function NewClientPage() {
                       <Label className="text-xs uppercase tracking-wider text-muted-foreground">Document ID Number (Encrypted)</Label>
                       <Input 
                         placeholder="e.g. DL123456789" 
-                        value={formData.documentNumber || ""}
-                        onChange={e => setFormData(p => ({...p, documentNumber: e.target.value}))}
+                        value={formData.medicareId || ""}
+                        onChange={e => setFormData(p => ({...p, medicareId: e.target.value}))}
                         className="rounded-xl border-border/60 font-mono"
                       />
                     </div>
@@ -219,7 +219,7 @@ export default function NewClientPage() {
         </div>
       </div>
 
-      <InsightsPanel client={formData as any} />
+      <InsightsPanel member={formData as any} />
     </div>
   )
 }

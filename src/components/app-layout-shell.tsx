@@ -115,7 +115,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <Sheet open={isSidebarOpen} onOpenChange={toggleSidebar}>
           <SheetContent side="left" className="p-0 w-64 border-r-0">
             <SheetTitle className="sr-only">Main Navigation</SheetTitle>
-            <AppSidebar forceOpen />
+            <AppSidebar />
           </SheetContent>
         </Sheet>
       )}

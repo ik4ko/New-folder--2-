@@ -2,7 +2,7 @@
 "use client"
 
 import { useAppStore } from "@/lib/store"
-import { useFirestore, useUser } from "@/firebase"
+import { auth, db } from "@/lib/firebase"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -14,14 +14,13 @@ import { useRouter } from "next/navigation"
 
 export default function IdentitySettingsPage() {
   const router = useRouter()
-  const firestore = useFirestore()
-  const { user } = useUser()
   const { agencyProfile, updateAgencyProfile, syncToCloudVault, encryptionKey } = useAppStore()
 
   const handleSave = async () => {
-    if (encryptionKey && firestore && user) {
+    const userId = auth?.currentUser?.uid
+    if (encryptionKey && db && userId) {
       toast({ title: "Hardening Data", description: "Encrypting agency identity for cloud vault..." })
-      await syncToCloudVault(firestore, user.uid)
+      await syncToCloudVault(db, userId)
     }
     toast({ title: "Identity Saved", description: "Your agency identity has been updated and persisted." })
   }

@@ -1,0 +1,183 @@
+rules_version = '2';
+
+// MediStay — HIPAA-aligned Firestore security rules
+//
+// Isolation model:
+//   phi_vault/{agencyId}/...  — encrypted PHI; only authenticated members of that agency
+//   clients/{memberId}        — operational metadata; any authenticated agency member whose agencyId matches
+//   vaults/{userId}           — legacy per-user settings vault
+//
+// Custom claim required: request.auth.token.agencyId must be set on login via
+// Firebase Admin SDK (server-side) to enforce agency-level isolation.
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // -----------------------------------------------------------------------
+    // Helpers
+    // -----------------------------------------------------------------------
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function callerAgencyId() {
+      return request.auth.token.agencyId;
+    }
+
+    function isAgencyMember(agencyId) {
+      return isAuthenticated() && callerAgencyId() == agencyId;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // -----------------------------------------------------------------------
+    // phi_vault — HIPAA-isolated PHI store
+    //
+    // Core gate: request.auth.token.agencyId == resource.data.agencyId
+    // A broker from agency A can never read or write data owned by agency B,
+    // even if they know the document path.
+    //
+    // Parent document (/{agencyId}) is intentionally write-blocked so no
+    // unencrypted data can be written to the collection root.
+    // -----------------------------------------------------------------------
+
+    match /phi_vault/{agencyId} {
+      allow read, write: if false;
+
+      // Encrypted PHI records.
+      // read:   token claim must match the agencyId stored on the document.
+      // create/update: token claim must match the agencyId being written,
+      //   which must also equal the path segment and carry required cipher fields.
+      match /records/{memberId} {
+        allow read: if isAuthenticated()
+          && request.auth.token.agencyId == resource.data.agencyId;
+
+        allow create, update: if isAuthenticated()
+          && request.auth.token.agencyId == request.resource.data.agencyId
+          && request.resource.data.agencyId == agencyId
+          && request.resource.data.memberId == memberId
+          && request.resource.data.cipher is string
+          && request.resource.data.iv is string
+          && request.resource.data.encryptedBy == request.auth.uid
+          && request.resource.data.encryptedAt is int;
+
+        // PHI deletion must go through the Admin SDK (server-side only).
+        allow delete: if false;
+      }
+
+      // Audit log — append-only. Updates and deletes are never permitted;
+      // the audit chain must be immutable (HIPAA §164.312(b)).
+      match /audit_log/{entryId} {
+        allow read: if isAuthenticated()
+          && request.auth.token.agencyId == resource.data.agencyId;
+
+        allow create: if isAuthenticated()
+          && request.auth.token.agencyId == request.resource.data.agencyId
+          && request.resource.data.agencyId == agencyId
+          && request.resource.data.userId == request.auth.uid
+          && request.resource.data.timestamp is int
+          && request.resource.data.hash is string;
+
+        allow update, delete: if false;
+      }
+    }
+
+    // -----------------------------------------------------------------------
+    // clients — operational metadata, no PHI.
+    //
+    // Core gate: request.auth.token.agencyId == resource.data.agencyId
+    // On create, resource does not yet exist so we check request.resource instead.
+    // On update, both the existing doc and the incoming payload must match the
+    // caller's claim — preventing data from being moved between agencies.
+    // -----------------------------------------------------------------------
+
+    match /clients/{memberId} {
+      allow read: if isAuthenticated()
+        && request.auth.token.agencyId == resource.data.agencyId;
+
+      allow create: if isAuthenticated()
+        && request.auth.token.agencyId == request.resource.data.agencyId;
+
+      allow update: if isAuthenticated()
+        && request.auth.token.agencyId == resource.data.agencyId
+        && request.auth.token.agencyId == request.resource.data.agencyId;
+
+      // Soft-delete pattern: set status = 'archived' instead of deleting.
+      allow delete: if false;
+    }
+
+    // -----------------------------------------------------------------------
+    // invitations — agency owner creates invite; Cloud Function marks accepted.
+    // The Cloud Function uses Admin SDK and bypasses these rules for its writes.
+    // -----------------------------------------------------------------------
+
+    match /invitations/{inviteId} {
+      // Agency members can read invitations for their agency (e.g. list pending invites in UI).
+      allow read: if isAuthenticated()
+        && resource.data.agencyId == callerAgencyId();
+
+      // Only authenticated agency members can create invitations for their own agency.
+      allow create: if isAuthenticated()
+        && request.resource.data.agencyId == callerAgencyId()
+        && request.resource.data.status == 'pending'
+        && request.resource.data.email is string;
+
+      // Clients never update or delete — the Cloud Function handles status transitions.
+      allow update, delete: if false;
+    }
+
+    // -----------------------------------------------------------------------
+    // users — pre-populated by onboarding or admin before account creation.
+    // The Cloud Function reads users/{uid} to set agencyId for self-registered owners.
+    // -----------------------------------------------------------------------
+
+    match /users/{uid} {
+      // Users can read their own profile.
+      allow read: if isOwner(uid);
+
+      // Agency owners can pre-create user docs for incoming members before sign-up.
+      allow create: if isAuthenticated()
+        && request.resource.data.agencyId == callerAgencyId();
+
+      // Users can update their own doc; agency members can update docs in their agency.
+      allow update: if isOwner(uid)
+        || (isAuthenticated() && resource.data.agencyId == callerAgencyId());
+
+      allow delete: if false;
+    }
+
+    // -----------------------------------------------------------------------
+    // vaults — legacy per-user encrypted settings (agencyProfile, GHL, Maya)
+    // Kept for backward compatibility with the Hydra PHI Vault page.
+    // -----------------------------------------------------------------------
+
+    match /vaults/{userId} {
+      allow read, write: if isOwner(userId);
+    }
+
+    // -----------------------------------------------------------------------
+    // audit_logs — top-level claim-assignment audit trail.
+    // Written exclusively by the setAgencyClaim Cloud Function via Admin SDK.
+    // Agency members can read their own agency's entries; no client writes.
+    // -----------------------------------------------------------------------
+
+    match /audit_logs/{entryId} {
+      allow read: if isAuthenticated()
+        && resource.data.agencyId == callerAgencyId();
+
+      // All writes go through the Admin SDK (Cloud Function only).
+      allow write: if false;
+    }
+
+    // -----------------------------------------------------------------------
+    // Deny everything else by default.
+    // -----------------------------------------------------------------------
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

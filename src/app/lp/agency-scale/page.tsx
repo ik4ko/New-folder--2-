@@ -1,12 +1,11 @@
 
 "use client"
 
-import { Button } from "@/components/ui/badge"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Users2, Briefcase, Globe, ShieldAlert, ArrowRight } from "lucide-react"
 import Link from "next/link"
 import { Tooltip, TooltipProvider, TooltipTrigger, TooltipContent } from "@/components/ui/tooltip"
-import { Button as UIButton } from "@/components/ui/button"
 
 export default function AgencyScaleLP() {
   return (
@@ -39,9 +38,9 @@ export default function AgencyScaleLP() {
           </div>
 
           <div className="pt-12">
-            <UIButton size="lg" className="h-16 px-10 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest text-xs gap-3 shadow-xl shadow-primary/20" asChild>
+            <Button size="lg" className="h-16 px-10 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest text-xs gap-3 shadow-xl shadow-primary/20" asChild>
               <Link href="/dashboard">Scale your Agency <ArrowRight className="w-5 h-5" /></Link>
-            </UIButton>
+            </Button>
           </div>
         </div>
       </TooltipProvider>

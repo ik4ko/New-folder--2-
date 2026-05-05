@@ -25,7 +25,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { Logo } from "./logo"
 import { useTranslation } from "@/lib/i18n"
 
-export function AppSidebar({ forceOpen = false }: { forceOpen?: boolean }) {
+export function AppSidebar() {
   const pathname = usePathname()
   const isOpen = true
   const { t } = useTranslation()

@@ -2,12 +2,13 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { useFirestore, useUser } from '@/firebase';
-import { deriveKey, encryptData, decryptData, syncVaultToCloud, fetchVaultFromCloud, VaultState, createAuditHash } from '@/lib/vault/core';
+import { auth as firebaseAuth, db } from '@/lib/firebase';
+import { onAuthStateChanged, type User } from 'firebase/auth';
+import { deriveKey, encryptData, decryptData, syncVaultToCloud, fetchVaultFromCloud, VaultState } from '@/lib/vault/core';
 import { useAppStore } from '@/lib/store';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { ShieldCheck, Lock, RefreshCw, Database, Share2, Activity, ShieldAlert, Cpu, Network } from 'lucide-react';
@@ -16,8 +17,7 @@ import { CollectionSidebar } from '@/components/collection-sidebar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 export default function DistributedVaultPage() {
-  const { user } = useUser();
-  const firestore = useFirestore();
+  const [user, setUser] = useState<User | null>(null);
   const [passphrase, setPassphrase] = useState('');
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [vaultData, setVaultState] = useState<VaultState | null>(null);
@@ -29,6 +29,11 @@ export default function DistributedVaultPage() {
   // Refs for background processes
   const gunRef = useRef<any>(null);
   const keyRef = useRef<CryptoKey | null>(null);
+
+  useEffect(() => {
+    if (!firebaseAuth) return;
+    return onAuthStateChanged(firebaseAuth, setUser);
+  }, []);
 
   // Initialize GUN mesh
   useEffect(() => {
@@ -57,9 +62,9 @@ export default function DistributedVaultPage() {
         setVaultState(decrypted);
         setIsUnlocked(true);
         toast({ title: "Local Vault Decrypted", description: "Identity verified via WebCrypto." });
-      } else if (firestore && user) {
+      } else if (db && user) {
         // 2. Fallback to Firestore
-        const cloudBlob = await fetchVaultFromCloud(firestore, user.uid);
+        const cloudBlob = await fetchVaultFromCloud(db, user.uid);
         if (cloudBlob) {
           const decrypted = await decryptData(cloudBlob.cipher, cloudBlob.iv, key);
           restoreSettings(decrypted);
@@ -87,7 +92,7 @@ export default function DistributedVaultPage() {
   };
 
   const handleSaveRecord = async (content: string) => {
-    if (!vaultData || !keyRef.current || !user || !firestore) return;
+    if (!vaultData || !keyRef.current || !user || !db) return;
 
     setSyncStatus('syncing');
     const newState: VaultState = {
@@ -101,7 +106,7 @@ export default function DistributedVaultPage() {
 
     // Update ALL sources
     localStorage.setItem(`vault_${user.uid}`, JSON.stringify(blob));
-    syncVaultToCloud(firestore, user.uid, blob);
+    syncVaultToCloud(db, user.uid, blob);
     gunRef.current.get('vaults').get(user.uid).put(JSON.stringify(blob));
 
     setVaultState(newState);
@@ -254,13 +259,13 @@ export default function DistributedVaultPage() {
                   {[
                     { name: 'Dr. Alexander Wright', role: 'Primary Physician', access: 'Read-Only' },
                     { name: 'MediStay Concierge', role: 'Support Bot', access: 'Zero-Knowledge' }
-                  ].map((auth, i) => (
+                  ].map((entry, i) => (
                     <div key={i} className="flex items-center justify-between p-4 rounded-2xl bg-muted/30 border border-border">
                       <div>
-                        <p className="text-[10px] font-black text-foreground uppercase">{auth.name}</p>
-                        <p className="text-[8px] font-bold text-muted-foreground uppercase">{auth.role}</p>
+                        <p className="text-[10px] font-black text-foreground uppercase">{entry.name}</p>
+                        <p className="text-[8px] font-bold text-muted-foreground uppercase">{entry.role}</p>
                       </div>
-                      <Badge className="bg-blue-600/10 text-blue-600 border-none text-[8px] font-black">{auth.access}</Badge>
+                      <Badge className="bg-blue-600/10 text-blue-600 border-none text-[8px] font-black">{entry.access}</Badge>
                     </div>
                   ))}
                 </div>

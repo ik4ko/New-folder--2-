@@ -13,6 +13,9 @@ export interface MemberRecord {
   id: string;
   fullName: string;
   medicareId: string;
+  ssnLast4?: string;
+  address?: string;
+  pharmacyName?: string;
   status: 'active' | 'churn-risk' | 'pending';
   retentionScore: number;
   lastSync: string;
@@ -179,7 +182,7 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   addMember: (m) => set(s => ({
     members: [...s.members, {
-      id: Math.random().toString(36).substr(2, 9),
+      id: crypto.randomUUID(),
       fullName: m.fullName || "New Member",
       status: m.status || 'active',
       retentionScore: m.retentionScore || 100,
@@ -192,11 +195,11 @@ export const useAppStore = create<AppState>((set, get) => ({
   })),
 
   addClient: (c) => set(s => ({
-    clients: [...s.clients, { id: Math.random().toString(36).substr(2, 9), ...c }]
+    clients: [...s.clients, { id: crypto.randomUUID(), ...c }]
   })),
 
   addBroker: (b) => set(s => ({
-    brokers: [...s.brokers, { id: Math.random().toString(36).substr(2, 9), ...b }]
+    brokers: [...s.brokers, { id: crypto.randomUUID(), ...b }]
   })),
 
   updateBroker: (id, updates) => set(s => ({

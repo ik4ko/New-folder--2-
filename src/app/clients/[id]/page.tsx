@@ -97,7 +97,7 @@ export default function ClientDetailPage() {
                     Health Flags
                   </h3>
                   <div className="flex flex-wrap gap-2">
-                    {client.healthConditions.length > 0 ? client.healthConditions.map(c => (
+                    {(client.healthConditions ?? []).length > 0 ? (client.healthConditions ?? []).map(c => (
                       <Badge key={c} variant="outline" className="bg-primary/5 text-primary border-primary/20 rounded-lg">
                         {c}
                       </Badge>
@@ -143,7 +143,7 @@ export default function ClientDetailPage() {
         </div>
       </div>
 
-      <InsightsPanel client={client} />
+      <InsightsPanel member={client as any} />
     </div>
   )
 }
