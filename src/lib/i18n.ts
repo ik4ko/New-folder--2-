@@ -6,14 +6,6 @@ import { useAppStore, type Language } from './store';
 export const languages = [
   { code: 'en', name: 'English', flag: '🇺🇸' },
   { code: 'es', name: 'Español', flag: '🇪🇸' },
-  { code: 'fr', name: 'Français', flag: '🇫🇷' },
-  { code: 'de', name: 'Deutsch', flag: '🇩🇪' },
-  { code: 'zh', name: '中文', flag: '🇨🇳' },
-  { code: 'ja', name: '日本語', flag: '🇯🇵' },
-  { code: 'pt', name: 'Português', flag: '🇧🇷' },
-  { code: 'it', name: 'Italiano', flag: '🇮🇹' },
-  { code: 'ru', name: 'Русский', flag: '🇷🇺' },
-  { code: 'ar', name: 'العربية', flag: '🇸🇦' },
 ];
 
 export const translations = {
@@ -34,8 +26,8 @@ export const translations = {
       demo: "Launch Demo",
     },
     landing: {
-      heroTitle: "Capture Every Switch Trigger.",
-      heroSubtitle: "The first autonomous Medicare platform that stops churn by detecting disenrollment attempts in real-time.",
+      heroTitle: "Stop the 2026 Benefit Cliff. Protect Your Book Before They Churn.",
+      heroSubtitle: "The first autonomous Medicare retention platform that detects disenrollment attempts in real-time and locks in member loyalty before the next AEP.",
       badge: "AGENT GRADE RETENTION OS",
     },
     dashboard: {

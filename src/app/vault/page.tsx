@@ -1,4 +1,4 @@
-
+﻿
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
@@ -258,7 +258,7 @@ export default function DistributedVaultPage() {
                 <div className="space-y-4">
                   {[
                     { name: 'Dr. Alexander Wright', role: 'Primary Physician', access: 'Read-Only' },
-                    { name: 'MediStay Concierge', role: 'Support Bot', access: 'Zero-Knowledge' }
+                    { name: 'AegisSage Concierge', role: 'Support Bot', access: 'Zero-Knowledge' }
                   ].map((entry, i) => (
                     <div key={i} className="flex items-center justify-between p-4 rounded-2xl bg-muted/30 border border-border">
                       <div>

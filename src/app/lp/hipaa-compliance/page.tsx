@@ -1,4 +1,4 @@
-
+﻿
 "use client"
 
 import { Button } from "@/components/ui/button"
@@ -21,7 +21,7 @@ export default function HIPAAComplianceLP() {
           </h1>
           
           <p className="text-lg md:text-xl text-muted-foreground font-bold max-w-2xl mx-auto uppercase tracking-tight opacity-80 leading-snug">
-            Don't risk your license on unsecured spreadsheets. MediStay is built on a foundation of BAA-compliant infrastructure with immutable PHI audit trails.
+            Don't risk your license on unsecured spreadsheets. AegisSage is built on a foundation of BAA-compliant infrastructure with immutable PHI audit trails.
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-8">

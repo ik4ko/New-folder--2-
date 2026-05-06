@@ -1,4 +1,4 @@
-
+﻿
 "use client"
 
 import { Button } from "@/components/ui/button"
@@ -13,7 +13,7 @@ export default function HIPAASecureDoc() {
         <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 px-4 py-1.5 font-black uppercase tracking-widest text-[10px]">Technical Overview</Badge>
         <h1 className="text-5xl md:text-6xl font-black tracking-tighter uppercase leading-[0.9]">HIPAA SECURE Standards</h1>
         <p className="text-xl text-muted-foreground font-bold leading-relaxed uppercase tracking-tight opacity-80">
-          Technical and administrative safeguards protecting Medicare member data within the MediStay ecosystem.
+          Technical and administrative safeguards protecting Medicare member data within the AegisSage ecosystem.
         </p>
       </div>
 
@@ -22,7 +22,7 @@ export default function HIPAASecureDoc() {
           <Lock className="w-8 h-8 text-primary" />
           <h3 className="text-xl font-black uppercase tracking-tighter">Encryption</h3>
           <p className="text-[10px] font-medium text-slate-400 uppercase leading-relaxed italic">
-            AES-256 for data at rest and TLS 1.3 for data in transit across all MediStay modules.
+            AES-256 for data at rest and TLS 1.3 for data in transit across all AegisSage modules.
           </p>
         </div>
         <div className="p-8 rounded-[2.5rem] bg-card border border-border space-y-4">
@@ -47,7 +47,7 @@ export default function HIPAASecureDoc() {
           <h2 className="text-2xl font-black uppercase tracking-tight">2025 CMS Interoperability Rule</h2>
         </div>
         <p className="text-sm font-bold text-muted-foreground leading-relaxed uppercase opacity-80">
-          MediStay is built to exceed the latest CMS requirements for agency transparency and data exchange. We provide clear opt-out mechanisms for beneficiaries and maintain a direct bridge to carrier compliance departments for dispute resolution.
+          AegisSage is built to exceed the latest CMS requirements for agency transparency and data exchange. We provide clear opt-out mechanisms for beneficiaries and maintain a direct bridge to carrier compliance departments for dispute resolution.
         </p>
       </section>
     </div>

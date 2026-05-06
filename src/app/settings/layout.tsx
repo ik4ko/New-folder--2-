@@ -1,4 +1,4 @@
-
+﻿
 "use client"
 
 import { useAppStore, initializeStore } from "@/lib/store"
@@ -77,7 +77,7 @@ function SettingsSidebar() {
       <div className="p-4 border-t border-border bg-muted/5 shrink-0">
         <div className="p-2.5 rounded-xl border border-border bg-card/50 text-center">
           <p className="text-[8px] font-black text-muted-foreground uppercase tracking-widest opacity-50">
-            MediStay Workspace v4.2
+            AegisSage Workspace v4.2
           </p>
         </div>
       </div>

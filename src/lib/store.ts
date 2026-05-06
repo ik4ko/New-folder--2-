@@ -1,13 +1,14 @@
-
+﻿
 import { create } from 'zustand';
 import { faker } from '@faker-js/faker';
 import { Firestore, doc, setDoc } from 'firebase/firestore';
+import type { RiskProfile } from './retention/comparePlans';
 
 /**
- * @fileOverview Application state management for MediStay.
+ * @fileOverview Application state management for AegisSage.
  */
 
-export type Language = 'en' | 'es' | 'fr' | 'de' | 'zh' | 'ja' | 'pt' | 'it' | 'ru' | 'ar';
+export type Language = 'en' | 'es';
 
 export interface MemberRecord {
   id: string;
@@ -16,11 +17,13 @@ export interface MemberRecord {
   ssnLast4?: string;
   address?: string;
   pharmacyName?: string;
-  status: 'active' | 'churn-risk' | 'pending';
+  status: 'active' | 'churn-risk' | 'pending' | 'PROVISIONALLY_DISENROLLED' | 'PLAN_CHANGED';
+  mbi_hash?: string;
   retentionScore: number;
   lastSync: string;
   carrier: string;
   planName: string;
+  planId?: string;
   updatedAt?: number;
   phone: string;
   email: string;
@@ -48,7 +51,10 @@ export interface MemberRecord {
   futureContract?: string;
   futurePlanName?: string;
   futureEffectiveDate?: string;
+  riskProfile?: RiskProfile;
 }
+
+export type { RiskProfile };
 
 export interface ClientRecord extends Partial<MemberRecord> {
   agentId?: string;
@@ -142,7 +148,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   clients: [],
   ledger: [],
   brokers: [
-    { id: '1', name: 'Agent Primary', role: 'Agency Owner', email: 'admin@medistay.ai', npn: '19920112' }
+    { id: '1', name: 'Agent Primary', role: 'Agency Owner', email: 'admin@AegisSage.ai', npn: '19920112' }
   ],
   agencyProfile: {
     name: "Elite Medicare Group",
@@ -162,7 +168,7 @@ export const useAppStore = create<AppState>((set, get) => ({
   ghlSettings: {
     apiKey: "",
     locationId: "",
-    webhookUrl: "https://api.medistay.ai/v1/webhooks/ghl/123",
+    webhookUrl: "https://api.AegisSage.ai/v1/webhooks/ghl/123",
     fieldMapping: {
       medicareId: "contact.medicare_id",
       carrier: "contact.carrier",

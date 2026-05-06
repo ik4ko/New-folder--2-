@@ -1,4 +1,4 @@
-
+﻿
 'use client';
 
 /**
@@ -13,7 +13,7 @@ import { doc, setDoc, getDoc, Firestore } from 'firebase/firestore';
 import { type AgencyProfile, type GHLSettings, type MayaSettings } from '@/lib/store';
 
 // --- WebCrypto Logic ---
-export async function deriveKey(passphrase: string, salt: string = 'medistay-v1') {
+export async function deriveKey(passphrase: string, salt: string = 'AegisSage-v1') {
   const enc = new TextEncoder();
   const keyMaterial = await crypto.subtle.importKey(
     'raw', enc.encode(passphrase), 'PBKDF2', false, ['deriveKey']

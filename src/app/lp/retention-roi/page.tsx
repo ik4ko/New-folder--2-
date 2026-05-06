@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
@@ -47,7 +47,7 @@ export default function RetentionROILP() {
               <h3 className="text-xl font-black uppercase tracking-tighter text-emerald-400 flex items-center gap-2">
                 <TrendingUp className="w-5 h-5" /> ROI: 1,200%
               </h3>
-              <p className="text-xs font-medium text-slate-400 leading-relaxed uppercase">At $99/mo, preventing just TWO disenrollments pays for your entire year of MediStay instantly.</p>
+              <p className="text-xs font-medium text-slate-400 leading-relaxed uppercase">At $99/mo, preventing just TWO disenrollments pays for your entire year of AegisSage instantly.</p>
             </div>
             <Button size="lg" className="h-14 px-8 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest text-[10px] shadow-lg shadow-primary/20" asChild>
               <Link href="/dashboard">Maximize Agency ROI</Link>

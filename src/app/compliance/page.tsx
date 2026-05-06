@@ -1,370 +1,440 @@
 "use client"
 
-import { CollectionSidebar } from "@/components/collection-sidebar"
-import { useAppStore } from "@/lib/store"
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
+import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { 
-  ShieldCheck, FileCheck, Lock, History, Search, Download, 
-  FileText, Database, ShieldAlert, FileSignature, Files, 
-  ExternalLink, CheckCircle2, AlertCircle, Clock, Filter, Trash2,
-  ChevronRight, BookOpen
-} from "lucide-react"
-import { Input } from "@/components/ui/input"
-import { toast } from "@/hooks/use-toast"
-import { useState } from "react"
+import { Badge } from "@/components/ui/badge"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
+import { Logo } from "@/components/logo"
+import {
+  ShieldCheck, Lock, Clock, FileSignature, Download,
+  ArrowLeft, CheckCircle2, ExternalLink, Scale, Globe, AlertTriangle,
+} from "lucide-react"
 
-export default function ComplianceVaultPage() {
-  const members = useAppStore((state) => state.members)
-  const [search, setSearch] = useState("")
+// ---------------------------------------------------------------------------
+// Section anchor IDs referenced by links across the app:
+//   /compliance#encryption
+//   /compliance#baa
+//   /compliance#retention
+//   /compliance#terms
+//   /compliance#privacy
+// ---------------------------------------------------------------------------
 
-  const complianceTemplates = [
-    { id: 'soa-2025', title: 'Scope of Appointment (SOA)', version: '2025.1', status: 'Approved', type: 'PDF', size: '1.2 MB' },
-    { id: 'ptc-gen', title: 'Permission to Contact (PTC)', version: '2.0', status: 'Approved', type: 'DOCX', size: '450 KB' },
-    { id: 'baa-agency', title: 'Agency Business Associate Agreement', version: '4.2', status: 'Latest', type: 'PDF', size: '2.8 MB' },
-    { id: 'lis-discl', title: 'LIS / Extra Help Disclosure', version: '1.5', status: 'Approved', type: 'PDF', size: '890 KB' },
-    { id: 'pre-enroll', title: 'Pre-Enrollment Checklist', version: '2025.A', status: 'Required', type: 'PDF', size: '1.1 MB' },
-    { id: 'tpmo-disc', title: 'TPMO Disclaimer (Standard)', version: '1.0', status: 'Approved', type: 'DOCX', size: '120 KB' },
-  ]
+const LAST_UPDATED = "May 5, 2026"
 
-  const auditLogs = [
-    { id: 1, event: "PHI_ACCESS", user: "Broker JD", target: "Member #8821", timestamp: "2024-11-20 10:45:02", status: "AUTHORIZED", ip: "192.168.1.44" },
-    { id: 2, event: "DATA_EXPORT", user: "Admin Sarah", target: "Full Roster", timestamp: "2024-11-20 09:12:11", status: "AUTHORIZED", ip: "192.168.1.12" },
-    { id: 3, event: "SOA_SIGNATURE", user: "System", target: "Member #9KL2", timestamp: "2024-11-19 16:30:45", status: "VERIFIED", ip: "CMS_BRIDGE" },
-    { id: 4, event: "LOGIN_SUCCESS", user: "Broker JD", target: "N/A", timestamp: "2024-11-19 08:00:01", status: "MFA_PASSED", ip: "192.168.1.44" },
-    { id: 5, event: "SFTP_PUSH", user: "Module 3 Bot", target: "Provider NPI-992", timestamp: "2024-11-18 14:22:33", status: "ENCRYPTED", ip: "DOCUMO_API" },
-  ]
-
-  const handleAction = (title: string, description: string) => {
-    toast({
-      title: title,
-      description: description,
-    })
-  }
-
-  const handleDownloadTemplate = (title: string) => {
-    handleAction("Downloading Template", `Preparing ${title} for offline use...`)
-  }
-
-  const filteredSoaArchive = members.filter(m => 
-    m.soaStatus === 'Completed' && 
-    (m.fullName.toLowerCase().includes(search.toLowerCase()) || m.medicareId.toLowerCase().includes(search.toLowerCase()))
-  )
-
+export default function CompliancePage() {
   return (
-    <div className="flex h-full w-full bg-background">
-      <CollectionSidebar />
-      
-      <div className="flex-1 flex flex-col h-full bg-background overflow-hidden">
-        <header className="h-16 border-b border-border px-8 flex items-center justify-between bg-white/50 backdrop-blur-md sticky top-0 z-10">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-600 shadow-sm">
-              <ShieldCheck className="w-5 h-5" />
+    <div className="min-h-screen bg-background text-foreground selection:bg-primary/10">
+
+      {/* ── Sticky header ─────────────────────────────────────────────────── */}
+      <header className="h-20 border-b border-border/50 px-8 flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur-xl z-50">
+        <Link href="/" className="flex items-center gap-3">
+          <Logo />
+        </Link>
+        <div className="flex items-center gap-3">
+          <nav className="hidden md:flex items-center gap-6 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+            <a href="#encryption" className="hover:text-primary transition-colors">Encryption</a>
+            <a href="#baa"        className="hover:text-primary transition-colors">BAA</a>
+            <a href="#retention"  className="hover:text-primary transition-colors">Retention</a>
+            <a href="#terms"      className="hover:text-primary transition-colors">Terms</a>
+            <a href="#privacy"    className="hover:text-primary transition-colors">Privacy</a>
+          </nav>
+          <Button variant="ghost" size="sm" asChild className="rounded-xl font-black uppercase text-[10px] tracking-widest">
+            <Link href="/"><ArrowLeft className="w-4 h-4 mr-2" />Back</Link>
+          </Button>
+        </div>
+      </header>
+
+      <main className="max-w-4xl mx-auto py-20 px-8 space-y-24 pb-32">
+
+        {/* ── Hero ──────────────────────────────────────────────────────────── */}
+        <section className="space-y-6 text-center">
+          <div className="flex justify-center">
+            <div className="w-16 h-16 rounded-[2rem] bg-primary/10 flex items-center justify-center text-primary shadow-inner">
+              <ShieldCheck className="w-8 h-8" />
+            </div>
+          </div>
+          <Badge className="bg-primary/10 text-primary border-primary/20 px-4 py-1.5 font-black uppercase tracking-widest text-[10px]">
+            CMS 2026 Compliance Standard
+          </Badge>
+          <h1 className="text-5xl font-black tracking-tighter uppercase">
+            Security & Compliance Statement
+          </h1>
+          <p className="text-lg font-bold text-muted-foreground uppercase tracking-tight max-w-2xl mx-auto">
+            AegisSage is engineered for HIPAA-aligned Medicare broker operations.
+            This statement details our data protection practices, legal obligations,
+            and broker responsibilities.
+          </p>
+          <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
+            Last updated: {LAST_UPDATED}
+          </p>
+        </section>
+
+        {/* ── Compliance badges row ─────────────────────────────────────────── */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+          {[
+            { icon: Lock,          label: "AES-256-GCM",         sub: "Data Encryption at Rest"          },
+            { icon: FileSignature, label: "HIPAA BAA",            sub: "Business Associate Agreement"     },
+            { icon: Clock,         label: "10-Year Retention",    sub: "CMS Mandated Record Keeping"      },
+          ].map(({ icon: Icon, label, sub }) => (
+            <Card key={label} className="rounded-3xl border-none shadow-sm bg-muted/20 text-center p-6 space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary mx-auto">
+                <Icon className="w-6 h-6" />
+              </div>
+              <div>
+                <p className="text-sm font-black uppercase tracking-tight text-foreground">{label}</p>
+                <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mt-0.5">{sub}</p>
+              </div>
+            </Card>
+          ))}
+        </div>
+
+        <Separator className="opacity-30" />
+
+        {/* ── Section 01: Data Encryption ──────────────────────────────────── */}
+        <section id="encryption" className="space-y-8 scroll-mt-24">
+          <div className="flex items-start gap-5">
+            <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0 mt-1">
+              <Lock className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-xl font-bold text-foreground">Compliance Vault</h1>
-              <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Immutable PHI & SOA Archive</p>
+              <h2 className="text-2xl font-black uppercase tracking-tight">
+                01. Data Encryption (AES-256-GCM)
+              </h2>
+              <p className="text-sm text-muted-foreground font-bold uppercase tracking-wide mt-1">
+                Field-Level & At-Rest Protection
+              </p>
             </div>
           </div>
-          <div className="flex gap-3">
-            <Button 
-              variant="outline" 
-              className="rounded-2xl h-10 text-xs font-bold border-border"
-              onClick={() => handleAction("Data Export Initiated", "Generating secure snapshot of compliance records...")}
-            >
-              <Database className="w-4 h-4 mr-2" /> Data Export
-            </Button>
-            <Button 
-              className="rounded-2xl h-10 text-xs font-black uppercase tracking-widest bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20"
-              onClick={() => handleAction("Audit Package Ready", "The multi-year audit bundle has been prepared for regulator review.")}
-            >
-              <FileCheck className="w-4 h-4 mr-2" />
-              Generate Audit Package
-            </Button>
-          </div>
-        </header>
 
-        <div className="flex-1 overflow-y-auto p-8 max-w-6xl mx-auto w-full space-y-16 bg-slate-50/30 dark:bg-background pb-32">
-          {/* Executive Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 pt-4">
-            <Card className="rounded-3xl border-none shadow-sm bg-emerald-500/5">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-[10px] font-black uppercase text-emerald-600 tracking-widest">SOA Integrity</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-black text-emerald-700">99.2%</div>
-                <p className="text-[10px] text-emerald-600/70 mt-1 font-bold">Audit Target: &gt;95%</p>
-              </CardContent>
-            </Card>
-            <Card className="rounded-3xl border-none shadow-sm bg-primary/5">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-[10px] font-black uppercase text-primary tracking-widest">Signed SOAs</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-black text-primary">{members.filter(m => m.soaStatus === 'Completed').length}</div>
-                <p className="text-[10px] text-primary/70 mt-1 font-bold">10-year retention</p>
-              </CardContent>
-            </Card>
-            <Card className="rounded-3xl border-none shadow-sm bg-card">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">PTC Logs</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-black text-foreground">892</div>
-                <p className="text-[10px] text-muted-foreground mt-1 font-bold">Active Permissions</p>
-              </CardContent>
-            </Card>
-            <Card className="rounded-3xl border-none shadow-sm bg-card">
-              <CardHeader className="pb-2">
-                <CardTitle className="text-[10px] font-black uppercase text-muted-foreground tracking-widest">BAA Status</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="text-3xl font-black text-emerald-600">Active</div>
-                <p className="text-[10px] text-muted-foreground mt-1 font-bold">3 Signed Carriers</p>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Section 01: Document Archive */}
-          <section id="soa-archive" className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-black uppercase tracking-tight text-foreground">01. Document Archive</h2>
-                <p className="text-xs text-muted-foreground">Immutable Scope of Appointment (SOA) repository for active and historical members.</p>
-              </div>
-              <div className="flex gap-3">
-                <div className="relative w-64">
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-                  <Input 
-                    placeholder="Search by name or MBI..." 
-                    className="pl-9 h-10 rounded-2xl text-[11px] bg-card border-none shadow-sm text-foreground"
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                  />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {[
+              {
+                title: "Field-Level Encryption",
+                body: "Protected Health Information (PHI) fields — including Medicare Beneficiary Identifiers (MBI), dates of birth, and phone numbers — are encrypted individually using AES-256-GCM with unique IVs per field. Keys are derived via PBKDF2 (100,000 iterations, SHA-256) from a master secret stored in Firebase Secret Manager. This means each field requires its own decryption operation.",
+              },
+              {
+                title: "Encryption at Rest",
+                body: "All Firestore databases are encrypted at rest using Google-managed AES-256 keys. PHI blobs stored in Google Cloud Storage are protected with Customer-Managed Encryption Keys (CMEK). No plaintext PHI is ever written to any persistent storage layer.",
+              },
+              {
+                title: "In-Transit Encryption",
+                body: "All client-to-server communication is protected by TLS 1.3. Webhook payloads from CRM integrations (GoHighLevel, EnrollHere) are verified via HMAC-SHA256 signature on the x-webhook-signature header before processing begins.",
+              },
+              {
+                title: "Minimum Necessary Standard",
+                body: "Per HIPAA §164.514(d), AegisSage applies the minimum necessary standard to all PHI access. Operational metadata (plan IDs, retention scores, status flags) is stored separately from PHI. AI risk-scoring flows operate exclusively on non-PHI operational data.",
+              },
+            ].map(({ title, body }) => (
+              <Card key={title} className="rounded-3xl border border-border/50 bg-card p-6 space-y-3">
+                <div className="flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                  <h3 className="text-sm font-black uppercase tracking-tight">{title}</h3>
                 </div>
-                <Button variant="outline" size="icon" className="h-10 w-10 rounded-2xl border-none bg-card shadow-sm" onClick={() => handleAction("Filters Reset", "Archive view has been cleared.")}>
-                  <Filter className="w-4 h-4 text-muted-foreground" />
+                <p className="text-[11px] text-muted-foreground leading-relaxed">{body}</p>
+              </Card>
+            ))}
+          </div>
+        </section>
+
+        <Separator className="opacity-30" />
+
+        {/* ── Section 02: HIPAA BAA ─────────────────────────────────────────── */}
+        <section id="baa" className="space-y-8 scroll-mt-24">
+          <div className="flex items-start gap-5">
+            <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-600 shrink-0 mt-1">
+              <FileSignature className="w-6 h-6" />
+            </div>
+            <div>
+              <h2 className="text-2xl font-black uppercase tracking-tight">
+                02. HIPAA BAA Availability
+              </h2>
+              <p className="text-sm text-muted-foreground font-bold uppercase tracking-wide mt-1">
+                Business Associate Agreement — Required for Platform Access
+              </p>
+            </div>
+          </div>
+
+          <Card className="rounded-3xl border border-border/50 bg-card overflow-hidden">
+            <CardContent className="p-8 space-y-6">
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                AegisSage functions as a <strong className="text-foreground">Business Associate</strong> under
+                HIPAA (45 CFR §160.103) when processing Protected Health Information on behalf of Covered
+                Entities (Medicare insurance brokers and agencies). All agencies accessing PHI functionality
+                must have an executed Business Associate Agreement on file before platform access is granted.
+              </p>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
+                {[
+                  { label: "Safeguard PHI",          desc: "Administrative, physical, and technical safeguards per §164.310–164.312" },
+                  { label: "Report Breaches",         desc: "Notify covered entity within 60 days of PHI breach discovery per §164.410" },
+                  { label: "Subcontractor BAAs",      desc: "Flow-down BAA obligations to all subprocessors handling PHI" },
+                ].map(({ label, desc }) => (
+                  <div key={label} className="p-4 rounded-2xl bg-muted/30 space-y-1.5">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
+                      <p className="text-[10px] font-black uppercase tracking-widest">{label}</p>
+                    </div>
+                    <p className="text-[10px] text-muted-foreground leading-snug">{desc}</p>
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex flex-col sm:flex-row gap-3 pt-2">
+                <Button
+                  className="rounded-2xl font-black uppercase text-[10px] tracking-widest bg-primary hover:bg-primary/90 shadow-lg shadow-primary/20 h-12"
+                  asChild
+                >
+                  {/* Place the actual PDF at public/BAA_Template.pdf before deploying */}
+                  <a href="/BAA_Template.pdf" target="_blank" rel="noopener noreferrer">
+                    <Download className="w-4 h-4 mr-2" />
+                    Download BAA Template
+                  </a>
+                </Button>
+                <Button
+                  variant="outline"
+                  className="rounded-2xl font-black uppercase text-[10px] tracking-widest border-primary/20 text-primary h-12"
+                  asChild
+                >
+                  <Link href="/docs/baa-agreement">
+                    <ExternalLink className="w-4 h-4 mr-2" />
+                    Review BAA Agreement
+                  </Link>
                 </Button>
               </div>
+
+              <p className="text-[9px] text-muted-foreground font-medium border-t border-border pt-4">
+                Agencies that have not executed a BAA will not be granted access to PHI-adjacent features,
+                including the Integrity Engine, CSV ingestion, and Blue Button 2.0 integration. Contact
+                compliance@aegissage.com to initiate the BAA execution process.
+              </p>
+            </CardContent>
+          </Card>
+        </section>
+
+        <Separator className="opacity-30" />
+
+        {/* ── Section 03: 10-Year Record Retention ─────────────────────────── */}
+        <section id="retention" className="space-y-8 scroll-mt-24">
+          <div className="flex items-start gap-5">
+            <div className="w-12 h-12 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-600 shrink-0 mt-1">
+              <Clock className="w-6 h-6" />
             </div>
-            
-            <Card className="rounded-3xl border-none shadow-sm bg-card overflow-hidden">
-              <div className="divide-y">
-                {filteredSoaArchive.length > 0 ? filteredSoaArchive.map((member, i) => (
-                  <div key={i} className="px-8 py-5 flex items-center justify-between hover:bg-slate-50/50 transition-colors">
-                    <div className="flex items-center gap-5">
-                      <div className="w-10 h-10 rounded-2xl bg-primary/5 flex items-center justify-center text-primary shadow-inner">
-                        <FileSignature className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-bold text-foreground">{member.fullName}</p>
-                        <div className="flex items-center gap-3 mt-0.5">
-                          <span className="text-[10px] text-muted-foreground font-bold uppercase tracking-tight">Signed: {member.soaDate || 'Unknown'}</span>
-                          <span className="w-1 h-1 rounded-full bg-slate-300" />
-                          <span className="text-[9px] text-muted-foreground font-mono uppercase tracking-tighter">{member.medicareId}</span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                      <Badge variant="outline" className="text-[9px] font-black uppercase bg-emerald-50 text-emerald-700 border-emerald-100 px-2 py-0.5">VERIFIED E-SIGN</Badge>
-                      <div className="flex gap-2">
-                         <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-primary/5 hover:text-primary transition-all" onClick={() => handleAction("Opening Document", `Accessing SOA record for ${member.fullName}...`)}>
-                          <ExternalLink className="w-4 h-4" />
-                        </Button>
-                        <Button variant="ghost" size="icon" className="h-9 w-9 rounded-xl hover:bg-primary/5 hover:text-primary transition-all" onClick={() => handleDownloadTemplate(`SOA_${member.fullName}`)}>
-                          <Download className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                )) : (
-                  <div className="p-12 text-center text-muted-foreground font-medium flex flex-col items-center gap-3">
-                    <AlertCircle className="w-8 h-8 opacity-20" />
-                    No signed SOAs matching your search in the archive.
-                  </div>
-                )}
+            <div>
+              <h2 className="text-2xl font-black uppercase tracking-tight">
+                03. CMS 10-Year Record Retention Policy
+              </h2>
+              <p className="text-sm text-muted-foreground font-bold uppercase tracking-wide mt-1">
+                TPMO Regulation — 42 CFR §422.2274 & §423.2274
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <Card className="rounded-3xl border border-amber-500/20 bg-amber-500/5 p-6 space-y-3">
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                <h3 className="text-sm font-black uppercase tracking-tight text-amber-700 dark:text-amber-400">
+                  Mandatory for All Licensed TPMOs
+                </h3>
               </div>
+              <p className="text-[11px] text-muted-foreground leading-relaxed">
+                Under CMS final rules effective 2024 (and reinforced for 2026), all Third-Party Marketing
+                Organizations (TPMOs) must retain records of Medicare beneficiary interactions for a minimum
+                of <strong className="text-foreground">10 years</strong>. This includes call recordings, Scope
+                of Appointment forms, enrollment documents, and all marketing materials.
+              </p>
             </Card>
-          </section>
 
-          <Separator className="opacity-50" />
-
-          {/* Section 02: Template Library */}
-          <section id="template-library" className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-black uppercase tracking-tight text-foreground">02. Template Library</h2>
-                <p className="text-xs text-muted-foreground">Certified CMS model forms and agency-standard enrollment documents.</p>
-              </div>
-              <Button variant="outline" size="sm" className="rounded-xl h-9 text-[10px] font-bold uppercase tracking-widest border-primary/20 text-primary" onClick={() => handleAction("Updating Library", "Syncing with latest CMS model forms...")}>
-                Check for Updates
-              </Button>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {complianceTemplates.map((template) => (
-                <Card key={template.id} className="rounded-3xl border-none shadow-sm hover:shadow-md transition-all group bg-card">
-                  <CardHeader className="pb-4">
-                    <div className="flex justify-between items-start">
-                      <div className="w-10 h-10 rounded-2xl bg-muted flex items-center justify-center text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-colors">
-                        <FileText className="w-5 h-5" />
-                      </div>
-                      <Badge variant="secondary" className="text-[9px] font-bold uppercase">{template.type}</Badge>
-                    </div>
-                    <CardTitle className="text-sm font-bold mt-4 text-foreground">{template.title}</CardTitle>
-                    <div className="flex items-center gap-2 mt-1">
-                      <CardDescription className="text-[10px] font-medium">Version {template.version}</CardDescription>
-                      <span className="text-[10px] text-muted-foreground opacity-50">•</span>
-                      <span className="text-[10px] text-muted-foreground font-medium">{template.size}</span>
-                    </div>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex items-center justify-between pt-2">
-                      <div className="flex items-center gap-1.5 text-emerald-600">
-                        <CheckCircle2 className="w-3.5 h-3.5" />
-                        <span className="text-[10px] font-black uppercase tracking-widest">{template.status}</span>
-                      </div>
-                      <div className="flex gap-1">
-                        <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg" onClick={() => handleAction("Previewing Template", `Viewing ${template.title} version ${template.version}`)}>
-                          <ExternalLink className="w-3.5 h-3.5" />
-                        </Button>
-                        <Button 
-                          onClick={() => handleDownloadTemplate(template.title)}
-                          variant="ghost" 
-                          size="sm" 
-                          className="h-8 text-[10px] font-bold rounded-xl"
-                        >
-                          <Download className="w-3.5 h-3.5 mr-2" />
-                          Download
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {[
+                {
+                  title: "Call Recordings",
+                  body:  "All sales calls must be recorded and retained for 10 years. AegisSage integrates with Maya AI Voice to auto-archive and timestamp each call with the associated member record.",
+                  rule:  "42 CFR §422.2274(c)(1)",
+                },
+                {
+                  title: "Scope of Appointment (SOA)",
+                  body:  "SOA forms must be completed 48 hours before an enrollment meeting and retained for 10 years. AegisSage generates, digitally signs, and cryptographically hashes all SOA documents.",
+                  rule:  "42 CFR §422.2262",
+                },
+                {
+                  title: "Marketing Materials",
+                  body:  "All marketing materials, including digital assets and CRM campaigns, must be pre-approved by the carrier and retained for 10 years. AegisSage logs all outreach events in an immutable audit trail.",
+                  rule:  "42 CFR §422.2274(b)",
+                },
+              ].map(({ title, body, rule }) => (
+                <Card key={title} className="rounded-3xl border border-border/50 bg-card p-6 space-y-3">
+                  <h3 className="text-sm font-black uppercase tracking-tight">{title}</h3>
+                  <p className="text-[11px] text-muted-foreground leading-relaxed">{body}</p>
+                  <p className="text-[9px] font-mono text-primary/60">{rule}</p>
                 </Card>
               ))}
-              <Card 
-                className="rounded-3xl border-2 border-dashed border-muted bg-transparent flex items-center justify-center p-8 group hover:border-primary/30 transition-all cursor-pointer"
-                onClick={() => handleAction("Upload Triggered", "Select custom compliance forms to store in the vault.")}
-              >
-                <div className="text-center space-y-2">
-                  <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center mx-auto text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary transition-colors">
-                    <Files className="w-5 h-5" />
-                  </div>
-                  <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Upload Custom Form</p>
-                </div>
-              </Card>
-            </div>
-          </section>
-
-          <Separator className="opacity-50" />
-
-          {/* Section 03: PHI Audit Logs */}
-          <section id="audit-trail" className="space-y-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-black uppercase tracking-tight text-foreground">03. PHI Audit Trail</h2>
-                <p className="text-xs text-muted-foreground">Immutable access and modification ledger for all protected health information.</p>
-              </div>
-              <div className="flex items-center gap-4">
-                <Button variant="outline" size="sm" className="rounded-xl h-9 text-[10px] font-bold" onClick={() => handleAction("Audit Log Exported", "The PHI trail has been exported as an encrypted CSV.")}>
-                  <Download className="w-3.5 h-3.5 mr-2" /> Export Trail
-                </Button>
-                <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-medium">
-                  <Clock className="w-3 h-3" />
-                  Retention: 10 Years (HIPAA Required)
-                </div>
-              </div>
-            </div>
-
-            <div className="grid grid-cols-1 gap-8">
-              <Card className="rounded-3xl border-none shadow-sm bg-card overflow-hidden">
-                <div className="divide-y">
-                  {auditLogs.map((log) => (
-                    <div key={log.id} className="px-8 py-4 flex items-center justify-between hover:bg-slate-50/50 transition-colors">
-                      <div className="flex items-center gap-6">
-                        <div className={`w-2 h-2 rounded-full ${log.event.includes('LOGIN') ? 'bg-blue-500' : log.event.includes('ACCESS') ? 'bg-amber-500' : 'bg-emerald-500'}`} />
-                        <div className="min-w-[120px]">
-                          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground mb-0.5">{log.event}</p>
-                          <p className="text-xs font-bold text-foreground">{log.user}</p>
-                        </div>
-                        <div className="hidden md:block">
-                          <p className="text-[10px] font-bold text-muted-foreground uppercase mb-0.5">Target</p>
-                          <p className="text-xs font-medium text-foreground">{log.target}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-8">
-                        <div className="text-right hidden sm:block">
-                          <p className="text-[10px] font-bold text-muted-foreground uppercase mb-0.5">Timestamp</p>
-                          <p className="text-[10px] font-mono font-bold text-foreground">{log.timestamp}</p>
-                        </div>
-                        <div className="text-right">
-                          <Badge variant="outline" className={`text-[9px] font-black uppercase border-none px-2 ${log.status === 'AUTHORIZED' || log.status === 'VERIFIED' ? 'bg-emerald-50 text-emerald-700' : 'bg-blue-50 text-blue-700'}`}>
-                            {log.status}
-                          </Badge>
-                          <p className="text-[9px] font-mono text-muted-foreground mt-0.5">{log.ip}</p>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </Card>
-
-              <Card className="rounded-3xl border-none shadow-xl bg-slate-900 overflow-hidden relative group">
-                <div className="absolute top-0 right-0 p-6 opacity-10 group-hover:opacity-20 transition-opacity">
-                  <Lock className="w-20 h-24 text-white" />
-                </div>
-                <div className="p-8 font-mono text-[10px] space-y-2 relative z-10 leading-relaxed">
-                  <p className="text-slate-500 border-b border-slate-800 pb-3 mb-4 flex items-center justify-between">
-                    <span className="flex items-center gap-2">
-                      <ShieldAlert className="w-3 h-3" /> // IMMUTABLE AUDIT TRAIL // HIPAA LOGGING ACTIVE // AES-256 ENCRYPTED
-                    </span>
-                    <Button variant="ghost" size="sm" className="h-6 text-[8px] text-slate-400 hover:text-white" onClick={() => handleAction("Terminal Cleared", "Local session cache reset.")}>
-                      <Trash2 className="w-2.5 h-3 mr-1" /> Clear Cache
-                    </Button>
-                  </p>
-                  <div className="space-y-1.5 overflow-hidden">
-                    <p className="animate-in fade-in slide-in-from-left-2 duration-300"><span className="text-emerald-400">[2024-11-20 10:42:11]</span> <span className="text-slate-400">USER_AUTH:</span> Agent ID 123 authenticated via MFA (Biometric)</p>
-                    <p className="animate-in fade-in slide-in-from-left-2 duration-500"><span className="text-emerald-400">[2024-11-20 10:45:02]</span> <span className="text-slate-400">PHI_ACCESS:</span> Record ID 8821 accessed for SSBCI module verification</p>
-                    <p className="animate-in fade-in slide-in-from-left-2 duration-700"><span className="text-amber-400">[2024-11-20 11:02:45]</span> <span className="text-slate-400">DATA_SYNC:</span> Blue Button 2.0 refresh initiated for cluster A (Success)</p>
-                    <p className="animate-in fade-in slide-in-from-left-2 duration-1000"><span className="text-emerald-400">[2024-11-20 11:30:00]</span> <span className="text-slate-400">SYSTEM:</span> Automated check of AEP Shield consent flags completed (1,244 scanned)</p>
-                    <p className="animate-in fade-in slide-in-from-left-2 duration-1000 delay-200"><span className="text-blue-400">[2024-11-20 12:15:33]</span> <span className="text-slate-400">FAX_SENT:</span> SSBCI-PKG-SJ transmitted to Provider ID NPI-99201</p>
-                    <p className="animate-in fade-in slide-in-from-left-2 duration-1000 delay-300"><span className="text-emerald-400">[2024-11-20 13:02:11]</span> <span className="text-slate-400">SOA_GEN:</span> Compliance document generated for Member ID 9KL2-PX1-ZZ09</p>
-                  </div>
-                  <div className="pt-4 flex items-center justify-between text-slate-500 italic border-t border-slate-800 mt-4">
-                    <div className="flex items-center gap-3">
-                      <Badge className="bg-slate-800 text-slate-400 border-none text-[8px] font-black">SHA-256: 8f2e...3a11</Badge>
-                      <span>Records signed with HMAC-SHA256</span>
-                    </div>
-                    <Button variant="link" className="h-auto p-0 text-[9px] text-primary" onClick={() => handleAction("Verifying Chain", "Checking cryptographic integrity of audit blocks...")}>Verify Chain</Button>
-                  </div>
-                </div>
-              </Card>
-            </div>
-          </section>
-
-          {/* Footer Compliance Lock */}
-          <div className="p-10 rounded-3xl border-2 border-dashed border-primary/20 bg-primary/5 text-center space-y-4">
-            <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto text-primary shadow-inner">
-              <ShieldAlert className="w-7 h-7" />
-            </div>
-            <div className="max-w-md mx-auto space-y-2">
-              <h3 className="text-sm font-black text-foreground uppercase tracking-widest">Agency BAA & Compliance Lock</h3>
-              <p className="text-[11px] text-muted-foreground leading-relaxed font-medium">
-                All records within the MediStay Compliance Vault are encrypted with AES-256 at rest. Access is strictly audited and logged to ensure HIPAA 5010 standard compliance. Documents are retained for the federally mandated 10-year period.
-              </p>
-              <Button 
-                variant="link" 
-                className="text-xs font-bold text-primary underline-offset-4"
-                onClick={() => handleAction("Legal Review", "Loading latest signed Business Associate Agreement...")}
-              >
-                Review Agency BAA Agreement
-              </Button>
             </div>
           </div>
+        </section>
+
+        <Separator className="opacity-30" />
+
+        {/* ── Section 04: Terms of Service ─────────────────────────────────── */}
+        <section id="terms" className="space-y-8 scroll-mt-24">
+          <div className="flex items-start gap-5">
+            <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0 mt-1">
+              <Scale className="w-6 h-6" />
+            </div>
+            <div>
+              <Badge className="bg-primary/10 text-primary border-primary/20 px-3 py-1 font-black uppercase tracking-widest text-[9px] mb-2">
+                Service Agreement
+              </Badge>
+              <h2 className="text-2xl font-black uppercase tracking-tight">Terms of Service</h2>
+              <p className="text-sm text-muted-foreground font-bold uppercase tracking-wide mt-1">
+                Legal framework for the AegisSage Medicare Retention Platform.
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            {[
+              {
+                num: "01",
+                title: "Licensure Requirement",
+                body: "By registering, users represent that they are licensed Medicare insurance agents in good standing with a valid National Producer Number (NPN) on file with the National Insurance Producer Registry (NIPR). AegisSage reserves the right to verify licensure at any time and suspend accounts where licensure cannot be confirmed.",
+              },
+              {
+                num: "02",
+                title: "Agency Responsibility & CMS Compliance",
+                body: "Agencies are solely responsible for ensuring that all AI-assisted outreach, SSBCI fax submissions, SOA generation, and enrollment recommendations comply with applicable CMS regulations, carrier guidelines, and state insurance law. AegisSage provides tools — the licensed broker retains full professional responsibility for client interactions.",
+              },
+              {
+                num: "03",
+                title: "TPMO Obligations",
+                body: "By using the platform, all users agree to comply with CMS TPMO rules including: recording all sales calls and retaining recordings for 10 years; completing Scope of Appointment forms at least 48 hours before enrollment meetings; using only CMS-approved marketing language; and disclosing TPMO status to all beneficiaries at the point of first contact.",
+              },
+              {
+                num: "04",
+                title: "Subscription & Billing",
+                body: "Plans are billed monthly or annually as selected at signup. Cancellations take effect at the end of the current billing cycle. No partial refunds are issued for unused time. All payment transactions are processed via our BAA-compliant payment processor using PCI-DSS Level 1 infrastructure.",
+              },
+              {
+                num: "05",
+                title: "BAA Requirement",
+                body: "Access to PHI-adjacent features (Integrity Engine, CSV ingestion, Blue Button 2.0, member health records) is contingent upon the Agency having a signed Business Associate Agreement on file with AegisSage Intelligence Inc. Contact compliance@aegissage.com to initiate.",
+              },
+              {
+                num: "06",
+                title: "Prohibited Uses",
+                body: "The platform may not be used to: (i) market non-Medicare insurance products without carrier authorization; (ii) access or export PHI for purposes beyond direct member care coordination; (iii) share platform access credentials with unlicensed individuals; (iv) circumvent CMS or NIPR oversight mechanisms; or (v) use AI-generated content in regulatory submissions without human review.",
+              },
+            ].map(({ num, title, body }) => (
+              <Card key={num} className="rounded-3xl border border-border/50 bg-muted/10 p-8 space-y-3">
+                <h3 className="text-base font-black uppercase tracking-tight flex items-center gap-3">
+                  <span className="text-primary/50 font-mono text-[10px]">{num}.</span>
+                  {title}
+                </h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">{body}</p>
+              </Card>
+            ))}
+          </div>
+        </section>
+
+        <Separator className="opacity-30" />
+
+        {/* ── Section 05: Privacy Policy ────────────────────────────────────── */}
+        <section id="privacy" className="space-y-8 scroll-mt-24">
+          <div className="flex items-start gap-5">
+            <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0 mt-1">
+              <Globe className="w-6 h-6" />
+            </div>
+            <div>
+              <Badge className="bg-primary/10 text-primary border-primary/20 px-3 py-1 font-black uppercase tracking-widest text-[9px] mb-2">
+                Data Privacy
+              </Badge>
+              <h2 className="text-2xl font-black uppercase tracking-tight">Privacy Policy</h2>
+              <p className="text-sm text-muted-foreground font-bold uppercase tracking-wide mt-1">
+                How AegisSage collects, uses, and protects your data.
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            {[
+              {
+                num:   "01",
+                title: "Data We Collect",
+                body:  "We collect: (i) broker account information (name, email, NPN, phone, agency name); (ii) member operational metadata (plan IDs, enrollment periods, retention scores) — no PHI in this layer; (iii) PHI provided for processing (MBI, DOB, phone) — stored exclusively in the encrypted phi_vault and members collections; (iv) usage analytics (page views, feature interactions) in anonymized form.",
+              },
+              {
+                num:   "02",
+                title: "How We Use Your Data",
+                body:  "Broker account data is used to authenticate users and enforce agency-level access controls. Member operational data powers AI risk scoring, switch detection, and retention recommendations. PHI is processed solely for the purpose of facilitating Medicare insurance broker services on behalf of the covered entity (your agency). We do not sell, rent, or share data with third parties for marketing purposes.",
+              },
+              {
+                num:   "03",
+                title: "Data Retention & Deletion",
+                body:  "Account data is retained for the duration of the subscription plus 90 days post-cancellation. PHI is retained for the CMS-mandated 10-year period or longer if required by state law. Brokers may request PHI deletion via the Admin SDK right-of-erasure workflow; note that deletion requests may be subject to regulatory retention requirements that supersede the request.",
+              },
+              {
+                num:   "04",
+                title: "Cookies & Tracking",
+                body:  "AegisSage uses only essential session cookies required for Firebase Authentication. No third-party advertising trackers, behavioral profiling cookies, or cross-site tracking pixels are deployed. Analytics data is collected via anonymized server-side event logging only.",
+              },
+              {
+                num:   "05",
+                title: "Your Rights",
+                body:  "Brokers have the right to: access their account and agency data; correct inaccurate information; request data portability in JSON or CSV format; request deletion subject to retention requirements. For requests, contact privacy@aegissage.com. Responses will be provided within 30 days.",
+              },
+            ].map(({ num, title, body }) => (
+              <Card key={num} className="rounded-3xl border border-border/50 bg-muted/10 p-8 space-y-3">
+                <h3 className="text-base font-black uppercase tracking-tight flex items-center gap-3">
+                  <span className="text-primary/50 font-mono text-[10px]">{num}.</span>
+                  {title}
+                </h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">{body}</p>
+              </Card>
+            ))}
+          </div>
+        </section>
+
+        {/* ── Footer CTA ────────────────────────────────────────────────────── */}
+        <div className="p-10 rounded-3xl border-2 border-dashed border-primary/20 bg-primary/5 text-center space-y-4">
+          <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto text-primary">
+            <ShieldCheck className="w-7 h-7" />
+          </div>
+          <h3 className="text-sm font-black text-foreground uppercase tracking-widest">
+            Questions About Compliance?
+          </h3>
+          <p className="text-[11px] text-muted-foreground leading-relaxed font-medium max-w-md mx-auto">
+            Our compliance team is available to assist with BAA execution, NIPR verification,
+            CMS audit preparation, and regulatory questions.
+          </p>
+          <div className="flex flex-col sm:flex-row gap-3 justify-center pt-2">
+            <Button className="rounded-2xl font-black uppercase text-[10px] tracking-widest bg-primary hover:bg-primary/90 h-11" asChild>
+              <a href="mailto:compliance@aegissage.com">
+                Contact Compliance Team
+              </a>
+            </Button>
+            <Button variant="outline" className="rounded-2xl font-black uppercase text-[10px] tracking-widest border-primary/20 text-primary h-11" asChild>
+              <a href="/BAA_Template.pdf" target="_blank" rel="noopener noreferrer">
+                <Download className="w-4 h-4 mr-2" />
+                Download BAA Template
+              </a>
+            </Button>
+          </div>
         </div>
-      </div>
+      </main>
+
+      {/* ── Page footer ───────────────────────────────────────────────────── */}
+      <footer className="border-t border-border/50 py-10 px-8 text-center space-y-3">
+        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
+          © {new Date().getFullYear()} AegisSage Intelligence Inc. · HIPAA Compliant · CMS TPMO Registered
+        </p>
+        <div className="flex justify-center gap-8 text-[9px] font-black text-muted-foreground uppercase tracking-widest">
+          <a href="#terms"   className="hover:text-primary transition-colors">Terms</a>
+          <a href="#privacy" className="hover:text-primary transition-colors">Privacy</a>
+          <a href="#baa"     className="hover:text-primary transition-colors">BAA</a>
+          <a href="mailto:compliance@aegissage.com" className="hover:text-primary transition-colors">compliance@aegissage.com</a>
+        </div>
+      </footer>
     </div>
   )
 }

@@ -1,4 +1,4 @@
-
+﻿
 "use client"
 
 import { CollectionSidebar } from "@/components/collection-sidebar"
@@ -14,7 +14,7 @@ export default function RetentionAIPage() {
   const [query, setQuery] = useState("")
   const members = useAppStore(s => s.members)
   const [messages, setMessages] = useState([
-    { role: 'ai', content: "Hello. I'm the MediStay Intelligence Agent. I can help you analyze churn risks, identify LIS eligibility gaps, or generate custom retention strategies for your book of business." }
+    { role: 'ai', content: "Hello. I'm the AegisSage Intelligence Agent. I can help you analyze churn risks, identify LIS eligibility gaps, or generate custom retention strategies for your book of business." }
   ])
 
   const riskStats = useMemo(() => {
@@ -81,7 +81,7 @@ export default function RetentionAIPage() {
                     {m.role === 'ai' && (
                       <div className="flex items-center gap-2 mb-2 text-primary">
                         <BrainCircuit className="w-4 h-4" />
-                        <span className="text-[10px] font-black uppercase tracking-widest">MediStay Intelligence</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest">AegisSage Intelligence</span>
                       </div>
                     )}
                     {m.content}

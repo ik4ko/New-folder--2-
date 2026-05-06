@@ -1,4 +1,4 @@
-
+﻿
 "use client"
 
 import { Button } from "@/components/ui/button"
@@ -21,7 +21,7 @@ export default function CMSSwitchDoc() {
         <div className="space-y-4">
           <h3 className="text-2xl font-black uppercase tracking-tight leading-tight">The 24-Hour Window</h3>
           <p className="text-sm font-bold text-muted-foreground leading-relaxed uppercase opacity-70">
-            When a member switches carriers, it often takes weeks for commission reports to surface. MediStay detects these switches nightly, giving agents a 24-hour window to conduct outreach and retain the member.
+            When a member switches carriers, it often takes weeks for commission reports to surface. AegisSage detects these switches nightly, giving agents a 24-hour window to conduct outreach and retain the member.
           </p>
         </div>
         <div className="p-8 rounded-[2.5rem] bg-muted/30 border border-border space-y-4">

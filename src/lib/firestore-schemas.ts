@@ -1,5 +1,5 @@
-/**
- * Firestore collection schemas for MediStay HIPAA isolation architecture.
+﻿/**
+ * Firestore collection schemas for AegisSage HIPAA isolation architecture.
  *
  * Two-collection split:
  *

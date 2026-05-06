@@ -1,4 +1,4 @@
-
+﻿
 "use client"
 
 import * as React from "react"
@@ -31,14 +31,14 @@ export function ModeToggle() {
 
   React.useEffect(() => {
     setMounted(true)
-    const savedColor = localStorage.getItem("medistay-accent-color") || "blue"
+    const savedColor = localStorage.getItem("AegisSage-accent-color") || "blue"
     setAccentColor(savedColor)
     document.documentElement.setAttribute("data-theme", savedColor)
   }, [])
 
   const handleColorChange = (color: string) => {
     setAccentColor(color)
-    localStorage.setItem("medistay-accent-color", color)
+    localStorage.setItem("AegisSage-accent-color", color)
     document.documentElement.setAttribute("data-theme", color)
   }
 

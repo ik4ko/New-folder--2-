@@ -1,4 +1,4 @@
-
+﻿
 "use client"
 
 import { Badge } from "@/components/ui/badge"
@@ -21,7 +21,7 @@ export default function AgencyScaleLP() {
           </h1>
           
           <p className="text-lg md:text-xl text-muted-foreground font-bold max-w-2xl mx-auto uppercase tracking-tight opacity-80 leading-snug">
-            Managing a large book of business shouldn't be a manual nightmare. MediStay's agency management tools provide automated commission splits, NPN tracking, and hierarchy-based compliance.
+            Managing a large book of business shouldn't be a manual nightmare. AegisSage's agency management tools provide automated commission splits, NPN tracking, and hierarchy-based compliance.
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-8">

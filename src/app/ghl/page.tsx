@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { CollectionSidebar } from "@/components/collection-sidebar"
 import { useAppStore, initializeStore } from "@/lib/store"
@@ -52,7 +52,7 @@ export default function GHLIntegrationPage() {
     setTimeout(() => {
       setVerifying(false)
       if (!isGHLConnected) toggleGHL()
-      toast({ title: "API Verified", description: "MediStay successfully connected to your GHL Location." })
+      toast({ title: "API Verified", description: "AegisSage successfully connected to your GHL Location." })
     }, 1500)
   }
 
@@ -142,7 +142,7 @@ export default function GHLIntegrationPage() {
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-lg font-black uppercase tracking-tight text-foreground underline decoration-primary/30 underline-offset-4">01. Connection Status</h2>
-                <p className="text-xs text-muted-foreground font-black mt-1 uppercase opacity-70">Manage the handshake between your agency CRM and MediStay Intelligence.</p>
+                <p className="text-xs text-muted-foreground font-black mt-1 uppercase opacity-70">Manage the handshake between your agency CRM and AegisSage Intelligence.</p>
               </div>
               <div className="flex items-center gap-3 bg-card p-2 rounded-2xl border border-border shadow-sm px-4">
                 <span className="text-[10px] font-black uppercase text-foreground tracking-widest">Live Link</span>
@@ -229,7 +229,7 @@ export default function GHLIntegrationPage() {
           <section className="space-y-6 pb-20">
             <div>
               <h2 className="text-lg font-black uppercase tracking-tight text-foreground underline decoration-primary/30 underline-offset-4">02. CRM Field Mapping</h2>
-              <p className="text-xs text-muted-foreground font-black mt-1 uppercase opacity-70">Map MediStay retention logic to your specific GoHighLevel Custom Field keys.</p>
+              <p className="text-xs text-muted-foreground font-black mt-1 uppercase opacity-70">Map AegisSage retention logic to your specific GoHighLevel Custom Field keys.</p>
             </div>
 
             <Card className="rounded-3xl border border-border shadow-sm bg-card overflow-hidden">

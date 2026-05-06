@@ -1,4 +1,4 @@
-
+﻿
 "use client"
 
 import { Button } from "@/components/ui/button"
@@ -21,7 +21,7 @@ export default function GHLIntegrationLP() {
           </h1>
           
           <p className="text-lg md:text-xl text-muted-foreground font-bold max-w-2xl mx-auto uppercase tracking-tight opacity-80 leading-snug">
-            Stop manually updating spreadsheets. MediStay maps Medicare MBIs, Carriers, and Plan Dates directly to your GHL Custom Fields with two-way sync.
+            Stop manually updating spreadsheets. AegisSage maps Medicare MBIs, Carriers, and Plan Dates directly to your GHL Custom Fields with two-way sync.
           </p>
 
           <div className="rounded-[2.5rem] bg-card border border-border overflow-hidden shadow-2xl">
@@ -45,7 +45,7 @@ export default function GHLIntegrationLP() {
                   <RefreshCw className="w-4 h-4" />
                   <span className="text-[10px] font-black uppercase tracking-widest">Auto-Workflows</span>
                 </div>
-                <p className="text-xs font-bold text-muted-foreground uppercase">Trigger GHL campaigns based on MediStay retention scores.</p>
+                <p className="text-xs font-bold text-muted-foreground uppercase">Trigger GHL campaigns based on AegisSage retention scores.</p>
               </div>
             </div>
           </div>

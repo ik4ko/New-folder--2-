@@ -1,4 +1,4 @@
-
+﻿
 "use client"
 
 import { Button } from "@/components/ui/button"
@@ -21,7 +21,7 @@ export default function ChurnPreventionLP() {
           </h1>
           
           <p className="text-lg md:text-xl text-muted-foreground font-bold max-w-2xl mx-auto uppercase tracking-tight opacity-80 leading-snug">
-            Losing members to "Switcher Agents" is a $600 problem. MediStay polls MARx snapshots nightly to give you a 24-hour window to save your commissions.
+            Losing members to "Switcher Agents" is a $600 problem. AegisSage polls MARx snapshots nightly to give you a 24-hour window to save your commissions.
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left pt-8">

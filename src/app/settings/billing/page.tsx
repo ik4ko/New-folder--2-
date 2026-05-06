@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useAppStore } from "@/lib/store"
 import { Button } from "@/components/ui/button"
@@ -63,7 +63,7 @@ export default function BillingSettingsPage() {
             <CreditCard className="w-4 h-4" />
             Agency Subscription
           </h2>
-          <p className="text-xs font-bold text-muted-foreground uppercase opacity-60">Manage your MediStay agency plan and payment history.</p>
+          <p className="text-xs font-bold text-muted-foreground uppercase opacity-60">Manage your AegisSage agency plan and payment history.</p>
         </div>
 
         <Card className="rounded-[3rem] border-2 border-primary bg-primary/5 shadow-2xl overflow-hidden relative group">
@@ -103,7 +103,7 @@ export default function BillingSettingsPage() {
                   </div>
                   <div className="p-12 space-y-10 bg-white">
                     <div className="flex justify-between items-center border-b border-border pb-8 text-foreground font-black uppercase tracking-widest text-xs">
-                      <span>MediStay Entry Subscription</span>
+                      <span>AegisSage Entry Subscription</span>
                       <span className="text-lg">$99.00 / Month (or $999 / Year)</span>
                     </div>
                     <div className="grid grid-cols-2 gap-6">

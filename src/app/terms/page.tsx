@@ -1,4 +1,4 @@
-
+﻿
 "use client"
 
 import { Button } from "@/components/ui/button"
@@ -23,7 +23,7 @@ export default function TermsPage() {
         <div className="space-y-4">
           <Badge className="bg-primary/10 text-primary border-primary/20 px-4 py-1.5 font-black uppercase tracking-widest text-[10px]">Service Agreement</Badge>
           <h1 className="text-5xl font-black tracking-tighter uppercase">Terms of Service</h1>
-          <p className="text-lg font-bold text-muted-foreground uppercase tracking-tight">Legal framework for the MediStay Medicare Retention Platform.</p>
+          <p className="text-lg font-bold text-muted-foreground uppercase tracking-tight">Legal framework for the AegisSage Medicare Retention Platform.</p>
         </div>
 
         <section className="space-y-8">
@@ -33,7 +33,7 @@ export default function TermsPage() {
               01. Agency Responsibility
             </h2>
             <p className="text-sm font-medium text-muted-foreground leading-relaxed uppercase opacity-80">
-              Users of MediStay represent that they are licensed Medicare agents in good standing. Agencies are responsible for ensuring all AI-generated check-ins and SSBCI faxes comply with local carrier and CMS guidelines.
+              Users of AegisSage represent that they are licensed Medicare agents in good standing. Agencies are responsible for ensuring all AI-generated check-ins and SSBCI faxes comply with local carrier and CMS guidelines.
             </p>
           </div>
 
@@ -53,13 +53,13 @@ export default function TermsPage() {
               03. BAA Requirement
             </h2>
             <p className="text-sm font-medium text-muted-foreground leading-relaxed uppercase opacity-80">
-              Access to the Command Center is contingent upon the Agency having a signed Business Associate Agreement (BAA) on file with MediStay Intelligence Inc.
+              Access to the Command Center is contingent upon the Agency having a signed Business Associate Agreement (BAA) on file with AegisSage Intelligence Inc.
             </p>
           </div>
         </section>
 
         <div className="pt-12 text-center border-t border-border/50">
-          <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">MediStay Intelligence Inc. | Compliance Division</p>
+          <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">AegisSage Intelligence Inc. | Compliance Division</p>
         </div>
       </main>
     </div>

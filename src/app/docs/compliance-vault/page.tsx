@@ -1,4 +1,4 @@
-
+﻿
 "use client"
 
 import { Button } from "@/components/ui/button"
@@ -33,7 +33,7 @@ export default function ComplianceVaultDoc() {
           <div className="space-y-4">
             <h3 className="text-2xl font-black uppercase tracking-tight">AES-256 Encryption</h3>
             <p className="text-sm font-bold text-muted-foreground leading-relaxed uppercase opacity-70">
-              All member data is encrypted at rest using AES-256 standards. MediStay uses a zero-knowledge field approach for sensitive identifiers like full SSNs, which are never stored in plaintext.
+              All member data is encrypted at rest using AES-256 standards. AegisSage uses a zero-knowledge field approach for sensitive identifiers like full SSNs, which are never stored in plaintext.
             </p>
           </div>
           <div className="space-y-4">

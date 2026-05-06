@@ -1041,3 +1041,130 @@ export const onCrmUpdate = https.onRequest(async (req, res) => {
     daysUntilEffective: risk.daysUntilEffective,
   });
 });
+
+// ---------------------------------------------------------------------------
+// 8. onPlanBenchmarkUpdate
+//
+// Fires whenever a document in plan_benchmarks_2026/{planId} is created or
+// updated.  The document must carry both current-year and prior-year values
+// so the delta can be computed server-side.
+//
+// Expected document shape:
+//   planId                    : string
+//   monthly_allowance         : number   (2026 value)
+//   out_of_pocket_max         : number   (2026 value)
+//   dental_coverage_limit     : number   (2026 value)
+//   prev_monthly_allowance    : number   (2025 value)
+//   prev_out_of_pocket_max    : number   (2025 value)
+//   prev_dental_coverage_limit: number   (2025 value)
+//
+// For each member across all agencies whose planId matches, the riskProfile
+// field is updated atomically via batched writes (max 400 ops per batch).
+// ---------------------------------------------------------------------------
+
+interface PlanBenchmarkDoc {
+  planId: string;
+  monthly_allowance: number;
+  out_of_pocket_max: number;
+  dental_coverage_limit: number;
+  prev_monthly_allowance?: number;
+  prev_out_of_pocket_max?: number;
+  prev_dental_coverage_limit?: number;
+}
+
+interface RiskProfileDoc {
+  score: number;
+  lastChecked: admin.firestore.Timestamp;
+  reasons: string[];
+}
+
+// Mirror of the weight table in src/lib/retention/comparePlans.ts.
+// Both must stay in sync if thresholds are adjusted.
+const PLAN_FIELDS = [
+  { field: 'out_of_pocket_max'     as const, label: 'Out-of-Pocket Maximum',        weight: 40, higherIsBad: true  },
+  { field: 'monthly_allowance'     as const, label: 'Monthly OTC / Flex Allowance',  weight: 35, higherIsBad: false },
+  { field: 'dental_coverage_limit' as const, label: 'Dental Coverage Limit',         weight: 25, higherIsBad: false },
+];
+
+function computePlanRiskProfile(doc: PlanBenchmarkDoc): RiskProfileDoc {
+  let totalScore = 0;
+  const reasons: string[] = [];
+
+  for (const { field, label, weight, higherIsBad } of PLAN_FIELDS) {
+    const prevField = `prev_${field}` as keyof PlanBenchmarkDoc;
+    const v25 = (doc[prevField] as number | undefined) ?? 0;
+    const v26 = doc[field] ?? 0;
+    const delta = v26 - v25;
+    const pctChange = v25 !== 0 ? delta / v25 : 0;
+    const isAdverse = higherIsBad ? delta > 0 : delta < 0;
+
+    if (isAdverse) {
+      const magnitude = Math.abs(pctChange);
+      totalScore += Math.min((magnitude / 0.25) * weight, weight);
+      const direction = higherIsBad ? 'increased' : 'decreased';
+      reasons.push(
+        `${label} ${direction} by ${(magnitude * 100).toFixed(1)}%`
+        + (higherIsBad
+          ? ` (cost up $${Math.abs(delta).toFixed(0)})`
+          : ` (benefit down $${Math.abs(delta).toFixed(0)})`),
+      );
+    }
+  }
+
+  return {
+    score:       Math.min(Math.round(totalScore), 100),
+    lastChecked: admin.firestore.Timestamp.now(),
+    reasons,
+  };
+}
+
+export const onPlanBenchmarkUpdate = firestoreTriggers
+  .document('plan_benchmarks_2026/{planId}')
+  .onWrite(async (change, context) => {
+    if (!change.after.exists) return; // ignore deletions
+
+    const planId  = context.params.planId as string;
+    const data    = change.after.data() as PlanBenchmarkDoc;
+    const profile = computePlanRiskProfile(data);
+
+    logger.info('[onPlanBenchmarkUpdate] Plan delta computed.', {
+      planId,
+      score:   profile.score,
+      reasons: profile.reasons,
+    });
+
+    // Locate all members across every agency enrolled in this plan.
+    const snap = await db
+      .collectionGroup('members')
+      .where('planId', '==', planId)
+      .get();
+
+    if (snap.empty) {
+      logger.info('[onPlanBenchmarkUpdate] No members found for plan.', { planId });
+      return;
+    }
+
+    // Firestore batches are capped at 500 operations; stay under with 400.
+    const BATCH_SIZE = 400;
+    const batches: admin.firestore.WriteBatch[] = [];
+    let current = db.batch();
+    let count   = 0;
+
+    for (const memberDoc of snap.docs) {
+      if (count >= BATCH_SIZE) {
+        batches.push(current);
+        current = db.batch();
+        count   = 0;
+      }
+      current.update(memberDoc.ref, { riskProfile: profile });
+      count++;
+    }
+    batches.push(current);
+
+    await Promise.all(batches.map(b => b.commit()));
+
+    logger.info('[onPlanBenchmarkUpdate] riskProfile updated.', {
+      planId,
+      membersUpdated: snap.size,
+    });
+  });

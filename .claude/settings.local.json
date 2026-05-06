@@ -17,7 +17,19 @@
       "Bash(node *)",
       "Bash(node_modules/.bin/tsc --noEmit)",
       "Bash(node_modules\\\\.bin\\\\tsc --noEmit)",
-      "PowerShell(Get-Command *)"
+      "PowerShell(Get-Command *)",
+      "Bash(python3 *)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\ikan9\\\\OneDrive\\\\Desktop\\\\New folder \\(2\\)\" -Recurse -Force)",
+      "Bash(Select-Object FullName)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\ikan9\\\\OneDrive\\\\Desktop\\\\New folder \\(2\\)\" -Recurse -Directory)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "PowerShell(head *)",
+      "Bash(powershell -Command ' *)",
+      "Bash(Remove-Item -Recurse -Force \"C:\\\\Users\\\\ikan9\\\\OneDrive\\\\Desktop\\\\New folder \\(2\\)\\\\src\\\\app\\\\docs\\\\maya-voice\")",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\ikan9\\\\OneDrive\\\\Desktop\\\\New folder \\(2\\)\" -Force)",
+      "Bash(Select-Object Name, PSIsContainer)",
+      "PowerShell(New-Item *)",
+      "Bash(npm audit *)"
     ]
   }
 }

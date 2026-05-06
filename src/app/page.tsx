@@ -1,4 +1,4 @@
-
+﻿
 "use client"
 
 import { useState } from "react"
@@ -28,6 +28,7 @@ import { useAppStore } from "@/lib/store"
 import { Logo } from "@/components/logo"
 import { useTranslation } from "@/lib/i18n"
 import { LanguageSelector } from "@/components/language-selector"
+import { ComplianceShield } from "@/components/ComplianceShield"
 
 export default function LandingPage() {
   const router = useRouter()
@@ -40,7 +41,7 @@ export default function LandingPage() {
     {
       name: "Brenda Rollins",
       role: "Owner, Gulf Coast Medicare",
-      text: "MediStay detected 14 'stealth' disenrollements in our first week. It paid for itself in one AEP cycle.",
+      text: "AegisSage detected 14 'stealth' disenrollements in our first week. It paid for itself in one AEP cycle.",
       rating: 5
     },
     {
@@ -53,26 +54,29 @@ export default function LandingPage() {
 
   const pricingTiers = [
     {
-      name: "Entry",
-      price: "$99",
-      yearly: "$999",
-      desc: "For independent solo agents.",
-      features: ["MARx Switch Monitoring", "Basic GHL Sync", "Manual Member Intake", "Standard CRM Dashboard"]
+      name: "Solo / Starter",
+      price: "$49",
+      yearly: "$490",
+      desc: "For Small Books & New Agents",
+      features: ["Up to 500 Active Members", "MARX Switch Monitoring", "Manual & Basic CSV Upload", "CRM Integration (GHL, Webhooks)"],
+      planId: "broker-individual"
     },
     {
-      name: "Starter",
-      price: "$299",
-      yearly: "$2,990",
-      desc: "For small growth-focused agencies.",
-      features: ["LIS Opportunity Scanner", "Bulk SSBCI Faxing", "Maya AI Voice (Lite)", "Custom CRM Field Mapping"],
-      highlight: true
+      name: "Growth",
+      price: "$149",
+      yearly: "$1,490",
+      desc: "For Established Agents & Small Teams",
+      features: ["Up to 2,500 Active Members", "Bulk CSV/Carrier Report Uploader", "Full CRM Integration Sync", "LIS & Gap Opportunity Scanner"],
+      highlight: true,
+      planId: "agency-pro"
     },
     {
-      name: "Pro",
-      price: "$499",
-      yearly: "$4,990",
-      desc: "For high-volume call centers.",
-      features: ["Predictive Churn AI", "AEP Shield Prep", "Full Maya AI Agent", "Enterprise BAA & Audit Log"]
+      name: "Premier",
+      price: "$399",
+      yearly: "$3,990",
+      desc: "For Large Agencies & Call Centers",
+      features: ["Unlimited Active Members", "Multi-Agent Performance Dashboard", "Dedicated Account Manager", "Enterprise BAA & Audit Logging"],
+      planId: "enterprise"
     }
   ]
 
@@ -105,7 +109,7 @@ export default function LandingPage() {
             <Link href="#features" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors">Features</Link>
             <Link href="#pricing" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors">Pricing</Link>
             <Link href="#reviews" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors">Reviews</Link>
-            <Link href="/docs/introduction" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors">Docs</Link>
+            <Link href="/docs" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors">Docs</Link>
           </nav>
         </div>
         <div className="flex items-center gap-4">
@@ -136,12 +140,11 @@ export default function LandingPage() {
               <Button size="lg" asChild className="h-20 px-16 rounded-[2.5rem] text-xl font-black shadow-2xl shadow-primary/30 transition-all hover:scale-105 bg-primary hover:bg-primary/90 text-white">
                 <Link href="/signup">{t('common.trial')}</Link>
               </Button>
-              <Button size="lg" variant="outline" onClick={startDemoMode} className="h-20 px-16 rounded-[2.5rem] text-xl font-black border-2 border-white/10 text-white hover:bg-white/5 transition-all flex items-center gap-3">
-                {loading ? <Loader2 className="animate-spin" /> : <PlayCircle size={24} />} {t('common.demo')}
-              </Button>
             </div>
           </div>
         </section>
+
+        <ComplianceShield />
 
         {/* 6 Core Demos */}
         <section id="features" className="py-32 px-8 max-w-7xl mx-auto space-y-24">
@@ -165,14 +168,8 @@ export default function LandingPage() {
                 demo: 'Stedi 270/271 Handshake: Medicare Eligibility Verified in 42ms.'
               },
               { 
-                title: 'Maya AI Voice Agent', 
-                desc: 'Autonomous milestone check-ins at Day 7, 30, and 75. Detects dissatisfaction tone before it turns into churn.', 
-                icon: PhoneCall,
-                demo: 'Maya: "Ensuring you received your ID card... Sentiment: POSITIVE."'
-              },
-              { 
                 title: 'SSBCI Fax Automation', 
-                desc: 'Auto-verify chronic conditions with PCP offices via secure Spruce Health clinical fax bridge.', 
+                desc: 'Auto-verify chronic conditions with PCP offices via secure SageStream clinical fax bridge.', 
                 icon: Printer,
                 demo: 'Fax Sent: SSBCI Condition Form transmitted to NPI-99201.'
               },
@@ -202,7 +199,7 @@ export default function LandingPage() {
                 <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 font-mono text-[10px] text-primary/70 font-black uppercase tracking-tighter">
                   <div className="flex items-center gap-2 mb-1">
                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    LIVE_DEMO_SIGNAL
+                    Live Signal
                   </div>
                   {feature.demo}
                 </div>
@@ -247,7 +244,7 @@ export default function LandingPage() {
                     </div>
                   </div>
                   <Button asChild className="w-full h-16 rounded-3xl font-black uppercase text-xs tracking-widest shadow-xl bg-slate-900 text-white hover:bg-primary transition-all">
-                    <Link href="/signup">Start Trial</Link>
+                    <Link href={`/signup?plan=${tier.planId}`}>Start Trial</Link>
                   </Button>
                 </Card>
               ))}
@@ -302,9 +299,12 @@ export default function LandingPage() {
         <div className="flex items-center justify-center gap-3 mb-10">
           <Logo />
         </div>
-        <p className="text-slate-400 text-sm font-bold uppercase tracking-widest mb-10">© 2026 MediStay Intelligence Inc. HIPAA Compliant.</p>
+        <p className="text-slate-400 text-sm font-bold uppercase tracking-widest mb-4">© 2026 AegisSage Intelligence Inc. HIPAA Compliant.</p>
+        <p className="text-slate-500 text-[10px] font-bold leading-relaxed max-w-2xl mx-auto mb-10">
+          Notice: For licensed Medicare agents who are the Agent of Record only. AegisSage is not affiliated with CMS or any government agency.
+        </p>
         <div className="flex justify-center gap-10 text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">
-          <Link href="/privacy" className="hover:text-primary transition-colors">Privacy Policy</Link>
+          <Link href="/policy" className="hover:text-primary transition-colors">Privacy Policy</Link>
           <Link href="/terms" className="hover:text-primary transition-colors">Terms of Service</Link>
           <Link href="/docs/baa-agreement" className="hover:text-primary transition-colors">BAA Agreement</Link>
         </div>

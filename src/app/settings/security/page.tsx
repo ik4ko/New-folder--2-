@@ -1,4 +1,4 @@
-
+﻿
 "use client"
 
 import { Button } from "@/components/ui/button"
@@ -67,7 +67,7 @@ export default function SecuritySettingsPage() {
                 <span className="text-[11px] font-black uppercase tracking-widest">Audit Retention Active: 10 Years</span>
               </div>
               <p className="text-[11px] text-slate-300 font-bold uppercase opacity-80 leading-relaxed">
-                MediStay automatically logs all member record modifications and HETS polling data. Records are cryptographically signed.
+                AegisSage automatically logs all member record modifications and HETS polling data. Records are cryptographically signed.
               </p>
             </div>
           </CardContent>

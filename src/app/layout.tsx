@@ -1,4 +1,4 @@
-
+﻿
 import type { Metadata } from 'next';
 import './globals.css';
 import { CommandBar } from '@/components/command-bar';
@@ -7,7 +7,7 @@ import { ThemeProvider } from '@/components/theme-provider';
 import { AppShell } from '@/components/app-layout-shell';
 
 export const metadata: Metadata = {
-  title: 'MediStay | Medicare Retention SaaS',
+  title: 'AegisSage | Medicare Retention SaaS',
   description: 'Enterprise-grade Medicare member retention platform for agencies',
   icons: {
     icon: [

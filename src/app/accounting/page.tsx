@@ -1,4 +1,4 @@
-
+﻿
 "use client"
 
 import { CollectionSidebar } from "@/components/collection-sidebar"
@@ -200,7 +200,7 @@ export default function AccountingPage() {
                   </div>
                   <div className="p-4 rounded-2xl bg-white/5 border border-white/10 space-y-3">
                     <p className="text-[11px] text-slate-300 leading-relaxed italic font-medium">
-                      "MediStay has prevented potential disenrollments this quarter, saving an estimated <strong className="text-white">${(members.filter(m => m.retentionScore > 80).length * 600).toLocaleString()}</strong> in renewal revenue."
+                      "AegisSage has prevented potential disenrollments this quarter, saving an estimated <strong className="text-white">${(members.filter(m => m.retentionScore > 80).length * 600).toLocaleString()}</strong> in renewal revenue."
                     </p>
                   </div>
                   <Button className="w-full bg-primary hover:bg-primary/90 text-white font-black uppercase text-[10px] h-10 rounded-2xl shadow-lg shadow-primary/40" onClick={() => handleAction("ROI Deep-Dive", "Loading granular retention economic models...")}>
@@ -248,7 +248,7 @@ export default function AccountingPage() {
             <div className="max-w-md mx-auto space-y-2">
               <h3 className="text-sm font-black text-foreground uppercase tracking-widest">Financial Compliance Lock</h3>
               <p className="text-[11px] text-muted-foreground leading-relaxed font-bold">
-                Your MediStay subscription is managed via BAA-compliant payment processors. All commission data is encrypted with AES-256 and accessible only to authorized agency roles.
+                Your AegisSage subscription is managed via BAA-compliant payment processors. All commission data is encrypted with AES-256 and accessible only to authorized agency roles.
               </p>
               <Button variant="link" className="text-xs font-black text-primary uppercase tracking-widest underline-offset-4" onClick={navigateToBilling}>Download Billing History</Button>
             </div>

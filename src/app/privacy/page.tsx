@@ -1,4 +1,4 @@
-
+﻿
 "use client"
 
 import { Button } from "@/components/ui/button"
@@ -23,7 +23,7 @@ export default function PrivacyPage() {
         <div className="space-y-4">
           <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 px-4 py-1.5 font-black uppercase tracking-widest text-[10px]">Effective: Jan 2025</Badge>
           <h1 className="text-5xl font-black tracking-tighter uppercase">Privacy Policy</h1>
-          <p className="text-lg font-bold text-muted-foreground uppercase tracking-tight">At MediStay, PHI security is our first priority. We operate under strict HIPAA Business Associate Agreements.</p>
+          <p className="text-lg font-bold text-muted-foreground uppercase tracking-tight">At AegisSage, PHI security is our first priority. We operate under strict HIPAA Business Associate Agreements.</p>
         </div>
 
         <section className="space-y-8">
@@ -43,7 +43,7 @@ export default function PrivacyPage() {
               02. Use of Information
             </h2>
             <p className="text-sm font-medium text-muted-foreground leading-relaxed uppercase opacity-80">
-              We process data solely for the purpose of providing retention services to the Agency. MediStay does not sell member data, nor do we share it with third parties outside of our BAA partners (AWS, Twilio, Spruce Health).
+              We process data solely for the purpose of providing retention services to the Agency. AegisSage does not sell member data, nor do we share it with third parties outside of our BAA partners (AWS, Twilio, SageStream).
             </p>
           </div>
 
@@ -59,7 +59,7 @@ export default function PrivacyPage() {
         </section>
 
         <div className="pt-12 text-center border-t border-border/50">
-          <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Questions? Contact privacy@medistay.io</p>
+          <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Questions? Contact privacy@AegisSage.io</p>
         </div>
       </main>
     </div>

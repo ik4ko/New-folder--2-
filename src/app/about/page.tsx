@@ -1,4 +1,4 @@
-
+﻿
 "use client"
 
 import { Button } from "@/components/ui/button"
@@ -21,7 +21,7 @@ export default function AboutPage() {
 
       <main className="max-w-4xl mx-auto py-24 px-8 space-y-16">
         <div className="space-y-6">
-          <Badge className="bg-primary/10 text-primary border-primary/20 px-4 py-1.5 font-black uppercase tracking-widest text-[10px]">The MediStay Mission</Badge>
+          <Badge className="bg-primary/10 text-primary border-primary/20 px-4 py-1.5 font-black uppercase tracking-widest text-[10px]">The AegisSage Mission</Badge>
           <h1 className="text-5xl md:text-6xl font-black tracking-tighter uppercase leading-[0.9]">
             Protecting the <span className="text-primary">Relationship</span> Between Agent and Member.
           </h1>
@@ -71,7 +71,7 @@ export default function AboutPage() {
       </main>
 
       <footer className="py-20 border-t border-border/50 text-center">
-        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">© 2025 MediStay Intelligence Inc.</p>
+        <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">© 2025 AegisSage Intelligence Inc.</p>
       </footer>
     </div>
   )

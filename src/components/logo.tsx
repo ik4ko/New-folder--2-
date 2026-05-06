@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { cn } from "@/lib/utils"
 
@@ -89,7 +89,7 @@ export function Logo({ className, iconOnly = false }: LogoProps) {
       </div>
       {!iconOnly && (
         <span className="text-xl font-black tracking-tighter uppercase text-foreground">
-          MediStay
+          AegisSage
         </span>
       )}
     </div>

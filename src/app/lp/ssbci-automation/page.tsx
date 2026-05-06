@@ -1,4 +1,4 @@
-
+﻿
 "use client"
 
 import { Button } from "@/components/ui/button"
@@ -21,7 +21,7 @@ export default function SSBCIAutomationLP() {
           </h1>
           
           <p className="text-lg md:text-xl text-muted-foreground font-bold max-w-2xl mx-auto uppercase tracking-tight opacity-80 leading-snug">
-            Members with supplemental benefits stay 40% longer. MediStay automates the SSBCI verification process, ensuring your chronic care members get the food, utility, and pest control benefits they deserve.
+            Members with supplemental benefits stay 40% longer. AegisSage automates the SSBCI verification process, ensuring your chronic care members get the food, utility, and pest control benefits they deserve.
           </p>
 
           <div className="p-10 rounded-[3rem] bg-card border border-border shadow-xl text-left space-y-8 relative overflow-hidden group">
@@ -37,7 +37,7 @@ export default function SSBCIAutomationLP() {
               <div className="space-y-4">
                 <Badge variant="outline" className="text-[9px] uppercase font-black tracking-widest border-primary/20 text-primary">Autonomous Faxing</Badge>
                 <h3 className="text-2xl font-black uppercase tracking-tighter">PCP Bridge</h3>
-                <p className="text-xs font-bold text-muted-foreground uppercase leading-relaxed">One-click faxing to physician offices via Spruce Health to confirm clinical status.</p>
+                <p className="text-xs font-bold text-muted-foreground uppercase leading-relaxed">One-click faxing to physician offices via SageStream to confirm clinical status.</p>
               </div>
             </div>
           </div>

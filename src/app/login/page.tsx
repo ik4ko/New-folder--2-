@@ -1,4 +1,4 @@
-
+﻿
 "use client"
 
 import React, { useState, useEffect } from 'react';
@@ -208,7 +208,7 @@ export default function LoginPage() {
                   <Logo iconOnly className="scale-125" />
                 </div>
                 <h2 className="text-3xl font-black uppercase tracking-tighter text-white">Agency Access</h2>
-                <p className="text-[10px] font-black uppercase tracking-widest text-white/60">MediStay Retention Intelligence</p>
+                <p className="text-[10px] font-black uppercase tracking-widest text-white/60">AegisSage Retention Intelligence</p>
               </div>
 
               <form onSubmit={handleSubmit} className="space-y-5">

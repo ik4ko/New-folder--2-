@@ -1,4 +1,4 @@
-
+﻿
 "use client"
 
 import { Button } from "@/components/ui/button"
@@ -21,7 +21,7 @@ export default function MARxMonitoringLP() {
           </h1>
           
           <p className="text-lg md:text-xl text-muted-foreground font-bold max-w-2xl mx-auto uppercase tracking-tight opacity-80 leading-snug">
-            Wait for carrier commission reports and it's already too late. MediStay uses a direct bridge to poll MARx enrollment snapshots, catching member moves before the disenrollment is finalized.
+            Wait for carrier commission reports and it's already too late. AegisSage uses a direct bridge to poll MARx enrollment snapshots, catching member moves before the disenrollment is finalized.
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-8 text-left">
@@ -33,7 +33,7 @@ export default function MARxMonitoringLP() {
             <div className="p-8 rounded-[2.5rem] bg-muted/30 border border-border space-y-4">
               <Zap className="w-8 h-8 text-primary" />
               <h3 className="text-xl font-black uppercase tracking-tighter">Instant Diff Logic</h3>
-              <p className="text-xs font-bold text-muted-foreground leading-relaxed uppercase">MediStay AI highlights the specific "Switch" event, identifying the new carrier so you can counter-market effectively.</p>
+              <p className="text-xs font-bold text-muted-foreground leading-relaxed uppercase">AegisSage AI highlights the specific "Switch" event, identifying the new carrier so you can counter-market effectively.</p>
             </div>
           </div>
 

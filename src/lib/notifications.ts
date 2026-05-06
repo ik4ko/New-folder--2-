@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 /**
  * Client-side FCM (Firebase Cloud Messaging) registration and listener.
@@ -144,7 +144,7 @@ export async function onForegroundNotification(
   const { onMessage } = await import('firebase/messaging');
   return onMessage(messaging, payload => {
     callback({
-      title: payload.notification?.title ?? 'MediStay Alert',
+      title: payload.notification?.title ?? 'AegisSage Alert',
       body: payload.notification?.body ?? '',
       data: payload.data as Record<string, string> | undefined,
     });

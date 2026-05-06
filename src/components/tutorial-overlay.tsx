@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useAppStore } from "@/lib/store"
 import { Button } from "@/components/ui/button"
@@ -10,7 +10,7 @@ const TUTORIALS = {
   enrollment: [
     {
       title: "Welcome to Enrollment Academy",
-      desc: "Medicare enrollment is about precision. One wrong MBI (Medicare ID) can break your commission cycle. Let's learn the MediStay way.",
+      desc: "Medicare enrollment is about precision. One wrong MBI (Medicare ID) can break your commission cycle. Let's learn the AegisSage way.",
       icon: UserPlus,
     },
     {
@@ -42,7 +42,7 @@ const TUTORIALS = {
     },
     {
       title: "Action 2: Chronic Care Benefits",
-      desc: "Members with benefits stay 40% longer. Use Module 3 to fax PCP offices via Spruce Health and activate food/utility benefits instantly.",
+      desc: "Members with benefits stay 40% longer. Use Module 3 to fax PCP offices via SageStream and activate food/utility benefits instantly.",
       icon: CheckCircle2,
     },
     {

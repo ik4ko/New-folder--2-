@@ -1,4 +1,4 @@
-
+﻿
 "use client"
 
 import { Button } from "@/components/ui/button"
@@ -21,7 +21,7 @@ export default function AEPStrategyLP() {
           </h1>
           
           <p className="text-lg md:text-xl text-muted-foreground font-bold max-w-2xl mx-auto uppercase tracking-tight opacity-80 leading-snug">
-            Don't let competitors harvest your book during the enrollment window. MediStay's AEP Shield uses predictive churn models to identify and protect your most vulnerable members.
+            Don't let competitors harvest your book during the enrollment window. AegisSage's AEP Shield uses predictive churn models to identify and protect your most vulnerable members.
           </p>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-8 text-left">

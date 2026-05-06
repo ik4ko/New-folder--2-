@@ -1,4 +1,4 @@
-
+﻿
 "use client"
 
 import { Button } from "@/components/ui/button"
@@ -25,7 +25,7 @@ export default function GHLSyncDoc() {
           <Badge className="bg-primary/10 text-primary border-primary/20 px-4 py-1.5 font-black uppercase tracking-widest text-[10px]">Module 4</Badge>
           <h1 className="text-5xl md:text-6xl font-black tracking-tighter uppercase leading-[0.9]">GoHighLevel Integration</h1>
           <p className="text-xl text-muted-foreground font-bold leading-relaxed uppercase tracking-tight opacity-80">
-            Bi-directional synchronization between MediStay Intelligence and your GoHighLevel CRM.
+            Bi-directional synchronization between AegisSage Intelligence and your GoHighLevel CRM.
           </p>
         </div>
 
@@ -46,7 +46,7 @@ export default function GHLSyncDoc() {
             <div className="space-y-2">
               <p className="text-[10px] font-black uppercase text-emerald-600 tracking-widest">Retention Scores Out</p>
               <p className="text-xs font-bold text-muted-foreground leading-relaxed uppercase">
-                MediStay pushes calculated retention scores and churn risk tags back to GHL to trigger automated campaigns.
+                AegisSage pushes calculated retention scores and churn risk tags back to GHL to trigger automated campaigns.
               </p>
             </div>
           </div>
