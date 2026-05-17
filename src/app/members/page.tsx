@@ -35,14 +35,14 @@ export default function MemberRosterPage() {
       
       <div className="flex-1 flex flex-col h-full bg-background">
         <header className="h-16 border-b border-border px-4 md:px-8 flex items-center justify-between bg-white/50 backdrop-blur-md sticky top-0 z-10">
-          <h1 className="text-lg md:text-xl font-bold text-foreground">Member Roster</h1>
+          <h1 className="text-lg md:text-xl font-bold text-foreground">Book of Business</h1>
           <div className="flex items-center gap-2">
             <Button variant="outline" className="rounded-xl h-9 text-[10px] md:text-xs font-bold px-2 md:px-4" onClick={handleExport}>
               <FileDown className="w-4 h-4 md:mr-2" /> <span className="hidden md:inline">Export CSV</span>
             </Button>
             <Button className="rounded-xl h-9 text-[10px] md:text-xs font-bold bg-secondary hover:bg-secondary/90 shadow-sm px-2 md:px-4" asChild>
               <Link href="/members/new">
-                <UserPlus className="w-4 h-4 md:mr-2" /> <span className="hidden md:inline">Enroll New</span>
+                <UserPlus className="w-4 h-4 md:mr-2" /> <span className="hidden md:inline">Sync GHL</span>
               </Link>
             </Button>
           </div>
@@ -106,7 +106,7 @@ export default function MemberRosterPage() {
                         variant={member.status === 'churn-risk' ? 'destructive' : 'secondary'} 
                         className="rounded-md uppercase text-[8px] px-2 py-0.5 font-bold whitespace-nowrap"
                       >
-                        {member.status === 'churn-risk' ? 'Switch Detected' : 'Shielded'}
+                        {member.status === 'churn-risk' ? 'Portal Alert' : 'Shielded'}
                       </Badge>
                     </TableCell>
                     <TableCell>

@@ -12,11 +12,18 @@ import { useAppStore } from '@/lib/store';
 // Helpers
 // ---------------------------------------------------------------------------
 
-function daysFromNow(isoDate: string): number {
-  return Math.ceil((new Date(isoDate).getTime() - Date.now()) / 86_400_000);
+function daysFromNow(daysUntilEffective: number | null, createdAt: string): number {
+  if (daysUntilEffective != null) return daysUntilEffective;
+  // Fallback: treat as past if no days info
+  return -1;
 }
 
-// Produces a realistic AEP effective date (next Jan 1) for demo fallback
+function effectiveDateLabel(daysUntilEffective: number | null, createdAt: string): string {
+  if (daysUntilEffective == null) return '';
+  const ms = new Date(createdAt).getTime() + daysUntilEffective * 86_400_000;
+  return new Date(ms).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
 function nextAepDate(): string {
   const now = new Date();
   const year = now.getMonth() >= 9 ? now.getFullYear() + 1 : now.getFullYear();
@@ -33,7 +40,7 @@ interface AlertCardProps {
 }
 
 function AlertCard({ event, isDemo }: AlertCardProps) {
-  const days = daysFromNow(event.effectiveDate);
+  const days = daysFromNow(event.days_until_effective, event.created_at);
 
   const urgency =
     days <= 0
@@ -47,6 +54,8 @@ function AlertCard({ event, isDemo }: AlertCardProps) {
     critical: { border: 'border-destructive/30',  bg: 'bg-destructive/5',      counter: 'text-destructive',      label: 'text-destructive'      },
     warning:  { border: 'border-amber-500/30',    bg: 'bg-amber-500/5',        counter: 'text-amber-500',        label: 'text-amber-600'        },
   }[urgency];
+
+  const dateLabel = effectiveDateLabel(event.days_until_effective, event.created_at);
 
   return (
     <div className={`flex items-stretch rounded-3xl border ${colorMap.border} ${colorMap.bg} overflow-hidden`}>
@@ -88,35 +97,37 @@ function AlertCard({ event, isDemo }: AlertCardProps) {
               Demo
             </Badge>
           )}
-          <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground">
-            {new Date(event.effectiveDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-          </span>
+          {dateLabel && (
+            <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground">
+              {dateLabel}
+            </span>
+          )}
         </div>
 
         {/* Plan switch */}
         <div className="flex items-center gap-1.5 font-mono text-[11px] font-bold">
-          <span className="text-foreground">{event.previousPlanId}</span>
+          <span className="text-foreground">{event.previous_value ?? '--'}</span>
           <ArrowRight className="w-3 h-3 text-muted-foreground shrink-0" />
           <span className={urgency !== 'past' ? colorMap.counter : 'text-foreground'}>
-            {event.newPlanId}
+            {event.new_value ?? '--'}
           </span>
         </div>
 
-        {/* Member name or ID */}
+        {/* Member name or GHL contact ID */}
         {event.memberName ? (
           <p className="text-xs font-black uppercase tracking-tight text-foreground truncate">
             {event.memberName}
           </p>
         ) : (
           <p className="text-[9px] font-mono text-muted-foreground truncate opacity-60">
-            ID: {event.memberId}
+            ID: {event.ghl_contact_id}
           </p>
         )}
 
         {/* Trigger reason */}
-        {event.triggerReason && (
+        {event.trigger_reason && (
           <p className="text-[10px] text-muted-foreground leading-snug font-medium line-clamp-2">
-            {event.triggerReason}
+            {event.trigger_reason}
           </p>
         )}
       </div>
@@ -134,7 +145,7 @@ function AlertCard({ event, isDemo }: AlertCardProps) {
           }`}
           asChild
         >
-          <Link href={`/clients/${event.memberId}`}>
+          <Link href={`/clients/${event.ghl_contact_id}`}>
             <PhoneCall className="w-3 h-3 mr-1.5" />
             Contact
           </Link>
@@ -145,7 +156,7 @@ function AlertCard({ event, isDemo }: AlertCardProps) {
           className="h-7 rounded-xl font-black uppercase text-[8px] tracking-widest text-muted-foreground hover:text-foreground"
           asChild
         >
-          <Link href={`/clients/${event.memberId}`}>
+          <Link href={`/clients/${event.ghl_contact_id}`}>
             View
           </Link>
         </Button>
@@ -179,11 +190,11 @@ function AlertSkeleton() {
 // ---------------------------------------------------------------------------
 
 export function RiskAlertFeed() {
-  const { events, loading } = useRiskEvents();
-  const { members } = useAppStore();
+  const { agencyProfile, members } = useAppStore();
+  const { events, loading } = useRiskEvents(agencyProfile.id ?? '');
 
   // Demo fallback: synthesise alerts from local Zustand members that have a
-  // detected future contract, so the UI is populated in dev without Firebase.
+  // detected future contract, so the UI is populated without live data.
   const demoEvents = useMemo<(RiskEvent & { memberName?: string })[]>(() => {
     if (events.length > 0 || loading) return [];
 
@@ -192,32 +203,30 @@ export function RiskAlertFeed() {
       .slice(0, 3)
       .map((m) => ({
         id: `demo-${m.id}`,
-        memberId: m.id,
+        agency_id: 'demo',
+        ghl_contact_id: m.id,
         memberName: m.fullName,
-        agencyId: 'demo',
-        brokerId: 'demo',
-        event: 'PLAN_SWITCH_DETECTED',
-        riskLevel: 'HIGH' as const,
-        previousPlanId: m.carrier ?? 'Current Plan',
-        newPlanId: m.futureContract!,
-        effectiveDate: m.futureEffectiveDate ?? nextAepDate(),
-        triggerReason:
+        event_type: 'plan_switch',
+        risk_level: 'HIGH' as const,
+        previous_value: m.carrier ?? 'Current Plan',
+        new_value: m.futureContract!,
+        days_until_effective: m.futureEffectiveDate
+          ? Math.ceil((new Date(m.futureEffectiveDate).getTime() - Date.now()) / 86_400_000)
+          : 90,
+        trigger_reason:
           `Plan switch to ${m.futurePlanName ?? m.futureContract} detected. ` +
           `Call ${m.fullName} before the change takes effect.`,
-        daysUntilEffective: null,
         source: 'demo',
-        createdAt: null,
+        created_at: new Date().toISOString(),
       }));
   }, [events.length, loading, members]);
 
   const alerts: (RiskEvent & { memberName?: string })[] =
-    events.length > 0
-      ? events
-      : demoEvents;
+    events.length > 0 ? events : demoEvents;
 
-  const liveAlerts  = alerts.filter((e) => daysFromNow(e.effectiveDate) > 0);
-  const pastAlerts  = alerts.filter((e) => daysFromNow(e.effectiveDate) <= 0);
-  const isDemo      = events.length === 0 && demoEvents.length > 0;
+  const liveAlerts = alerts.filter((e) => daysFromNow(e.days_until_effective, e.created_at) > 0);
+  const pastAlerts = alerts.filter((e) => daysFromNow(e.days_until_effective, e.created_at) <= 0);
+  const isDemo     = events.length === 0 && demoEvents.length > 0;
 
   if (loading) {
     return (
@@ -225,7 +234,7 @@ export function RiskAlertFeed() {
         <div className="flex items-center gap-2 px-1">
           <div className="w-2 h-2 rounded-full bg-destructive animate-pulse" />
           <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-            Loading Alerts…
+            Loading Alerts...
           </span>
         </div>
         <AlertSkeleton />
@@ -255,7 +264,7 @@ export function RiskAlertFeed() {
         )}
         {isDemo && (
           <span className="text-[8px] font-black uppercase tracking-widest text-muted-foreground opacity-50 flex items-center gap-1">
-            <Clock className="w-2.5 h-2.5" /> Demo data — connect Firebase to see live alerts
+            <Clock className="w-2.5 h-2.5" /> Demo data
           </span>
         )}
       </div>
@@ -269,12 +278,12 @@ export function RiskAlertFeed() {
         </div>
       )}
 
-      {/* Past / already-effective alerts (collapsed below live ones) */}
+      {/* Past / already-effective alerts */}
       {pastAlerts.length > 0 && (
         <details className="group">
           <summary className="cursor-pointer list-none flex items-center gap-2 px-1 py-1 select-none">
             <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">
-              {pastAlerts.length} Already Effective ▸
+              {pastAlerts.length} Already Effective &gt;
             </span>
           </summary>
           <div className="mt-2 space-y-2">

@@ -26,7 +26,7 @@ export default function CompliancePage() {
   return (
     <div className="min-h-screen bg-background text-foreground selection:bg-primary/10">
 
-      {/* ── Sticky header ─────────────────────────────────────────────────── */}
+      {/* -- Sticky header --------------------------------------------------- */}
       <header className="h-20 border-b border-border/50 px-8 flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur-xl z-50">
         <Link href="/" className="flex items-center gap-3">
           <Logo />
@@ -47,7 +47,7 @@ export default function CompliancePage() {
 
       <main className="max-w-4xl mx-auto py-20 px-8 space-y-24 pb-32">
 
-        {/* ── Hero ──────────────────────────────────────────────────────────── */}
+        {/* -- Hero ------------------------------------------------------------ */}
         <section className="space-y-6 text-center">
           <div className="flex justify-center">
             <div className="w-16 h-16 rounded-[2rem] bg-primary/10 flex items-center justify-center text-primary shadow-inner">
@@ -70,7 +70,7 @@ export default function CompliancePage() {
           </p>
         </section>
 
-        {/* ── Compliance badges row ─────────────────────────────────────────── */}
+        {/* -- Compliance badges row ------------------------------------------- */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
           {[
             { icon: Lock,          label: "AES-256-GCM",         sub: "Data Encryption at Rest"          },
@@ -91,7 +91,7 @@ export default function CompliancePage() {
 
         <Separator className="opacity-30" />
 
-        {/* ── Section 01: Data Encryption ──────────────────────────────────── */}
+        {/* -- Section 01: Data Encryption ------------------------------------ */}
         <section id="encryption" className="space-y-8 scroll-mt-24">
           <div className="flex items-start gap-5">
             <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0 mt-1">
@@ -111,7 +111,7 @@ export default function CompliancePage() {
             {[
               {
                 title: "Field-Level Encryption",
-                body: "Protected Health Information (PHI) fields — including Medicare Beneficiary Identifiers (MBI), dates of birth, and phone numbers — are encrypted individually using AES-256-GCM with unique IVs per field. Keys are derived via PBKDF2 (100,000 iterations, SHA-256) from a master secret stored in Firebase Secret Manager. This means each field requires its own decryption operation.",
+                body: "Protected Health Information (PHI) fields -- including Medicare Beneficiary Identifiers (MBI), dates of birth, and phone numbers -- are encrypted individually using AES-256-GCM with unique IVs per field. Keys are derived via PBKDF2 (100,000 iterations, SHA-256) from a master secret stored in Firebase Secret Manager. This means each field requires its own decryption operation.",
               },
               {
                 title: "Encryption at Rest",
@@ -139,7 +139,7 @@ export default function CompliancePage() {
 
         <Separator className="opacity-30" />
 
-        {/* ── Section 02: HIPAA BAA ─────────────────────────────────────────── */}
+        {/* -- Section 02: HIPAA BAA ------------------------------------------- */}
         <section id="baa" className="space-y-8 scroll-mt-24">
           <div className="flex items-start gap-5">
             <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-600 shrink-0 mt-1">
@@ -150,7 +150,7 @@ export default function CompliancePage() {
                 02. HIPAA BAA Availability
               </h2>
               <p className="text-sm text-muted-foreground font-bold uppercase tracking-wide mt-1">
-                Business Associate Agreement — Required for Platform Access
+                Business Associate Agreement -- Required for Platform Access
               </p>
             </div>
           </div>
@@ -166,7 +166,7 @@ export default function CompliancePage() {
 
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
                 {[
-                  { label: "Safeguard PHI",          desc: "Administrative, physical, and technical safeguards per §164.310–164.312" },
+                  { label: "Safeguard PHI",          desc: "Administrative, physical, and technical safeguards per §164.310-164.312" },
                   { label: "Report Breaches",         desc: "Notify covered entity within 60 days of PHI breach discovery per §164.410" },
                   { label: "Subcontractor BAAs",      desc: "Flow-down BAA obligations to all subprocessors handling PHI" },
                 ].map(({ label, desc }) => (
@@ -214,7 +214,7 @@ export default function CompliancePage() {
 
         <Separator className="opacity-30" />
 
-        {/* ── Section 03: 10-Year Record Retention ─────────────────────────── */}
+        {/* -- Section 03: 10-Year Record Retention --------------------------- */}
         <section id="retention" className="space-y-8 scroll-mt-24">
           <div className="flex items-start gap-5">
             <div className="w-12 h-12 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-600 shrink-0 mt-1">
@@ -225,7 +225,7 @@ export default function CompliancePage() {
                 03. CMS 10-Year Record Retention Policy
               </h2>
               <p className="text-sm text-muted-foreground font-bold uppercase tracking-wide mt-1">
-                TPMO Regulation — 42 CFR §422.2274 & §423.2274
+                TPMO Regulation -- 42 CFR §422.2274 & §423.2274
               </p>
             </div>
           </div>
@@ -276,7 +276,7 @@ export default function CompliancePage() {
 
         <Separator className="opacity-30" />
 
-        {/* ── Section 04: Terms of Service ─────────────────────────────────── */}
+        {/* -- Section 04: Terms of Service ----------------------------------- */}
         <section id="terms" className="space-y-8 scroll-mt-24">
           <div className="flex items-start gap-5">
             <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0 mt-1">
@@ -303,7 +303,7 @@ export default function CompliancePage() {
               {
                 num: "02",
                 title: "Agency Responsibility & CMS Compliance",
-                body: "Agencies are solely responsible for ensuring that all AI-assisted outreach, SSBCI fax submissions, SOA generation, and enrollment recommendations comply with applicable CMS regulations, carrier guidelines, and state insurance law. AegisSage provides tools — the licensed broker retains full professional responsibility for client interactions.",
+                body: "Agencies are solely responsible for ensuring that all AI-assisted outreach, VCC fax submissions, SOA generation, and enrollment recommendations comply with applicable CMS regulations, carrier guidelines, and state insurance law. AegisSage provides tools -- the licensed broker retains full professional responsibility for client interactions.",
               },
               {
                 num: "03",
@@ -339,7 +339,7 @@ export default function CompliancePage() {
 
         <Separator className="opacity-30" />
 
-        {/* ── Section 05: Privacy Policy ────────────────────────────────────── */}
+        {/* -- Section 05: Privacy Policy -------------------------------------- */}
         <section id="privacy" className="space-y-8 scroll-mt-24">
           <div className="flex items-start gap-5">
             <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center text-primary shrink-0 mt-1">
@@ -361,7 +361,7 @@ export default function CompliancePage() {
               {
                 num:   "01",
                 title: "Data We Collect",
-                body:  "We collect: (i) broker account information (name, email, NPN, phone, agency name); (ii) member operational metadata (plan IDs, enrollment periods, retention scores) — no PHI in this layer; (iii) PHI provided for processing (MBI, DOB, phone) — stored exclusively in the encrypted phi_vault and members collections; (iv) usage analytics (page views, feature interactions) in anonymized form.",
+                body:  "We collect: (i) broker account information (name, email, NPN, phone, agency name); (ii) member operational metadata (plan IDs, enrollment periods, retention scores) -- no PHI in this layer; (iii) PHI provided for processing (MBI, DOB, phone) -- stored exclusively in the encrypted phi_vault and members collections; (iv) usage analytics (page views, feature interactions) in anonymized form.",
               },
               {
                 num:   "02",
@@ -395,7 +395,7 @@ export default function CompliancePage() {
           </div>
         </section>
 
-        {/* ── Footer CTA ────────────────────────────────────────────────────── */}
+        {/* -- Footer CTA ------------------------------------------------------ */}
         <div className="p-10 rounded-3xl border-2 border-dashed border-primary/20 bg-primary/5 text-center space-y-4">
           <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center mx-auto text-primary">
             <ShieldCheck className="w-7 h-7" />
@@ -423,7 +423,7 @@ export default function CompliancePage() {
         </div>
       </main>
 
-      {/* ── Page footer ───────────────────────────────────────────────────── */}
+      {/* -- Page footer ----------------------------------------------------- */}
       <footer className="border-t border-border/50 py-10 px-8 text-center space-y-3">
         <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">
           © {new Date().getFullYear()} AegisSage Intelligence Inc. · HIPAA Compliant · CMS TPMO Registered

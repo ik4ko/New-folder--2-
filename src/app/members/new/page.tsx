@@ -1,7 +1,7 @@
 "use client"
 
 import { CollectionSidebar } from "@/components/collection-sidebar"
-import { InsightsPanel } from "@/components/insights-panel"
+
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -379,7 +379,7 @@ export default function NewMemberPage() {
         </div>
       </div>
 
-      <InsightsPanel member={formData as any} />
+
     </div>
   )
 }

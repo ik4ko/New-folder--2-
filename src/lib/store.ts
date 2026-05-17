@@ -1,7 +1,5 @@
-﻿
+
 import { create } from 'zustand';
-import { faker } from '@faker-js/faker';
-import { Firestore, doc, setDoc } from 'firebase/firestore';
 import type { RiskProfile } from './retention/comparePlans';
 
 /**
@@ -30,7 +28,7 @@ export interface MemberRecord {
   dob: string;
   age: number;
   medicareMedicaidStatus: 'None' | 'Medicare' | 'Medicaid' | 'Both';
-  ssbciStatus: 'not-needed' | 'pending-fax' | 'faxed' | 'approved';
+  VCCStatus: 'not-needed' | 'pending-fax' | 'faxed' | 'approved';
   checkInStatus: 'scheduled' | 'called' | 'completed' | 'escalated';
   poaStatus: 'unprotected' | 'pending-invite' | 'shielded';
   poaName?: string;
@@ -72,6 +70,7 @@ export interface Transaction {
 }
 
 export interface AgencyProfile {
+  id?: string;
   name: string;
   email: string;
   billingPlan: 'entry' | 'starter' | 'pro' | 'enterprise';
@@ -138,7 +137,6 @@ interface AppState {
   nextTutorialStep: () => void;
   closeTutorial: () => void;
   setEncryptionKey: (key: CryptoKey) => void;
-  syncToCloudVault: (db: Firestore, userId: string) => Promise<void>;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -226,37 +224,8 @@ export const useAppStore = create<AppState>((set, get) => ({
 
   toggleGHL: () => set(s => ({ isGHLConnected: !s.isGHLConnected })),
 
-  importFromGHL: (count) => {
-    const carriers = ["UnitedHealthcare", "Humana", "Aetna", "Clover Health"];
-    const newMembers = Array.from({ length: count }).map(() => ({
-      id: faker.string.uuid(),
-      fullName: faker.person.fullName(),
-      medicareId: faker.string.alphanumeric(11).toUpperCase(),
-      status: faker.helpers.arrayElement(['active', 'churn-risk', 'active']),
-      retentionScore: faker.number.int({ min: 40, max: 98 }),
-      lastSync: new Date().toISOString(),
-      carrier: faker.helpers.arrayElement(carriers),
-      planName: "Choice PPO Plus",
-      phone: faker.phone.number(),
-      email: faker.internet.email(),
-      dob: faker.date.birthdate({ min: 65, max: 90, mode: 'age' }).toISOString().split('T')[0],
-      age: 70,
-      medicareMedicaidStatus: 'None' as const,
-      ssbciStatus: faker.helpers.arrayElement(['not-needed', 'pending-fax', 'approved']),
-      checkInStatus: 'scheduled' as const,
-      poaStatus: faker.helpers.arrayElement(['unprotected', 'shielded']),
-      ptcExpiryDate: "2026-01-01",
-      monthlyPremium: "$0.00",
-      enrollmentPeriod: "AEP" as const,
-      soaStatus: "Completed",
-      partAEffective: "2020-01-01",
-      partBEffective: "2020-01-01",
-      healthConditions: [],
-      lastCmsCheck: Date.now() - (Math.random() * 10000000),
-      futureContract: Math.random() > 0.8 ? 'H' + faker.string.numeric(4) : undefined,
-      futurePlanName: Math.random() > 0.8 ? faker.helpers.arrayElement(['Humana Gold', 'Aetna Select', 'UHC Choice']) : undefined
-    }));
-    set(s => ({ members: [...s.members, ...newMembers] }));
+  importFromGHL: (_count) => {
+    // No-op: GHL contacts are synced server-side via syncContactsFromGHL action
   },
 
   toggleSidebar: () => set(s => ({ isSidebarOpen: !s.isSidebarOpen })),
@@ -267,28 +236,8 @@ export const useAppStore = create<AppState>((set, get) => ({
   closeTutorial: () => set({ activeTutorial: 'none', tutorialStep: 0 }),
 
   setEncryptionKey: (key) => set({ encryptionKey: key }),
-  
-  syncToCloudVault: async (db, userId) => {
-    const { agencyProfile, ghlSettings, mayaSettings } = get();
-    await setDoc(doc(db, 'vaults', userId), {
-      agencyProfile,
-      ghlSettings,
-      mayaSettings,
-      updatedAt: Date.now()
-    }, { merge: true });
-  }
 }));
 
 export const initializeStore = () => {
-  const store = useAppStore.getState();
-  if (store.members.length === 0) {
-    store.importFromGHL(12);
-    // Seed some ledger data
-    useAppStore.setState({
-      ledger: [
-        { id: '1', memberId: 'M1', memberName: 'Robert Miller', amount: 600, date: '2024-11-01', status: 'paid', type: 'Renewal' },
-        { id: '2', memberId: 'M2', memberName: 'Sarah Jenkins', amount: 600, date: '2024-11-05', status: 'pending', type: 'Renewal' }
-      ]
-    });
-  }
+  // No-op: all data is fetched from Supabase server-side
 };

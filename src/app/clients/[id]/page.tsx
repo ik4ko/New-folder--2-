@@ -3,7 +3,7 @@
 import { useParams } from "next/navigation"
 import { useAppStore } from "@/lib/store"
 import { CollectionSidebar } from "@/components/collection-sidebar"
-import { InsightsPanel } from "@/components/insights-panel"
+import { InsightsPanel } from "@/components/InsightsPanel"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
 import { FileText, Download, Share2, ShieldAlert, History, User } from "lucide-react"

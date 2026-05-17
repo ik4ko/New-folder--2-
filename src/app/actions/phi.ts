@@ -8,11 +8,7 @@ export async function decryptPhiFields(
   phoneCipherData: { cipher: string, iv: string } | null
 ) {
   const masterSecret = process.env.PHI_MASTER_SECRET;
-  if (!masterSecret) {
-    console.error('PHI_MASTER_SECRET not configured');
-    return { mbi: 'ERROR', phone: 'ERROR' };
-  }
-  
+  if (!masterSecret) throw new Error('PHI_MASTER_SECRET environment variable is not set');
   const key = crypto.pbkdf2Sync(masterSecret, `fle:${agencyId}`, 100000, 32, 'sha256');
   
   const decrypt = (cipherData: { cipher: string, iv: string } | null) => {

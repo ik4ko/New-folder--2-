@@ -1,7 +1,7 @@
 "use client"
 
 import React, { useEffect, useState } from 'react';
-import { auth } from '@/lib/firebase';
+import { createClient } from '@/lib/supabase/client';
 import { getCrmConfig, saveCrmConfig } from '@/app/actions/crm_sync';
 
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
@@ -20,11 +20,20 @@ export default function CRMSettingsPage() {
 
   useEffect(() => {
     const fetchConfig = async () => {
-      const agencyId = auth.currentUser?.uid;
-      if (!agencyId) return;
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) { setLoading(false); return; }
+
+      const { data: agency } = await supabase
+        .from('agencies')
+        .select('id')
+        .eq('owner_id', user.id)
+        .maybeSingle();
+
+      if (!agency) { setLoading(false); return; }
 
       try {
-        const config = await getCrmConfig(agencyId);
+        const config = await getCrmConfig(agency.id);
         if (config.ghlApiKey) setGhlApiKey(config.ghlApiKey);
         if (config.webhookUrl) setWebhookUrl(config.webhookUrl);
       } catch (e) {
@@ -34,23 +43,29 @@ export default function CRMSettingsPage() {
       }
     };
 
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      if (user) fetchConfig();
-    });
-
-    return () => unsubscribe();
+    fetchConfig();
   }, []);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
-    const agencyId = auth.currentUser?.uid;
-    if (!agencyId) return;
-
     setSaving(true);
+
     try {
-      await saveCrmConfig(agencyId, { 
-        ghlApiKey: ghlApiKey.trim(), 
-        webhookUrl: webhookUrl.trim() 
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('Not authenticated');
+
+      const { data: agency } = await supabase
+        .from('agencies')
+        .select('id')
+        .eq('owner_id', user.id)
+        .maybeSingle();
+
+      if (!agency) throw new Error('Agency not found');
+
+      await saveCrmConfig(agency.id, {
+        ghlApiKey: ghlApiKey.trim(),
+        webhookUrl: webhookUrl.trim(),
       });
       toast({ title: 'Settings Saved', description: 'Your CRM configuration has been securely encrypted and stored.' });
     } catch (e: any) {
@@ -86,8 +101,8 @@ export default function CRMSettingsPage() {
               <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
                 <Key className="w-3 h-3" /> GHL Location API Key
               </Label>
-              <Input 
-                type="password" 
+              <Input
+                type="password"
                 placeholder="Paste your GHL API Key here..."
                 value={ghlApiKey}
                 onChange={(e) => setGhlApiKey(e.target.value)}
@@ -101,7 +116,7 @@ export default function CRMSettingsPage() {
         <Card className="rounded-[2.5rem] border-border bg-card shadow-sm">
           <CardHeader className="border-b border-border/50 pb-6">
             <CardTitle className="text-lg font-black uppercase tracking-tight flex items-center gap-2">
-              <Webhook className="w-5 h-5 text-emerald-500" /> EnrollHere & Generic Webhooks
+              <Webhook className="w-5 h-5 text-emerald-500" /> EnrollHere &amp; Generic Webhooks
             </CardTitle>
             <CardDescription className="text-xs font-bold uppercase tracking-wide">
               Push JSON payloads containing risk alerts and script intelligence to any endpoint.
@@ -112,8 +127,8 @@ export default function CRMSettingsPage() {
               <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground flex items-center gap-1.5">
                 <Webhook className="w-3 h-3" /> Outbound Webhook URL
               </Label>
-              <Input 
-                type="url" 
+              <Input
+                type="url"
                 placeholder="https://api.enrollhere.com/v1/webhook/..."
                 value={webhookUrl}
                 onChange={(e) => setWebhookUrl(e.target.value)}
@@ -125,12 +140,12 @@ export default function CRMSettingsPage() {
         </Card>
 
         <div className="flex justify-end gap-4">
-          <Button 
-            type="submit" 
+          <Button
+            type="submit"
             disabled={saving}
             className="h-12 px-8 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest shadow-xl shadow-primary/20 transition-all"
           >
-            {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />} 
+            {saving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Save className="w-4 h-4 mr-2" />}
             Save Configuration
           </Button>
         </div>

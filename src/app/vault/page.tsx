@@ -1,9 +1,7 @@
-﻿
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { auth as firebaseAuth, db } from '@/lib/firebase';
-import { onAuthStateChanged, type User } from 'firebase/auth';
+import { createClient } from '@/lib/supabase/client';
 import { deriveKey, encryptData, decryptData, syncVaultToCloud, fetchVaultFromCloud, VaultState } from '@/lib/vault/core';
 import { useAppStore } from '@/lib/store';
 import { Button } from '@/components/ui/button';
@@ -17,29 +15,32 @@ import { CollectionSidebar } from '@/components/collection-sidebar';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 export default function DistributedVaultPage() {
-  const [user, setUser] = useState<User | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
   const [passphrase, setPassphrase] = useState('');
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [vaultData, setVaultState] = useState<VaultState | null>(null);
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'synced'>('idle');
   const [gunPeers, setGunPeers] = useState(0);
-  
+
   const { setEncryptionKey, updateAgencyProfile, updateGHLSettings, updateMayaSettings } = useAppStore();
-  
-  // Refs for background processes
+
   const gunRef = useRef<any>(null);
   const keyRef = useRef<CryptoKey | null>(null);
 
   useEffect(() => {
-    if (!firebaseAuth) return;
-    return onAuthStateChanged(firebaseAuth, setUser);
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      if (user) setUserId(user.id);
+    });
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUserId(session?.user?.id ?? null);
+    });
+    return () => subscription.unsubscribe();
   }, []);
 
-  // Initialize GUN mesh
   useEffect(() => {
     const initGun = async () => {
       const { default: Gun } = await import('gun');
-      // Use local relay + public fallbacks for demo
       gunRef.current = Gun(['https://gun-manhattan.herokuapp.com/gun']);
       setGunPeers(1);
     };
@@ -47,7 +48,7 @@ export default function DistributedVaultPage() {
   }, []);
 
   const handleUnlock = async () => {
-    if (!passphrase) return;
+    if (!passphrase || !userId) return;
     try {
       setSyncStatus('syncing');
       const key = await deriveKey(passphrase);
@@ -55,22 +56,23 @@ export default function DistributedVaultPage() {
       setEncryptionKey(key);
 
       // 1. Try Local
-      const local = localStorage.getItem(`vault_${user?.uid}`);
+      const local = localStorage.getItem(`vault_${userId}`);
       if (local) {
-        const decrypted = await decryptData(JSON.parse(local).cipher, JSON.parse(local).iv, key);
+        const parsed = JSON.parse(local);
+        const decrypted = await decryptData(parsed.cipher, parsed.iv, key);
         restoreSettings(decrypted);
         setVaultState(decrypted);
         setIsUnlocked(true);
         toast({ title: "Local Vault Decrypted", description: "Identity verified via WebCrypto." });
-      } else if (db && user) {
-        // 2. Fallback to Firestore
-        const cloudBlob = await fetchVaultFromCloud(db, user.uid);
+      } else {
+        // 2. Fallback to Supabase Storage
+        const cloudBlob = await fetchVaultFromCloud(userId);
         if (cloudBlob) {
           const decrypted = await decryptData(cloudBlob.cipher, cloudBlob.iv, key);
           restoreSettings(decrypted);
           setVaultState(decrypted);
           setIsUnlocked(true);
-          toast({ title: "Cloud Backup Restored", description: "Encrypted PHI recovered from Firestore." });
+          toast({ title: "Cloud Backup Restored", description: "Encrypted data recovered from Supabase Storage." });
         } else {
           // 3. New Vault
           const newState: VaultState = { healthRecords: [], blueButtonData: null, updatedAt: Date.now() };
@@ -80,8 +82,9 @@ export default function DistributedVaultPage() {
         }
       }
       setSyncStatus('synced');
-    } catch (err) {
+    } catch {
       toast({ variant: "destructive", title: "Decryption Failed", description: "Incorrect passphrase or corrupted cipher." });
+      setSyncStatus('idle');
     }
   };
 
@@ -92,22 +95,24 @@ export default function DistributedVaultPage() {
   };
 
   const handleSaveRecord = async (content: string) => {
-    if (!vaultData || !keyRef.current || !user || !db) return;
+    if (!vaultData || !keyRef.current || !userId) return;
 
     setSyncStatus('syncing');
     const newState: VaultState = {
       ...vaultData,
-      healthRecords: [...vaultData.healthRecords, { id: Math.random().toString(36).substr(2, 9), content, date: new Date().toISOString() }],
-      updatedAt: Date.now()
+      healthRecords: [
+        ...vaultData.healthRecords,
+        { id: crypto.randomUUID(), content, date: new Date().toISOString() },
+      ],
+      updatedAt: Date.now(),
     };
 
     const encrypted = await encryptData(newState, keyRef.current);
-    const blob = { ...encrypted, userId: user.uid, updatedAt: Date.now(), deviceId: 'browser-client' };
+    const blob = { ...encrypted, userId, updatedAt: Date.now(), deviceId: 'browser-client' };
 
-    // Update ALL sources
-    localStorage.setItem(`vault_${user.uid}`, JSON.stringify(blob));
-    syncVaultToCloud(db, user.uid, blob);
-    gunRef.current.get('vaults').get(user.uid).put(JSON.stringify(blob));
+    localStorage.setItem(`vault_${userId}`, JSON.stringify(blob));
+    syncVaultToCloud(userId, blob);
+    gunRef.current?.get('vaults').get(userId).put(JSON.stringify(blob));
 
     setVaultState(newState);
     setSyncStatus('synced');
@@ -127,15 +132,15 @@ export default function DistributedVaultPage() {
             <p className="text-blue-400 font-bold uppercase text-[10px] tracking-widest">Zero-Knowledge Decentralized Storage</p>
           </div>
           <div className="space-y-4">
-            <Input 
-              type="password" 
-              placeholder="Enter Private Passphrase" 
+            <Input
+              type="password"
+              placeholder="Enter Private Passphrase"
               className="h-14 rounded-2xl bg-black/40 border-blue-500/30 text-white font-black text-center focus-visible:ring-blue-500"
               value={passphrase}
               onChange={(e) => setPassphrase(e.target.value)}
             />
             <Button onClick={handleUnlock} className="w-full h-14 rounded-2xl bg-blue-600 hover:bg-blue-500 text-white font-black uppercase tracking-widest text-xs">
-              Verify Identity & Unlock
+              Verify Identity &amp; Unlock
             </Button>
           </div>
           <div className="flex items-center justify-center gap-4 text-[9px] text-blue-400/60 font-black uppercase">
@@ -159,7 +164,7 @@ export default function DistributedVaultPage() {
             </div>
             <div>
               <h1 className="text-xl font-black text-foreground uppercase tracking-tight">Data Cockpit</h1>
-              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-70">UID: {user?.uid.substr(0, 12)}... (Encrypted)</p>
+              <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest opacity-70">UID: {userId?.substring(0, 12)}... (Encrypted)</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
@@ -213,8 +218,8 @@ export default function DistributedVaultPage() {
                 </ScrollArea>
                 <div className="p-8 border-t bg-muted/20">
                   <div className="flex gap-4">
-                    <Input 
-                      placeholder="Input clinical observation or note..." 
+                    <Input
+                      placeholder="Input clinical observation or note..."
                       className="h-14 rounded-2xl bg-background border-border font-bold"
                       onKeyDown={(e) => {
                         if (e.key === 'Enter') {

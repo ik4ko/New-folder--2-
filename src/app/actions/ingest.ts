@@ -1,6 +1,6 @@
 'use server'
 
-import { adminDb, admin } from '@/lib/firebase-admin';
+import { supabaseAdmin } from '@/lib/supabase';
 import crypto from 'crypto';
 
 interface CrmPayload {
@@ -13,11 +13,11 @@ interface CrmPayload {
 }
 
 // ---------------------------------------------------------------------------
-// Reused Field-Level Encryption Logic (Phase 1)
+// Field-Level Encryption Helpers
 // ---------------------------------------------------------------------------
 function deriveFieldEncKey(agencyId: string): Buffer {
   const masterSecret = process.env.PHI_MASTER_SECRET;
-  if (!masterSecret) throw new Error('PHI_MASTER_SECRET is not configured.');
+  if (!masterSecret) throw new Error('PHI_MASTER_SECRET environment variable is not set');
   return crypto.pbkdf2Sync(masterSecret, `fle:${agencyId}`, 100_000, 32, 'sha256');
 }
 
@@ -37,7 +37,7 @@ function encryptField(plaintext: string, key: Buffer) {
 
 function mbiIndexHash(mbi: string, agencyId: string): string {
   const masterSecret = process.env.PHI_MASTER_SECRET;
-  if (!masterSecret) throw new Error('PHI_MASTER_SECRET is not configured.');
+  if (!masterSecret) throw new Error('PHI_MASTER_SECRET environment variable is not set');
   return crypto
     .createHmac('sha256', masterSecret)
     .update(`${agencyId}:${mbi.toUpperCase().trim()}`)
@@ -60,7 +60,7 @@ function evaluateSwitchRisk(
     return {
       riskLevel: 'HIGH',
       status: 'PROVISIONALLY_DISENROLLED',
-      triggerReason: `Plan switch ${existingPlanId} → ${payload.plan_id} takes effect in ${daysUntilEffective} day(s) (${payload.effective_date}). Call member now.`,
+      triggerReason: `Plan switch ${existingPlanId} -> ${payload.plan_id} takes effect in ${daysUntilEffective} day(s) (${payload.effective_date}). Call member now.`,
       daysUntilEffective,
     };
   }
@@ -68,7 +68,7 @@ function evaluateSwitchRisk(
   return {
     riskLevel: 'HIGH',
     status: 'PLAN_CHANGED',
-    triggerReason: `Plan changed ${existingPlanId} → ${payload.plan_id} effective ${payload.effective_date}.`,
+    triggerReason: `Plan changed ${existingPlanId} -> ${payload.plan_id} effective ${payload.effective_date}.`,
     daysUntilEffective: 0,
   };
 }
@@ -77,110 +77,78 @@ function evaluateSwitchRisk(
 // Batch Ingestion Server Action
 // ---------------------------------------------------------------------------
 export async function processCsvIngestion(
-  agencyId: string, 
-  brokerId: string, 
+  agencyId: string,
+  brokerId: string,
   rows: CrmPayload[]
 ) {
   if (!agencyId || !brokerId) throw new Error('Unauthorized');
-  
+
   const encKey = deriveFieldEncKey(agencyId);
-  const batch = adminDb.batch();
   let updatedCount = 0;
   let highRiskCount = 0;
 
   for (const row of rows) {
     const mbiHash = mbiIndexHash(row.mbi_number, agencyId);
-    
-    // Lookup member by MBI hash (Server-side query)
-    const snap = await adminDb.collection('members')
-      .where('mbi_hash', '==', mbiHash)
-      .where('agencyId', '==', agencyId)
-      .limit(1)
-      .get();
-      
-    if (snap.empty) {
-      // New member ingestion
+
+    // Look up contact by MBI hash
+    const { data: existing } = await supabaseAdmin
+      .from('ghl_contacts')
+      .select('id, current_plan_id, ghl_contact_id')
+      .eq('agency_id', agencyId)
+      .eq('mbi_hash', mbiHash)
+      .maybeSingle();
+
+    if (!existing) {
+      // New contact -- encrypt PHI and insert
       const mbiEnc = encryptField(row.mbi_number, encKey);
       const dobEnc = encryptField(row.date_of_birth || '', encKey);
       const phoneEnc = encryptField(row.phone_number || '', encKey);
-      
-      const newRef = adminDb.collection('members').doc();
-      batch.set(newRef, {
-        agencyId,
-        brokerId,
+
+      await supabaseAdmin.from('ghl_contacts').insert({
+        agency_id: agencyId,
+        broker_id: brokerId,
+        ghl_contact_id: mbiHash, // placeholder until real GHL sync
         mbi_hash: mbiHash,
-        mbi_number_cipher: mbiEnc.cipher,
-        mbi_number_iv: mbiEnc.iv,
-        date_of_birth_cipher: dobEnc.cipher,
-        date_of_birth_iv: dobEnc.iv,
-        phone_number_cipher: phoneEnc.cipher,
-        phone_number_iv: phoneEnc.iv,
+        mbi_enc: mbiEnc,
+        dob_enc: dobEnc,
+        phone_enc: phoneEnc,
         current_plan_id: row.plan_id,
         status: 'ACTIVE',
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        updatedAt: Date.now(),
-      });
-      
-      batch.set(newRef.collection('status_history').doc(), {
-        plan_id: row.plan_id,
-        effective_date: row.effective_date,
-        previous_plan_id: null,
-        status: 'ACTIVE',
-        brokerId,
         source: row.source || 'csv_upload',
-        recordedAt: admin.firestore.FieldValue.serverTimestamp(),
       });
-      
-      updatedCount++;
-    } else {
-      // Existing member update & risk evaluation
-      const docRef = snap.docs[0];
-      const existing = docRef.data();
-      
-      if (existing.current_plan_id !== row.plan_id) {
-        const risk = evaluateSwitchRisk(row, existing.current_plan_id);
-        
-        if (risk.riskLevel === 'HIGH') highRiskCount++;
-        
-        const riskEventRef = adminDb.collection('risk_events').doc();
-        batch.set(riskEventRef, {
-          memberId: docRef.id,
-          agencyId,
-          brokerId,
-          event: 'PLAN_SWITCH_DETECTED',
-          riskLevel: risk.riskLevel,
-          previousPlanId: existing.current_plan_id,
-          newPlanId: row.plan_id,
-          effectiveDate: row.effective_date,
-          daysUntilEffective: risk.daysUntilEffective,
-          triggerReason: risk.triggerReason,
-          source: row.source || 'csv_upload',
-          createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        });
 
-        batch.update(docRef.ref, {
+      updatedCount++;
+    } else if (existing.current_plan_id !== row.plan_id) {
+      // Plan change detected -- evaluate risk
+      const risk = evaluateSwitchRisk(row, existing.current_plan_id ?? '');
+      if (risk.riskLevel === 'HIGH') highRiskCount++;
+
+      await supabaseAdmin.from('retention_events').insert({
+        agency_id: agencyId,
+        broker_id: brokerId,
+        ghl_contact_id: existing.ghl_contact_id,
+        event_type: 'plan_switch',
+        risk_level: risk.riskLevel,
+        previous_value: existing.current_plan_id,
+        new_value: row.plan_id,
+        days_until_effective: risk.daysUntilEffective,
+        trigger_reason: risk.triggerReason,
+        source: row.source || 'csv_upload',
+      });
+
+      await supabaseAdmin
+        .from('ghl_contacts')
+        .update({
           current_plan_id: row.plan_id,
           status: risk.status,
-          lastRiskEventId: riskEventRef.id,
-          updatedAt: Date.now(),
-        });
+          risk_level: risk.riskLevel.toLowerCase(),
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', existing.id);
 
-        batch.set(docRef.ref.collection('status_history').doc(), {
-          plan_id: row.plan_id,
-          effective_date: row.effective_date,
-          previous_plan_id: existing.current_plan_id,
-          status: risk.status,
-          brokerId,
-          riskEventId: riskEventRef.id,
-          source: row.source || 'csv_upload',
-          recordedAt: admin.firestore.FieldValue.serverTimestamp(),
-        });
-        
-        updatedCount++;
-      }
+      updatedCount++;
     }
   }
 
-  await batch.commit();
   return { updated: updatedCount, highRisk: highRiskCount };
 }

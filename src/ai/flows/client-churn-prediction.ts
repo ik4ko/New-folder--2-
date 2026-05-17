@@ -3,17 +3,17 @@
  * @fileOverview Client churn prediction: rule-based risk scoring + optional AI narrative.
  *
  * Exports:
- *  scoreClientRisk(input)  — pure deterministic rule engine, safe to call from
+ *  scoreClientRisk(input)  -- pure deterministic rule engine, safe to call from
  *                            Cloud Functions or the client. No AI dependency.
- *  predictClientChurn(input) — Genkit AI flow for a human-readable suggested action.
- *  HIGH_RISK_THRESHOLD, MEDIUM_RISK_THRESHOLD — shared constants used by FCM trigger.
+ *  predictClientChurn(input) -- Genkit AI flow for a human-readable suggested action.
+ *  HIGH_RISK_THRESHOLD, MEDIUM_RISK_THRESHOLD -- shared constants used by FCM trigger.
  */
 
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 
 // ---------------------------------------------------------------------------
-// Thresholds — also imported by the Cloud Function (keep in sync with
+// Thresholds -- also imported by the Cloud Function (keep in sync with
 // functions/src/index.ts RISK_THRESHOLDS constant).
 // ---------------------------------------------------------------------------
 export const HIGH_RISK_THRESHOLD = 65;
@@ -30,14 +30,14 @@ export interface RiskInput {
   checkInStatus?: string;
   lastCallSentiment?: string;
   medicareMedicaidStatus?: string;
-  ssbciStatus?: string;
+  VCCStatus?: string;
   poaStatus?: string;
   futureContract?: string;
   carrier?: string;
 }
 
 export interface RiskScore {
-  score: number;              // 0–100
+  score: number;              // 0-100
   level: 'LOW' | 'MEDIUM' | 'HIGH';
   triggers: string[];         // Human-readable reasons, ordered by severity
 }
@@ -52,11 +52,11 @@ export function scoreClientRisk(input: RiskInput): RiskScore {
   const today = new Date();
 
   // Plan non-renewal: CMS shows a future contract different from current carrier
-  // This is the highest-weight signal — the plan will not exist next year.
+  // This is the highest-weight signal -- the plan will not exist next year.
   if (input.futureContract && input.carrier &&
       !input.futureContract.startsWith(input.carrier.slice(0, 3))) {
     score += 35;
-    triggers.push('CMS plan non-renewal detected — contract changing next year');
+    triggers.push('CMS plan non-renewal detected -- contract changing next year');
   }
 
   // Age triggers
@@ -65,7 +65,7 @@ export function scoreClientRisk(input: RiskInput): RiskScore {
     triggers.push('Approaching Medicare eligibility window');
   } else if (input.age >= 80) {
     score += 20;
-    triggers.push('Age 80+ — elevated care coordination needs');
+    triggers.push('Age 80+ -- elevated care coordination needs');
   }
 
   // Escalated check-in
@@ -104,10 +104,10 @@ export function scoreClientRisk(input: RiskInput): RiskScore {
     triggers.push('Negative sentiment on last recorded call');
   }
 
-  // Dual-eligible with pending SSBCI application
-  if (input.medicareMedicaidStatus === 'Both' && input.ssbciStatus === 'pending-fax') {
+  // Dual-eligible with pending VCC application
+  if (input.medicareMedicaidStatus === 'Both' && input.VCCStatus === 'pending-fax') {
     score += 15;
-    triggers.push('Dual-eligible member with pending SSBCI application');
+    triggers.push('Dual-eligible member with pending VCC application');
   }
 
   // No POA protection
@@ -126,7 +126,7 @@ export function scoreClientRisk(input: RiskInput): RiskScore {
 }
 
 // ---------------------------------------------------------------------------
-// Genkit AI flow — adds a human-readable narrative on top of the rule score
+// Genkit AI flow -- adds a human-readable narrative on top of the rule score
 // ---------------------------------------------------------------------------
 
 const ClientChurnPredictionInputSchema = z.object({

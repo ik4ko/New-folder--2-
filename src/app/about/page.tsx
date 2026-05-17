@@ -1,4 +1,4 @@
-﻿
+
 "use client"
 
 import { Button } from "@/components/ui/button"
@@ -26,7 +26,7 @@ export default function AboutPage() {
             Protecting the <span className="text-primary">Relationship</span> Between Agent and Member.
           </h1>
           <p className="text-xl text-muted-foreground font-bold leading-relaxed uppercase tracking-tight opacity-80">
-            Medicare retention is not just about data—it's about protecting the clinical integrity of a member's coverage and the hard-earned trust of an independent agency.
+            Medicare retention is not just about data--it's about protecting the clinical integrity of a member's coverage and the hard-earned trust of an independent agency.
           </p>
         </div>
 

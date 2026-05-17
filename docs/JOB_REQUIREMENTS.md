@@ -1,6 +1,6 @@
-# MediStay Intelligence | Developer Requirements
+# AegisSage Intelligence | Developer Requirements
 
-To successfully develop and maintain the MediStay platform, the following technical competencies and domain knowledge are required.
+To successfully develop and maintain the AegisSage platform, the following technical competencies and domain knowledge are required.
 
 ## 1. Core Technical Stack
 *   **Next.js 15+ (App Router)**: Advanced knowledge of Server Components, Server Actions, and nested layouts.
@@ -30,7 +30,7 @@ To successfully develop and maintain the MediStay platform, the following techni
 ## 5. Compliance & Domain Knowledge
 *   **HIPAA / BAA**: Understanding administrative and technical safeguards for Protected Health Information (PHI).
 *   **CMS Regulations**: Knowledge of 2025 Medicare marketing rules, Scope of Appointment (SOA) retention, and PTC (Permission to Contact) requirements.
-*   **Zero-Knowledge Architecture**: Designing systems where the platform provider (MediStay) cannot read sensitive member data.
+*   **Zero-Knowledge Architecture**: Designing systems where the platform provider (AegisSage) cannot read sensitive member data.
 
 ---
-*MediStay Intelligence Inc. | Technical Operations*
+*AegisSage Intelligence Inc. | Technical Operations*

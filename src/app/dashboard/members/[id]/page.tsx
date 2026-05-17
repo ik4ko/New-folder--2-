@@ -2,10 +2,9 @@
 
 import React, { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { db, auth } from '@/lib/firebase';
-import { doc, getDoc, collection, getDocs, addDoc, query, orderBy, serverTimestamp } from 'firebase/firestore';
+import { createClient } from '@/lib/supabase/client';
 import { decryptPhiFields } from '@/app/actions/phi';
-import { getPlanData, MedicarePlan } from '@/services/plan_data';
+import { getPlanData, MedicarePlan } from '@/lib/plan-data';
 import { generateSaveScript } from '@/app/actions/save-script';
 import { syncToCrm } from '@/app/actions/crm_sync';
 
@@ -18,65 +17,79 @@ import { useToast } from '@/hooks/use-toast';
 
 export default function MemberDetailView() {
   const params = useParams();
-  const id = params.id as string;
+  const id = (params?.id as string) ?? '';
   const router = useRouter();
   const { toast } = useToast();
 
   const [member, setMember] = useState<any>(null);
   const [history, setHistory] = useState<any[]>([]);
-  const [decryptedMbi, setDecryptedMbi] = useState('••••••••••');
-  const [decryptedPhone, setDecryptedPhone] = useState('••••••••••');
+  const [decryptedMbi, setDecryptedMbi] = useState('**********');
+  const [decryptedPhone, setDecryptedPhone] = useState('**********');
   const [loading, setLoading] = useState(true);
   const [scriptText, setScriptText] = useState('');
   const [isGeneratingScript, setIsGeneratingScript] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [agencyId, setAgencyId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!id || !auth) return;
+    if (!id) return;
 
     const fetchMember = async () => {
       try {
-        const agencyId = auth.currentUser?.uid;
-        if (!agencyId) return;
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) { router.push('/login'); return; }
 
-        // Fetch member document
-        const docRef = doc(db, 'members', id);
-        const docSnap = await getDoc(docRef);
+        const { data: agency } = await supabase
+          .from('agencies')
+          .select('id')
+          .eq('owner_id', user.id)
+          .maybeSingle();
 
-        if (!docSnap.exists()) {
+        if (!agency) return;
+        setAgencyId(agency.id);
+
+        // Fetch contact
+        const { data: contact } = await supabase
+          .from('ghl_contacts')
+          .select('*')
+          .eq('id', id)
+          .maybeSingle();
+
+        if (!contact) {
           toast({ title: 'Not found', description: 'Member record not found.', variant: 'destructive' });
           router.push('/dashboard');
           return;
         }
 
-        const data = docSnap.data();
-        setMember(data);
+        setMember(contact);
 
-        // Fetch history
-        const historyRef = collection(db, 'members', id, 'status_history');
-        const q = query(historyRef, orderBy('recordedAt', 'desc'));
-        const hSnap = await getDocs(q);
-        const hData = hSnap.docs.map(d => ({ id: d.id, ...d.data() }));
-        setHistory(hData);
+        // Fetch retention history
+        const { data: events } = await supabase
+          .from('retention_events')
+          .select('*')
+          .eq('ghl_contact_id', contact.ghl_contact_id)
+          .order('created_at', { ascending: false });
+
+        setHistory(events ?? []);
 
         // Log compliance access
-        try {
-          await addDoc(collection(db, 'phi_access_logs'), {
-            memberId: id,
-            agencyId,
-            brokerId: auth.currentUser?.uid || 'unknown',
-            action: 'MEMBER_DETAIL_VIEW',
-            timestamp: serverTimestamp()
-          });
-        } catch (e) {
-          console.error("Failed to log PHI access", e);
-        }
+        supabase.from('audit_log').insert({
+          agency_id: agency.id,
+          user_id: user.id,
+          action: 'MEMBER_DETAIL_VIEW',
+          resource_type: 'ghl_contacts',
+          resource_id: id,
+          metadata: {},
+        }).then(({ error }) => {
+          if (error) console.error('Failed to log PHI access', error);
+        });
 
         // Decrypt PHI
         const result = await decryptPhiFields(
-          agencyId,
-          { cipher: data.mbi_number_cipher, iv: data.mbi_number_iv },
-          { cipher: data.phone_number_cipher, iv: data.phone_number_iv }
+          agency.id,
+          contact.mbi_enc,
+          contact.phone_enc
         );
 
         setDecryptedMbi(result.mbi || 'DECRYPTION FAILED');
@@ -89,13 +102,7 @@ export default function MemberDetailView() {
       }
     };
 
-    const unsubscribe = auth.onAuthStateChanged((user) => {
-      if (user) {
-        fetchMember();
-      }
-    });
-
-    return () => unsubscribe();
+    fetchMember();
   }, [id, router, toast]);
 
   if (loading) {
@@ -105,20 +112,16 @@ export default function MemberDetailView() {
   if (!member) return null;
 
   const isHighRisk = member.status === 'PROVISIONALLY_DISENROLLED' || member.status === 'PLAN_CHANGED';
-  
-  // Calculate days until effective
+
   let daysRemaining = null;
   let oldPlan: MedicarePlan | null = null;
   let newPlan: MedicarePlan | null = null;
 
   if (isHighRisk && history.length > 0) {
-    // Find the first event that has an effective_date
-    const latestEvent = history.find(h => h.effective_date);
-    if (latestEvent) {
-      const effective = new Date(latestEvent.effective_date).getTime();
-      daysRemaining = Math.ceil((effective - Date.now()) / (1000 * 60 * 60 * 24));
-      
-      oldPlan = getPlanData(latestEvent.previous_plan_id);
+    const latestEvent = history[0];
+    if (latestEvent?.days_until_effective != null) {
+      daysRemaining = latestEvent.days_until_effective;
+      oldPlan = getPlanData(latestEvent.previous_value);
       newPlan = getPlanData(member.current_plan_id);
     }
   }
@@ -129,7 +132,7 @@ export default function MemberDetailView() {
     try {
       const script = await generateSaveScript(oldPlan, newPlan, member.fullName || 'Valued Member');
       setScriptText(script);
-    } catch (e) {
+    } catch {
       toast({ variant: 'destructive', title: 'Generation Failed', description: 'Failed to generate script.' });
     } finally {
       setIsGeneratingScript(false);
@@ -142,15 +145,12 @@ export default function MemberDetailView() {
   };
 
   const handleSyncToCrm = async () => {
-    const agencyId = auth.currentUser?.uid;
     if (!agencyId) return;
-
     setIsSyncing(true);
     try {
       const result = await syncToCrm(agencyId, id, scriptText, isHighRisk ? 'HIGH_RISK' : 'STABLE');
       toast({ title: 'Sync Successful', description: `Data pushed to ${result.destinations.join(' & ')}.` });
-      // Opt. refresh member state
-      setMember({ ...member, lastCrmSync: new Date() });
+      setMember({ ...member, lastCrmSync: new Date().toISOString() });
     } catch (e: any) {
       toast({ variant: 'destructive', title: 'CRM Sync Failed', description: e.message || 'Please check your CRM settings.' });
     } finally {
@@ -178,8 +178,8 @@ export default function MemberDetailView() {
           <div className="flex-1">
             <h2 className="text-xl font-black text-amber-500 uppercase tracking-tight mb-1">Action Required: Provisional Disenrollment</h2>
             <p className="text-xs font-bold text-amber-500/80 uppercase tracking-widest">
-              {daysRemaining !== null && daysRemaining > 0 
-                ? `${daysRemaining} days until this member's plan change takes effect.` 
+              {daysRemaining !== null && daysRemaining > 0
+                ? `${daysRemaining} days until this member's plan change takes effect.`
                 : "Plan change has taken effect or effective date unknown."}
             </p>
           </div>
@@ -207,7 +207,7 @@ export default function MemberDetailView() {
                 <div className="space-y-4 text-sm font-bold">
                   <div className="flex justify-between items-center"><span className="text-muted-foreground">Premium</span><span>${oldPlan.premium}</span></div>
                   <div className="flex justify-between items-center"><span className="text-muted-foreground">MOOP</span><span>${oldPlan.moop}</span></div>
-                  <div className="flex justify-between items-center"><span className="text-muted-foreground">Star Rating</span><span>{oldPlan.star_rating} ⭐</span></div>
+                  <div className="flex justify-between items-center"><span className="text-muted-foreground">Star Rating</span><span>{oldPlan.star_rating} *</span></div>
                 </div>
               </div>
 
@@ -239,7 +239,7 @@ export default function MemberDetailView() {
                   <div className="flex justify-between items-center">
                     <span className="text-muted-foreground">Star Rating</span>
                     <span className={newPlan.star_rating < oldPlan.star_rating ? 'text-destructive flex items-center gap-1' : ''}>
-                      {newPlan.star_rating} ⭐ {newPlan.star_rating < oldPlan.star_rating && <TrendingDown className="w-3 h-3" />}
+                      {newPlan.star_rating} * {newPlan.star_rating < oldPlan.star_rating && <TrendingDown className="w-3 h-3" />}
                     </span>
                   </div>
                 </div>
@@ -253,12 +253,12 @@ export default function MemberDetailView() {
                 </h4>
                 {!scriptText && (
                   <Button onClick={handleGenerateScript} disabled={isGeneratingScript} size="sm" className="rounded-xl h-9 text-[10px] font-black uppercase tracking-widest">
-                    {isGeneratingScript ? <Loader2 className="w-3 h-3 animate-spin mr-2" /> : <Bot className="w-3 h-3 mr-2" />} 
+                    {isGeneratingScript ? <Loader2 className="w-3 h-3 animate-spin mr-2" /> : <Bot className="w-3 h-3 mr-2" />}
                     Generate Talking Points
                   </Button>
                 )}
               </div>
-              
+
               {scriptText && (
                 <div className="space-y-4">
                   <div className="p-4 bg-background rounded-2xl text-sm leading-relaxed border border-border font-medium">
@@ -269,7 +269,7 @@ export default function MemberDetailView() {
                       <Copy className="w-4 h-4 mr-2" /> Copy to Clipboard
                     </Button>
                     <Button onClick={handleSyncToCrm} disabled={isSyncing} className="flex-1 h-12 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest text-xs shadow-xl shadow-primary/20">
-                      {isSyncing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CloudUpload className="w-4 h-4 mr-2" />} 
+                      {isSyncing ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <CloudUpload className="w-4 h-4 mr-2" />}
                       Push to CRM
                     </Button>
                   </div>
@@ -312,7 +312,7 @@ export default function MemberDetailView() {
               </div>
               {member.lastCrmSync && (
                 <div className="text-[8px] font-black uppercase tracking-widest text-primary text-center flex items-center justify-center gap-1.5 opacity-70 border-t border-border pt-4">
-                  <CloudUpload className="w-3 h-3" /> Last CRM Sync: {member.lastCrmSync?.toDate ? member.lastCrmSync.toDate().toLocaleString() : new Date(member.lastCrmSync).toLocaleString()}
+                  <CloudUpload className="w-3 h-3" /> Last CRM Sync: {new Date(member.lastCrmSync).toLocaleString()}
                 </div>
               )}
             </CardContent>
@@ -331,41 +331,29 @@ export default function MemberDetailView() {
                 {history.length === 0 && (
                   <div className="pl-6 text-xs font-bold uppercase text-muted-foreground">No history events found.</div>
                 )}
-                {history.map((event, i) => {
-                  let dateStr = 'Recent';
-                  if (event.recordedAt) {
-                    if (event.recordedAt.toDate) {
-                      dateStr = event.recordedAt.toDate().toLocaleString();
-                    } else if (event.recordedAt.seconds) {
-                      dateStr = new Date(event.recordedAt.seconds * 1000).toLocaleString();
-                    }
-                  }
-                  
-                  return (
-                    <div key={event.id || i} className="relative pl-8">
-                      <div className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-background border-2 border-primary" />
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
-                          <Calendar className="w-3 h-3" />
-                          {dateStr}
-                        </div>
-                        <h3 className="text-sm font-black uppercase tracking-tight">
-                          {event.status === 'ACTIVE' && 'Enrolled / Stable'}
-                          {event.status === 'PROVISIONALLY_DISENROLLED' && `Plan Changed ${event.previous_plan_id || 'Unknown'} → ${event.plan_id}`}
-                          {event.status === 'PLAN_CHANGED' && `Switched to ${event.plan_id}`}
-                        </h3>
-                        <p className="text-xs font-bold text-muted-foreground uppercase">
-                          Source: {event.source || 'Unknown'}
-                        </p>
-                        {event.effective_date && (
-                          <p className="text-[10px] font-black text-primary uppercase tracking-widest mt-2 bg-primary/10 inline-block px-2 py-1 rounded-md">
-                            Effective: {event.effective_date}
-                          </p>
-                        )}
+                {history.map((event, i) => (
+                  <div key={event.id || i} className="relative pl-8">
+                    <div className="absolute -left-[9px] top-1 w-4 h-4 rounded-full bg-background border-2 border-primary" />
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-muted-foreground">
+                        <Calendar className="w-3 h-3" />
+                        {new Date(event.created_at).toLocaleString()}
                       </div>
+                      <h3 className="text-sm font-black uppercase tracking-tight">
+                        {event.event_type === 'plan_switch' && `Plan Switch: ${event.previous_value || 'Unknown'} -> ${event.new_value}`}
+                        {event.event_type !== 'plan_switch' && event.event_type}
+                      </h3>
+                      <p className="text-xs font-bold text-muted-foreground uppercase">
+                        Source: {event.source || 'Unknown'}
+                      </p>
+                      {event.trigger_reason && (
+                        <p className="text-[10px] font-black text-primary uppercase tracking-widest mt-2 bg-primary/10 inline-block px-2 py-1 rounded-md">
+                          {event.trigger_reason}
+                        </p>
+                      )}
                     </div>
-                  );
-                })}
+                  </div>
+                ))}
               </div>
             </CardContent>
           </Card>

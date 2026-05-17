@@ -1,7 +1,7 @@
 "use client"
 
 import { CollectionSidebar } from "@/components/collection-sidebar"
-import { InsightsPanel } from "@/components/insights-panel"
+import { InsightsPanel } from "@/components/InsightsPanel"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"

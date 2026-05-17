@@ -1,7 +1,7 @@
 'use server'
 
 import { ai } from '@/ai/genkit';
-import { MedicarePlan } from '@/services/plan_data';
+import { MedicarePlan } from '@/lib/plan-data';
 
 export async function generateSaveScript(currentPlan: MedicarePlan, newPlan: MedicarePlan, memberName: string) {
   const prompt = `You are an expert Medicare retention specialist. 

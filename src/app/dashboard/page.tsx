@@ -1,328 +1,203 @@
+import { redirect } from 'next/navigation'
+import { createClient } from '@/lib/supabase/server'
+import { CollectionSidebar } from '@/components/collection-sidebar'
+import { OnboardingChecklist } from '@/components/onboarding-checklist'
+import { AEPCountdown } from '@/components/aep-countdown'
+import { Card, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
+import Link from 'next/link'
+import {
+  Users, TrendingDown, FileCheck, ShieldCheck,
+  DollarSign, AlertTriangle, ArrowUpRight,
+} from 'lucide-react'
+import type { ElementType } from 'react'
 
-"use client"
+function StatCard({
+  label, value, sub, icon: Icon, href, accentCls = '',
+}: {
+  label: string
+  value: string | number
+  sub?: string
+  icon: ElementType
+  href?: string
+  accentCls?: string
+}) {
+  const inner = (
+    <Card className={`rounded-3xl border-none p-5 flex flex-col justify-between min-h-[140px] shadow-sm bg-muted/30 transition-colors ${href ? 'hover:bg-muted/50 cursor-pointer' : ''}`}>
+      <div className="flex justify-between items-start">
+        <span className={`text-[10px] font-black uppercase tracking-widest ${accentCls || 'text-muted-foreground'}`}>{label}</span>
+        <Icon className={`w-4 h-4 opacity-50 ${accentCls || 'text-primary'}`} />
+      </div>
+      <div>
+        <div className={`text-3xl font-black mb-1 tracking-tighter ${accentCls || ''}`}>{value}</div>
+        {sub && <div className={`text-[9px] font-black uppercase tracking-widest ${accentCls ? accentCls + '/80' : 'text-muted-foreground'}`}>{sub}</div>}
+      </div>
+    </Card>
+  )
+  if (href) return <Link href={href} className="block">{inner}</Link>
+  return inner
+}
 
-import { CollectionSidebar } from "@/components/collection-sidebar"
-import { useAppStore, initializeStore } from "@/lib/store"
-import { useEffect, useMemo, useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { 
-  Activity, Users, ShieldCheck, Printer, 
-  Zap, ArrowUpRight, Sparkles, Banknote, Calendar, Info,
-  BookOpen, Play, GraduationCap, Network, PhoneCall, Bot
-} from "lucide-react"
-import Link from "next/link"
-import { Button } from "@/components/ui/button"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
-import { TutorialOverlay } from "@/components/tutorial-overlay"
-import { useTranslation } from "@/lib/i18n"
-import { RiskAlertFeed } from "@/components/risk-alert-feed"
+export default async function Dashboard() {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) redirect('/login')
 
-export default function Dashboard() {
-  const { members, startTutorial, language } = useAppStore()
-  const { t } = useTranslation()
-  const [filterHighRisk, setFilterHighRisk] = useState(false)
+  // Determine role server-side — 2 queries in parallel
+  const [{ data: agency }, { data: brokerRow }] = await Promise.all([
+    supabase.from('agencies').select('id, name').eq('owner_id', user.id).maybeSingle(),
+    supabase.from('brokers').select('id, role, agency_id').eq('user_id', user.id).maybeSingle(),
+  ])
 
-  useEffect(() => {
-    initializeStore()
-  }, [])
+  const isPrincipal = !!agency || ['agency_owner', 'agency_admin'].includes(brokerRow?.role ?? '')
+  const isCS        = brokerRow?.role === 'customer_service'
+  const isStaff     = isPrincipal || isCS
+  const agencyId    = agency?.id ?? brokerRow?.agency_id
+  if (!agencyId) redirect('/login')
 
-  const stats = useMemo(() => {
-    const churnRisks = members.filter(m => m.status === 'churn-risk' || m.status === 'PROVISIONALLY_DISENROLLED' || m.status === 'PLAN_CHANGED')
-    const totalMembers = members.length
-    const avgRetention = members.length > 0 
-      ? Math.round(members.reduce((acc, m) => acc + (m.retentionScore || 0), 0) / members.length)
-      : 0
-    const pendingFaxes = members.filter(m => m.ssbciStatus === 'pending-fax').length
-    
-    return {
-      totalMembers,
-      avgRetention,
-      churnRisks: churnRisks.length,
-      pendingFaxes
+  // Fetch agency name for staff title (if admin/CS, look up by agency_id)
+  let agencyName = agency?.name ?? null
+  if (!agencyName && isStaff && brokerRow?.agency_id) {
+    const { data: agData } = await supabase.from('agencies').select('name').eq('id', brokerRow.agency_id).maybeSingle()
+    agencyName = agData?.name ?? null
+  }
+
+  // ── Owner / CS stats ──────────────────────────────────────────────────────
+  type OwnerStats = { totalClients: number; openAlerts: number; vccPending: number; protectionRate: number; revenueAtRisk: number }
+  type BrokerStats = { myClients: number; myOpenAlerts: number; myVccPending: number; mySaveRate: number }
+
+  let ownerStats: OwnerStats | null = null
+  let brokerStats: BrokerStats | null = null
+
+  if (isStaff) {
+    const [
+      { count: totalClients },
+      { count: openAlerts },
+      { count: vccPending },
+      { count: totalLocked },
+      { count: criticalAlerts },
+    ] = await Promise.all([
+      supabase.from('ghl_contacts').select('id', { count: 'exact', head: true }).eq('agency_id', agencyId),
+      supabase.from('switch_alerts').select('id', { count: 'exact', head: true }).eq('agency_id', agencyId).in('status', ['open', 'contacted']),
+      supabase.from('vcc_submissions').select('id', { count: 'exact', head: true }).eq('agency_id', agencyId).not('fax_status', 'in', '("signed","expired")'),
+      supabase.from('ghl_contacts').select('id', { count: 'exact', head: true }).eq('agency_id', agencyId).eq('aor_status', 'locked'),
+      supabase.from('switch_alerts').select('id', { count: 'exact', head: true }).eq('agency_id', agencyId).eq('priority', 'critical').in('status', ['open', 'contacted']),
+    ])
+    const total = totalClients ?? 0
+    ownerStats = {
+      totalClients: total,
+      openAlerts: openAlerts ?? 0,
+      vccPending: vccPending ?? 0,
+      protectionRate: total > 0 ? Math.round(((totalLocked ?? 0) / total) * 100) : 0,
+      revenueAtRisk: (criticalAlerts ?? 0) * 600,
     }
-  }, [members])
-
-  const recentActivity = useMemo(() => {
-    let filtered = [...members]
-    if (filterHighRisk) {
-      filtered = filtered.filter(m => m.status === 'churn-risk' || m.status === 'PROVISIONALLY_DISENROLLED' || m.status === 'PLAN_CHANGED')
+  } else {
+    // Broker — stats scoped to this user's clients only
+    const brokerId = brokerRow?.id ?? ''
+    const [
+      { count: myClients },
+      { count: myAlerts },
+      { count: myVcc },
+      { count: resolvedAlerts },
+      { count: totalAlerts },
+    ] = await Promise.all([
+      supabase.from('ghl_contacts').select('id', { count: 'exact', head: true }).eq('agency_id', agencyId).eq('assigned_broker_id', user.id),
+      supabase.from('switch_alerts').select('id', { count: 'exact', head: true }).eq('agency_id', agencyId).eq('broker_id', brokerId).in('status', ['open', 'contacted']),
+      supabase.from('vcc_submissions').select('id', { count: 'exact', head: true }).eq('agency_id', agencyId).eq('broker_id', brokerId).not('fax_status', 'in', '("signed","expired")'),
+      supabase.from('switch_alerts').select('id', { count: 'exact', head: true }).eq('agency_id', agencyId).eq('broker_id', brokerId).eq('status', 'resolved'),
+      supabase.from('switch_alerts').select('id', { count: 'exact', head: true }).eq('agency_id', agencyId).eq('broker_id', brokerId),
+    ])
+    const total = totalAlerts ?? 0
+    brokerStats = {
+      myClients: myClients ?? 0,
+      myOpenAlerts: myAlerts ?? 0,
+      myVccPending: myVcc ?? 0,
+      mySaveRate: total > 0 ? Math.round(((resolvedAlerts ?? 0) / total) * 100) : 100,
     }
-    return filtered
-      .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0))
-      .slice(0, 10)
-  }, [members, filterHighRisk])
+  }
 
   return (
-    <div className="flex h-full w-full bg-background overflow-hidden relative" dir={language === 'ar' ? 'rtl' : 'ltr'}>
+    <div className="flex h-full w-full bg-background overflow-hidden">
       <CollectionSidebar />
-      <TutorialOverlay />
-      
-      <div className="flex-1 flex flex-col h-full bg-background overflow-hidden">
-        <TooltipProvider delayDuration={0}>
-          <div className="flex-1 overflow-y-auto p-4 md:p-8 space-y-8">
-            {/* Header */}
-            <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
-              <div className="space-y-1">
-                <h1 className="text-xl md:text-3xl font-black tracking-tight text-foreground uppercase">{t('dashboard.title')}</h1>
-                <p className="text-muted-foreground font-black text-[10px] md:text-sm uppercase tracking-tight opacity-70">
-                  {t('dashboard.subtitle')}
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-2">
-                <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 px-3 py-1 h-8 md:h-9 gap-2 font-black uppercase tracking-widest text-[8px] md:text-[9px]">
-                  <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                  HETS Live: Active
-                </Badge>
-                <Badge variant="outline" className="bg-primary/10 text-primary border-primary/20 px-3 py-1 h-8 md:h-9 gap-2 font-black uppercase tracking-widest text-[8px] md:text-[9px]">
-                  <Network className="w-3 h-3" />
-                  Availity API: Connect
-                </Badge>
-              </div>
+      <div className="flex-1 flex flex-col h-full overflow-y-auto">
+        <div className="flex-1 p-4 md:p-8 space-y-8 pb-24">
+
+          {/* Header */}
+          <div className="flex flex-col sm:flex-row items-start justify-between gap-4">
+            <div className="space-y-1">
+              <h1 className="text-xl md:text-3xl font-black tracking-tight text-foreground uppercase">
+                {isStaff ? (agencyName ? `${agencyName} Dashboard` : 'Agency Dashboard') : 'My Dashboard'}
+              </h1>
+              <p className="text-muted-foreground font-black text-[10px] uppercase tracking-widest">
+                {isStaff ? 'Agency-wide overview' : 'Your book of business'}
+              </p>
             </div>
-
-            {/* Integrity Engine — Provisional Disenrollment Alert Feed */}
-            <RiskAlertFeed />
-
-            {/* Agent Heartbeat Section */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {[
-                { name: 'Agent 1: Switch Monitor', icon: Bot, status: 'Polling CMS', color: 'text-primary' },
-                { name: 'Agent 2: Fax Automator', icon: Printer, status: 'Scanning Chronic', color: 'text-emerald-600' },
-                { name: 'Agent 3: Maya AI Voice', icon: PhoneCall, status: 'Queue Ready', color: 'text-amber-600' }
-              ].map((agent, i) => (
-                <div key={i} className="flex items-center gap-4 p-4 rounded-2xl bg-card border border-border shadow-sm">
-                  <div className={`w-10 h-10 rounded-xl bg-muted flex items-center justify-center ${agent.color}`}>
-                    <agent.icon className="w-5 h-5" />
-                  </div>
-                  <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{agent.name}</p>
-                    <div className="flex items-center gap-2">
-                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                      <span className="text-xs font-bold">{agent.status}</span>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Quick-Start Academy */}
-            <section className="p-1 rounded-[2.5rem] bg-gradient-to-r from-primary/20 via-accent/20 to-primary/20">
-              <div className="bg-background rounded-[2.4rem] p-8 flex flex-col md:flex-row items-center justify-between gap-8">
-                <div className="flex items-center gap-6">
-                  <div className="w-16 h-16 rounded-[2rem] bg-primary flex items-center justify-center text-white shadow-xl shadow-primary/20 shrink-0">
-                    <GraduationCap className="w-8 h-8" />
-                  </div>
-                  <div>
-                    <h2 className="text-xl font-black uppercase tracking-tight">Quick-Start Academy</h2>
-                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-wide opacity-70">Master Medicare Registration & Retention in 5 minutes.</p>
-                  </div>
-                </div>
-                <div className="flex gap-3 w-full md:w-auto">
-                  <Button variant="outline" className="flex-1 md:flex-none h-12 rounded-2xl font-black uppercase text-[10px] border-primary/20 text-primary" onClick={() => startTutorial('enrollment')}>
-                    <Play className="w-3.5 h-3.5 mr-2" /> Enrollment 101
-                  </Button>
-                  <Button className="flex-1 md:flex-none h-12 rounded-2xl font-black uppercase text-[10px] bg-primary hover:bg-primary/90 text-white shadow-lg" onClick={() => startTutorial('retention')}>
-                    <Play className="w-3.5 h-3.5 mr-2" /> Retention 101
-                  </Button>
-                </div>
-              </div>
-            </section>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Link href="/members" className="block">
-                <Card className="bg-muted/30 border-none rounded-3xl p-5 flex flex-col justify-between min-h-[140px] shadow-sm hover:bg-muted/40 transition-colors cursor-pointer group">
-                  <div className="flex justify-between items-start">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t('dashboard.bookOfBusiness')}</span>
-                    <Users className="w-4 h-4 text-primary opacity-50 group-hover:scale-110 transition-transform" />
-                  </div>
-                  <div>
-                    <div className="text-3xl md:text-4xl font-black mb-1 tracking-tighter">{stats.totalMembers}</div>
-                    <div className="text-[9px] font-black uppercase text-emerald-500 tracking-widest">+4% Growth</div>
-                  </div>
-                </Card>
-              </Link>
-
-              <Card className="bg-muted/30 border-none rounded-3xl p-5 flex flex-col justify-between min-h-[140px] shadow-sm cursor-default">
-                <div className="flex justify-between items-start">
-                  <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500">{t('dashboard.retentionScore')}</span>
-                  <ShieldCheck className="w-4 h-4 text-emerald-500 opacity-50" />
-                </div>
-                <div>
-                  <div className="text-3xl md:text-4xl font-black mb-1 tracking-tighter">{stats.avgRetention}%</div>
-                  <div className="h-1 w-full bg-muted rounded-full overflow-hidden mt-3">
-                    <div className="h-full bg-emerald-500" style={{ width: `${stats.avgRetention}%` }} />
-                  </div>
-                </div>
-              </Card>
-
-              <Link href="/members" className="block">
-                <Card className="bg-muted/30 border-none rounded-3xl p-5 flex flex-col justify-between min-h-[140px] shadow-sm hover:bg-destructive/5 transition-colors cursor-pointer border border-transparent hover:border-destructive/20 group">
-                  <div className="flex justify-between items-start">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-destructive">{t('dashboard.switchAlerts')}</span>
-                    <Activity className="w-4 h-4 text-destructive opacity-50 group-hover:scale-110 transition-transform" />
-                  </div>
-                  <div>
-                    <div className="text-3xl md:text-4xl font-black text-destructive mb-1 tracking-tighter">{stats.churnRisks}</div>
-                    <div className="text-[9px] font-black uppercase text-destructive tracking-widest">Action Required</div>
-                  </div>
-                </Card>
-              </Link>
-
-              <Link href="/fax" className="block">
-                <Card className="bg-muted/30 border-none rounded-3xl p-5 flex flex-col justify-between min-h-[140px] shadow-sm hover:bg-muted/40 transition-colors cursor-pointer group">
-                  <div className="flex justify-between items-start">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">{t('dashboard.pendingFaxes')}</span>
-                    <Printer className="w-4 h-4 text-primary opacity-50 group-hover:scale-110 transition-transform" />
-                  </div>
-                  <div>
-                    <div className="text-3xl md:text-4xl font-black mb-1 tracking-tighter">{stats.pendingFaxes}</div>
-                    <div className="text-[9px] font-black uppercase text-muted-foreground tracking-widest">Ready to Send</div>
-                  </div>
-                </Card>
-              </Link>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 pb-20">
-              <div className="lg:col-span-2 space-y-4">
-                <div className="flex items-center justify-between px-1">
-                  <h3 className="text-lg font-black tracking-tight uppercase">Active Change Detection</h3>
-                  <div className="flex items-center gap-4">
-                    <Button 
-                      variant={filterHighRisk ? "default" : "outline"}
-                      onClick={() => setFilterHighRisk(!filterHighRisk)}
-                      className="h-8 font-black text-[10px] uppercase tracking-widest transition-all"
-                    >
-                      {filterHighRisk ? 'Showing High Risk' : 'Filter High Risk'}
-                    </Button>
-                    <Button variant="link" className="text-primary font-black text-[10px] uppercase tracking-widest h-auto p-0" asChild>
-                      <Link href="/members">View Roster <ArrowUpRight className="ml-1 w-3 h-3" /></Link>
-                    </Button>
-                  </div>
-                </div>
-                <div className="rounded-3xl bg-muted/20 border-none overflow-x-auto shadow-inner">
-                  <Table>
-                    <TableHeader>
-                      <TableRow className="border-none hover:bg-transparent bg-transparent">
-                        <TableHead className="font-black uppercase tracking-widest text-[9px] py-4 px-6 text-muted-foreground">Member</TableHead>
-                        <TableHead className="font-black uppercase tracking-widest text-[9px] text-muted-foreground">Last Update</TableHead>
-                        <TableHead className="font-black uppercase tracking-widest text-[9px] text-muted-foreground">Risk Level</TableHead>
-                        <TableHead className="font-black uppercase tracking-widest text-[9px] text-muted-foreground">Prot.</TableHead>
-                        <TableHead className="text-right font-black uppercase tracking-widest text-[9px] px-6 text-muted-foreground">Act</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
-                      {recentActivity.map((member) => {
-                        const isHighRisk = member.status === 'churn-risk' || member.status === 'PROVISIONALLY_DISENROLLED' || member.status === 'PLAN_CHANGED';
-                        return (
-                        <TableRow key={member.id} className="border-border/50 hover:bg-muted/30 transition-colors">
-                          <TableCell className="font-black py-4 px-6 text-foreground uppercase tracking-tight text-xs whitespace-nowrap">
-                            <div className="flex flex-col">
-                              <span>{member.fullName || 'Member Record'}</span>
-                              <span className="text-[8px] opacity-50 font-mono">{member.mbi_hash ? member.mbi_hash.slice(0, 10) + '...' : member.medicareId}</span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-[10px] font-bold text-muted-foreground uppercase whitespace-nowrap">
-                            {member.updatedAt ? new Date(member.updatedAt).toLocaleTimeString() : (member.lastCmsCheck ? new Date(member.lastCmsCheck).toLocaleTimeString() : 'Never')}
-                          </TableCell>
-                          <TableCell>
-                            {(member.riskProfile?.score ?? 0) > 50 ? (
-                              <TooltipProvider delayDuration={100}>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <div className="flex flex-col gap-0.5 cursor-help w-fit">
-                                      <Badge className="bg-red-500/20 text-red-500 border-red-500/30 rounded-md uppercase text-[8px] font-black px-2 py-0.5 animate-pulse">
-                                        High Risk
-                                      </Badge>
-                                      <span className="text-[7px] text-red-400/80 font-bold leading-tight max-w-[130px]">
-                                        Potential Benefit Incompatibility — Schedule Review
-                                      </span>
-                                    </div>
-                                  </TooltipTrigger>
-                                  <TooltipContent className="max-w-xs space-y-1">
-                                    <p className="text-[10px] font-black uppercase tracking-widest">
-                                      Risk Score: {member.riskProfile?.score}/100
-                                    </p>
-                                    {member.riskProfile?.reasons.map((reason, i) => (
-                                      <p key={i} className="text-[9px] opacity-80">• {reason}</p>
-                                    ))}
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            ) : isHighRisk ? (
-                              <Badge className="bg-amber-500/20 text-amber-500 border-amber-500/30 rounded-md uppercase text-[8px] font-black px-2 py-0.5 animate-pulse">
-                                High Risk
-                              </Badge>
-                            ) : (
-                              <Badge variant="outline" className="text-emerald-500 border-emerald-500/30 rounded-md uppercase text-[8px] font-black px-2 py-0.5">
-                                Stable
-                              </Badge>
-                            )}
-                          </TableCell>
-                          <TableCell>
-                            <div className="flex items-center gap-1.5">
-                              <div className={`w-1.5 h-1.5 rounded-full ${member.retentionScore > 80 ? 'bg-emerald-500' : member.retentionScore > 50 ? 'bg-amber-500' : 'bg-destructive'}`} />
-                              <span className="text-[10px] font-black">{member.retentionScore || 100}%</span>
-                            </div>
-                          </TableCell>
-                          <TableCell className="text-right px-6">
-                            <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg hover:bg-primary/10 hover:text-primary transition-all" asChild>
-                              <Link href={`/dashboard/members/${member.id}`}><ArrowUpRight className="w-3.5 h-3.5" /></Link>
-                            </Button>
-                          </TableCell>
-                        </TableRow>
-                        );
-                      })}
-                    </TableBody>
-                  </Table>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div className="flex items-center gap-2 px-1">
-                  <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary shadow-sm">
-                    <Sparkles className="w-4 h-4" />
-                  </div>
-                  <h3 className="text-md font-black tracking-tight text-foreground uppercase leading-none">Retention AI <br /><span className="text-primary text-[10px] tracking-widest">Insights</span></h3>
-                </div>
-                
-                <div className="space-y-3">
-                  <Card className="bg-primary/5 border border-primary/10 rounded-3xl p-6 space-y-4">
-                    <div className="space-y-1.5">
-                      <div className="text-[9px] font-black uppercase text-primary tracking-widest flex items-center gap-1.5">
-                        <ShieldCheck className="w-2.5 h-2.5" /> AEP Shield Check:
-                      </div>
-                      <p className="text-[10px] text-foreground leading-relaxed font-bold uppercase tracking-tight">
-                        {members.filter(m => m.poaStatus === 'shielded').length} / {members.length} members protected via POA Shield.
-                      </p>
-                    </div>
-                    
-                    <div className="h-px bg-primary/10" />
-                    
-                    <div className="space-y-1.5">
-                      <div className="text-[9px] font-black uppercase text-emerald-600 tracking-widest flex items-center gap-1.5">
-                        <Calendar className="w-2.5 h-2.5" /> PTC Compliance:
-                      </div>
-                      <p className="text-[10px] text-foreground leading-relaxed font-bold uppercase tracking-tight">
-                        {members.filter(m => {
-                          const expiry = new Date(m.ptcExpiryDate);
-                          const thirtyDaysFromNow = new Date();
-                          thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
-                          return expiry < thirtyDaysFromNow;
-                        }).length} members need PTC renewal this month.
-                      </p>
-                    </div>
-                  </Card>
-
-                  <Button className="w-full h-12 rounded-2xl bg-primary hover:bg-primary/90 text-white font-black uppercase tracking-widest shadow-lg shadow-primary/20 text-[10px]" asChild>
-                    <Link href="/ai">Run Strategy Agent</Link>
-                  </Button>
-                </div>
-              </div>
-            </div>
+            <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 px-3 py-1 h-8 gap-2 font-black uppercase tracking-widest text-[9px]">
+              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              Live
+            </Badge>
           </div>
-        </TooltipProvider>
+
+          {/* Stat Cards */}
+          {isStaff && ownerStats ? (
+            <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
+              <StatCard label="Total Agency Clients" value={ownerStats.totalClients} sub="All contacts" icon={Users} href="/dashboard/retention" />
+              <StatCard label="Open Switch Alerts" value={ownerStats.openAlerts} sub="Require action" icon={TrendingDown} href="/dashboard/churn" accentCls={ownerStats.openAlerts > 0 ? 'text-red-500' : ''} />
+              <StatCard label="VCC Pending" value={ownerStats.vccPending} sub="Awaiting dispatch" icon={FileCheck} href="/dashboard/vcc" accentCls={ownerStats.vccPending > 0 ? 'text-amber-500' : ''} />
+              <StatCard label="Protection Rate" value={`${ownerStats.protectionRate}%`} sub="Aegis Locked" icon={ShieldCheck} accentCls={ownerStats.protectionRate >= 50 ? 'text-emerald-500' : 'text-amber-500'} />
+              <StatCard label="Revenue at Risk" value={`$${ownerStats.revenueAtRisk.toLocaleString()}`} sub="@$600 × critical alerts" icon={DollarSign} href="/dashboard/churn" accentCls={ownerStats.revenueAtRisk > 0 ? 'text-red-500' : 'text-emerald-500'} />
+            </div>
+          ) : brokerStats ? (
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <StatCard label="My Clients" value={brokerStats.myClients} sub="Assigned to you" icon={Users} href="/dashboard/retention" />
+              <StatCard label="My Open Alerts" value={brokerStats.myOpenAlerts} sub="Action required" icon={AlertTriangle} href="/dashboard/churn" accentCls={brokerStats.myOpenAlerts > 0 ? 'text-red-500' : ''} />
+              <StatCard label="My VCC Pending" value={brokerStats.myVccPending} sub="Awaiting dispatch" icon={FileCheck} href="/dashboard/vcc" accentCls={brokerStats.myVccPending > 0 ? 'text-amber-500' : ''} />
+              <StatCard label="My Save Rate" value={`${brokerStats.mySaveRate}%`} sub="Alerts resolved" icon={ShieldCheck} accentCls={brokerStats.mySaveRate >= 70 ? 'text-emerald-500' : 'text-amber-500'} />
+            </div>
+          ) : null}
+
+          {/* AEP Countdown */}
+          <AEPCountdown />
+
+          {/* Onboarding */}
+          <OnboardingChecklist />
+
+          {/* Quick Actions */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <Link href="/dashboard/retention" className="group">
+              <div className="flex items-center gap-4 p-5 rounded-3xl border border-border hover:border-primary/30 bg-muted/20 hover:bg-muted/30 transition-all">
+                <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary"><Users className="w-5 h-5" /></div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-black uppercase tracking-widest">My Book</p>
+                  <p className="text-[10px] text-muted-foreground font-medium">View all contacts</p>
+                </div>
+                <ArrowUpRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+              </div>
+            </Link>
+            <Link href="/dashboard/churn/upload" className="group">
+              <div className="flex items-center gap-4 p-5 rounded-3xl border border-border hover:border-primary/30 bg-muted/20 hover:bg-muted/30 transition-all">
+                <div className="w-10 h-10 rounded-2xl bg-amber-500/10 flex items-center justify-center text-amber-600"><TrendingDown className="w-5 h-5" /></div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-black uppercase tracking-widest">Upload Roster</p>
+                  <p className="text-[10px] text-muted-foreground font-medium">Detect plan switches</p>
+                </div>
+                <ArrowUpRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+              </div>
+            </Link>
+            <Link href="/dashboard/vcc/new" className="group">
+              <div className="flex items-center gap-4 p-5 rounded-3xl border border-border hover:border-primary/30 bg-muted/20 hover:bg-muted/30 transition-all">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 flex items-center justify-center text-emerald-600"><FileCheck className="w-5 h-5" /></div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs font-black uppercase tracking-widest">New VCC Form</p>
+                  <p className="text-[10px] text-muted-foreground font-medium">Start a carrier form</p>
+                </div>
+                <ArrowUpRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+              </div>
+            </Link>
+          </div>
+
+        </div>
       </div>
     </div>
   )

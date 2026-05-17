@@ -1,6 +1,6 @@
 rules_version = '2';
 
-// MediStay — HIPAA-aligned Firestore security rules
+// AegisSage — HIPAA-aligned Firestore security rules
 //
 // Isolation model:
 //   phi_vault/{agencyId}/...  — encrypted PHI; only authenticated members of that agency

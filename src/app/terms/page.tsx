@@ -1,4 +1,4 @@
-﻿
+
 "use client"
 
 import { Button } from "@/components/ui/button"
@@ -33,7 +33,7 @@ export default function TermsPage() {
               01. Agency Responsibility
             </h2>
             <p className="text-sm font-medium text-muted-foreground leading-relaxed uppercase opacity-80">
-              Users of AegisSage represent that they are licensed Medicare agents in good standing. Agencies are responsible for ensuring all AI-generated check-ins and SSBCI faxes comply with local carrier and CMS guidelines.
+              Users of AegisSage represent that they are licensed Medicare agents in good standing. Agencies are responsible for ensuring all AI-generated check-ins and VCC faxes comply with local carrier and CMS guidelines.
             </p>
           </div>
 

@@ -1,31 +1,20 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import {
-  collection,
-  query,
-  where,
-  orderBy,
-  limit,
-  onSnapshot,
-} from 'firebase/firestore';
-import { onAuthStateChanged } from 'firebase/auth';
-import { auth, db } from '@/lib/firebase';
+import { createBrowserClient } from '@supabase/ssr';
 
 export interface RiskEvent {
   id: string;
-  memberId: string;
-  agencyId: string;
-  brokerId: string;
-  event: string;
-  riskLevel: 'HIGH' | 'LOW';
-  previousPlanId: string;
-  newPlanId: string;
-  effectiveDate: string; // ISO date string, e.g. '2026-09-01'
-  triggerReason: string | null;
-  daysUntilEffective: number | null; // stored at write time — component recomputes from effectiveDate
-  source: string;
-  createdAt: unknown; // Firestore Timestamp — use .toDate() if needed
+  agency_id: string;
+  ghl_contact_id: string;
+  event_type: string;
+  risk_level: 'HIGH' | 'LOW';
+  previous_value: string | null;
+  new_value: string | null;
+  trigger_reason: string | null;
+  days_until_effective: number | null;
+  source: string | null;
+  created_at: string;
 }
 
 interface UseRiskEventsResult {
@@ -34,62 +23,64 @@ interface UseRiskEventsResult {
   error: string | null;
 }
 
-export function useRiskEvents(maxItems = 20): UseRiskEventsResult {
+export function useRiskEvents(agencyId: string): UseRiskEventsResult {
   const [events, setEvents] = useState<RiskEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // auth and db are null during SSR; this effect only runs client-side
-    if (!auth || !db) {
+    if (!agencyId) {
       setLoading(false);
       return;
     }
 
-    let unsubSnap: (() => void) | null = null;
+    const supabase = createBrowserClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+    );
 
-    const unsubAuth = onAuthStateChanged(auth, (user) => {
-      // Clean up any previous Firestore subscription when auth changes
-      if (unsubSnap) {
-        unsubSnap();
-        unsubSnap = null;
-      }
-
-      if (!user) {
-        setEvents([]);
+    supabase
+      .from('retention_events')
+      .select('*')
+      .eq('agency_id', agencyId)
+      .eq('risk_level', 'HIGH')
+      .order('created_at', { ascending: false })
+      .limit(20)
+      .then(({ data, error: fetchError }) => {
+        if (fetchError) {
+          console.error('[useRiskEvents] fetch error:', fetchError);
+          setError('retention_events unavailable');
+        } else {
+          setEvents((data ?? []) as RiskEvent[]);
+        }
         setLoading(false);
-        return;
-      }
+      });
 
-      const q = query(
-        collection(db, 'risk_events'),
-        where('brokerId', '==', user.uid),
-        where('riskLevel', '==', 'HIGH'),
-        orderBy('createdAt', 'desc'),
-        limit(maxItems),
-      );
-
-      unsubSnap = onSnapshot(
-        q,
-        (snap) => {
-          setEvents(snap.docs.map((d) => ({ id: d.id, ...d.data() } as RiskEvent)));
-          setLoading(false);
-          setError(null);
+    const channel = supabase
+      .channel(`retention_events:${agencyId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'retention_events',
+          filter: `agency_id=eq.${agencyId}`,
         },
-        (err) => {
-          // Firestore missing-index errors include a console link to create the index
-          console.error('[useRiskEvents] Firestore error:', err);
-          setError('risk_events unavailable');
-          setLoading(false);
+        (payload) => {
+          if (
+            payload.eventType === 'INSERT' &&
+            (payload.new as RiskEvent).risk_level === 'HIGH'
+          ) {
+            setEvents((prev) => [payload.new as RiskEvent, ...prev].slice(0, 20));
+          }
         },
-      );
-    });
+      )
+      .subscribe();
 
     return () => {
-      unsubAuth();
-      if (unsubSnap) unsubSnap();
+      supabase.removeChannel(channel);
     };
-  }, [maxItems]);
+  }, [agencyId]);
 
   return { events, loading, error };
 }

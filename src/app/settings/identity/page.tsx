@@ -1,8 +1,8 @@
-
 "use client"
 
 import { useAppStore } from "@/lib/store"
-import { auth, db } from "@/lib/firebase"
+import { createClient } from "@/lib/supabase/client"
+import { syncVaultToCloud } from "@/lib/vault/core"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -14,13 +14,16 @@ import { useRouter } from "next/navigation"
 
 export default function IdentitySettingsPage() {
   const router = useRouter()
-  const { agencyProfile, updateAgencyProfile, syncToCloudVault, encryptionKey } = useAppStore()
+  const { agencyProfile, updateAgencyProfile, encryptionKey, ghlSettings, mayaSettings } = useAppStore()
 
   const handleSave = async () => {
-    const userId = auth?.currentUser?.uid
-    if (encryptionKey && db && userId) {
-      toast({ title: "Hardening Data", description: "Encrypting agency identity for cloud vault..." })
-      await syncToCloudVault(db, userId)
+    if (encryptionKey) {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (user) {
+        toast({ title: "Hardening Data", description: "Encrypting agency identity for cloud vault..." })
+        syncVaultToCloud(user.id, { agencyProfile, ghlSettings, mayaSettings, updatedAt: Date.now() })
+      }
     }
     toast({ title: "Identity Saved", description: "Your agency identity has been updated and persisted." })
   }
@@ -60,9 +63,9 @@ export default function IdentitySettingsPage() {
                   Optimized for independent agents. Removes complex hierarchy modules.
                 </p>
               </div>
-              <Switch 
-                checked={agencyProfile.isSolo} 
-                onCheckedChange={(val) => updateAgencyProfile({ isSolo: val })} 
+              <Switch
+                checked={agencyProfile.isSolo}
+                onCheckedChange={(val) => updateAgencyProfile({ isSolo: val })}
               />
             </div>
 
@@ -71,7 +74,7 @@ export default function IdentitySettingsPage() {
                 <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">
                   {agencyProfile.isSolo ? "Broker Name" : "Agency Name"}
                 </Label>
-                <Input 
+                <Input
                   value={agencyProfile.name}
                   onChange={(e) => updateAgencyProfile({ name: e.target.value })}
                   className="rounded-2xl h-14 bg-background border-border text-foreground font-black pl-6 shadow-inner uppercase text-sm"
@@ -79,7 +82,7 @@ export default function IdentitySettingsPage() {
               </div>
               <div className="space-y-3">
                 <Label className="text-[10px] font-black uppercase tracking-widest text-muted-foreground ml-1">Agency NPN (Licensed)</Label>
-                <Input 
+                <Input
                   value={agencyProfile.licenseNumber}
                   onChange={(e) => updateAgencyProfile({ licenseNumber: e.target.value })}
                   className="rounded-2xl h-14 bg-background border-border font-mono text-foreground font-black pl-6 shadow-inner text-sm"

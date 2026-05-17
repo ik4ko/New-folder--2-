@@ -1,4 +1,4 @@
-﻿
+
 "use client"
 
 import { CollectionSidebar } from "@/components/collection-sidebar"
@@ -166,7 +166,7 @@ export default function RetentionAIPage() {
                     <Wand2 className="w-3 h-3 text-primary" />
                   </div>
                   <p className="text-[10px] leading-relaxed font-medium">
-                    Auto-generate SSBCI packages for {members.filter(m => m.ssbciStatus === 'pending-fax').length} chronic enrollments detected.
+                    Auto-generate VCC packages for {members.filter(m => m.VCCStatus === 'pending-fax').length} chronic enrollments detected.
                   </p>
                 </div>
                 <Button onClick={() => {}} size="sm" className="w-full text-[10px] h-8 font-black uppercase tracking-widest bg-primary hover:bg-primary/90 mt-2">

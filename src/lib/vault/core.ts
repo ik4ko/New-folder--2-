@@ -1,16 +1,7 @@
-﻿
 'use client';
 
-/**
- * 🧬 Local-First PHI Mesh Core
- * This module manages the "Hydra of Truth":
- * 1. Local Storage (Primary)
- * 2. GUN Mesh (Real-time P2P)
- * 3. Firestore (Encrypted Cold Backup)
- */
-
-import { doc, setDoc, getDoc, Firestore } from 'firebase/firestore';
-import { type AgencyProfile, type GHLSettings, type MayaSettings } from '@/lib/store';
+import { createBrowserClient } from '@supabase/ssr';
+import type { AgencyProfile, GHLSettings, MayaSettings } from '@/lib/store';
 
 // --- WebCrypto Logic ---
 export async function deriveKey(passphrase: string, salt: string = 'AegisSage-v1') {
@@ -31,10 +22,10 @@ export async function encryptData(data: any, key: CryptoKey) {
   const iv = crypto.getRandomValues(new Uint8Array(12));
   const encoded = new TextEncoder().encode(JSON.stringify(data));
   const cipher = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, encoded);
-  
+
   const cipherArray = new Uint8Array(cipher);
   const hashBuffer = await crypto.subtle.digest('SHA-256', cipherArray);
-  
+
   return {
     cipher: btoa(String.fromCharCode(...cipherArray)),
     iv: btoa(String.fromCharCode(...iv)),
@@ -59,19 +50,33 @@ export interface VaultState {
   updatedAt: number;
 }
 
-export function syncVaultToCloud(db: Firestore, userId: string, blob: any) {
-  const vaultRef = doc(db, 'vaults', userId);
-  // Non-blocking firestore write as per guidelines
-  setDoc(vaultRef, blob, { merge: true }).catch(async (serverError) => {
-    // Error handling logic would go here if specialized errorEmitter existed
-    console.error('Cloud Sync Failed', serverError);
-  });
+function getSupabase() {
+  return createBrowserClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
 }
 
-export async function fetchVaultFromCloud(db: Firestore, userId: string) {
-  const vaultRef = doc(db, 'vaults', userId);
-  const snap = await getDoc(vaultRef);
-  return snap.exists() ? snap.data() : null;
+export function syncVaultToCloud(userId: string, blob: any): void {
+  const payload = JSON.stringify({ ...blob, updatedAt: Date.now() });
+  getSupabase()
+    .storage
+    .from('vault')
+    .upload(`${userId}/vault.json`, payload, { contentType: 'application/json', upsert: true })
+    .catch(err => console.error('Cloud Sync Failed', err));
+}
+
+export async function fetchVaultFromCloud(userId: string): Promise<any | null> {
+  const { data, error } = await getSupabase()
+    .storage
+    .from('vault')
+    .download(`${userId}/vault.json`);
+  if (error || !data) return null;
+  try {
+    return JSON.parse(await data.text());
+  } catch {
+    return null;
+  }
 }
 
 // --- Audit Chain ---

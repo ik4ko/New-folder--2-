@@ -1,4 +1,4 @@
-# MediStay Intelligence | Medicare Retention SaaS
+# AegisSage Intelligence | Medicare Retention SaaS
 
 This is an enterprise-grade Next.js application built for Medicare agencies to monitor member enrollment and prevent churn using AI-driven insights.
 

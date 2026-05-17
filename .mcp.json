@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "antigravity": {
+      "command": "C:\\Users\\ikan9\\AppData\\Local\\Programs\\Antigravity\\bin\\antigravity.cmd",
+      "args": ["mcp", "serve"]
+    },
+    "firebase": {
+      "command": "npx",
+      "args": ["-y", "firebase-tools@latest", "mcp"]
+    }
+  }
+}

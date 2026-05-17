@@ -69,7 +69,7 @@ export function CommandBar() {
           <CommandItem onSelect={() => { router.push('/settings'); setOpen(false); }}>
             <Settings className="mr-2 h-4 w-4" />
             <span>Settings</span>
-            <CommandShortcut>⌘S</CommandShortcut>
+            <CommandShortcut>CmdS</CommandShortcut>
           </CommandItem>
         </CommandGroup>
       </CommandList>

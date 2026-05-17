@@ -1,4 +1,4 @@
-﻿
+
 "use client"
 
 import { Button } from "@/components/ui/button"
@@ -59,7 +59,7 @@ export default function PrivacyPage() {
         </section>
 
         <div className="pt-12 text-center border-t border-border/50">
-          <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Questions? Contact privacy@AegisSage.io</p>
+          <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Questions? Contact privacy@aegissage.com</p>
         </div>
       </main>
     </div>

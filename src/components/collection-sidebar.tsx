@@ -38,7 +38,7 @@ export function CollectionSidebar({ forceMobile = false }: { forceMobile?: boole
       {/* Header Area */}
       <div className="h-16 flex items-center justify-between px-4 border-b border-border shrink-0">
         <h2 className="text-[10px] font-black uppercase tracking-widest text-muted-foreground whitespace-nowrap px-2">
-          Member Roster
+          Book of Business
         </h2>
 
         <div className="flex items-center gap-1">
@@ -51,7 +51,7 @@ export function CollectionSidebar({ forceMobile = false }: { forceMobile?: boole
                   </Link>
                 </Button>
               </TooltipTrigger>
-              <TooltipContent side="bottom">Enroll Member</TooltipContent>
+              <TooltipContent side="bottom">Connect GHL</TooltipContent>
             </Tooltip>
           </TooltipProvider>
           
@@ -71,7 +71,7 @@ export function CollectionSidebar({ forceMobile = false }: { forceMobile?: boole
         <div className="relative group">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground group-focus-within:text-primary transition-colors" />
           <Input 
-            placeholder="Search roster..." 
+            placeholder="Search clients..." 
             className="pl-9 h-9 bg-muted/50 border-none rounded-xl text-[11px] focus-visible:ring-primary shadow-inner text-foreground font-bold uppercase tracking-tight"
             value={search}
             onChange={(e) => setSearch(e.target.value)}

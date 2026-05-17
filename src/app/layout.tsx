@@ -1,10 +1,11 @@
-﻿
+
 import type { Metadata } from 'next';
 import './globals.css';
 import { CommandBar } from '@/components/command-bar';
 import { Toaster } from '@/components/ui/toaster';
 import { ThemeProvider } from '@/components/theme-provider';
 import { AppShell } from '@/components/app-layout-shell';
+import { AppSidebar } from '@/components/app-sidebar';
 
 export const metadata: Metadata = {
   title: 'AegisSage | Medicare Retention SaaS',
@@ -35,11 +36,10 @@ export default function RootLayout({
       <body className="font-body antialiased bg-background text-foreground selection:bg-primary/10" suppressHydrationWarning>
         <ThemeProvider
           attribute="class"
-          defaultTheme="system"
-          enableSystem
+          forcedTheme="dark"
           disableTransitionOnChange
         >
-          <AppShell>
+          <AppShell sidebar={<AppSidebar />}>
             {children}
           </AppShell>
           <CommandBar />

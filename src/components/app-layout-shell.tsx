@@ -1,7 +1,6 @@
 "use client"
 
 import { usePathname, useRouter } from "next/navigation"
-import { AppSidebar } from "./app-sidebar"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { Button } from "./ui/button"
 import { Menu, Users } from "lucide-react"
@@ -10,69 +9,72 @@ import { Sheet, SheetContent, SheetTitle } from "./ui/sheet"
 import { CollectionSidebar } from "./collection-sidebar"
 import { Logo } from "./logo"
 import { useEffect, useState } from "react"
-import { auth, db } from "@/lib/firebase"
-import { onAuthStateChanged } from "firebase/auth"
-import { doc, getDoc } from "firebase/firestore"
+import { createClient } from "@/lib/supabase/client"
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+const PROTECTED_PREFIXES = [
+  '/dashboard', '/settings', '/vault', '/members',
+  '/clients', '/ai', '/accounting', '/check-ins', '/ghl',
+]
+
+export function AppShell({ children, sidebar }: { children: React.ReactNode; sidebar?: React.ReactNode }) {
   const pathname = usePathname()
   const router = useRouter()
   const [isCheckingAuth, setIsCheckingAuth] = useState(true)
-  
-  // Routes that shouldn't use the standard app shell
-  const isLandingPage = pathname === "/"
-  const isDocsPage = pathname.startsWith("/docs")
-  const isAuthPage = pathname === "/login" || pathname === "/signup"
-  const isExcluded = isLandingPage || isDocsPage || isAuthPage
+
+  const isProtectedRoute = PROTECTED_PREFIXES.some(p => pathname.startsWith(p))
+  const isExcluded = !isProtectedRoute
 
   const isMobile = useIsMobile()
   const { isSidebarOpen, toggleSidebar, isRosterOpen, toggleRoster, updateAgencyProfile } = useAppStore()
 
   useEffect(() => {
-    if (!auth || !db) {
-      setIsCheckingAuth(false);
-      return;
+    if (isExcluded) {
+      setIsCheckingAuth(false)
+      return
     }
 
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      // If we are on a landing or auth page, we don't strictly enforce redirection
-      if (isExcluded) {
-        setIsCheckingAuth(false)
-        return
-      }
+    const supabase = createClient()
+    let mounted = true
+
+    const loadUser = async () => {
+      const { data: { user } } = await supabase.auth.getUser()
+
+      if (!mounted) return
 
       if (!user) {
         router.push('/login')
         setIsCheckingAuth(false)
-      } else {
-        if (user.isAnonymous) {
-          updateAgencyProfile({ isTrialInitialized: true });
-          setIsCheckingAuth(false);
-          return;
-        }
-
-        try {
-          const agencySnap = await getDoc(doc(db, 'agencies', user.uid));
-          if (agencySnap.exists()) {
-            const data = agencySnap.data();
-            updateAgencyProfile(data as any);
-            
-            if (!data.isTrialInitialized) {
-              router.push('/login');
-            }
-          } else {
-            router.push('/login');
-          }
-        } catch (e) {
-          console.error("Auth check failed:", e);
-          // If error occurs, let them stay to prevent loop, but they may hit restricted paths
-        }
-        setIsCheckingAuth(false)
+        return
       }
-    });
 
-    return () => unsubscribe();
-  }, [isExcluded, router, updateAgencyProfile]);
+      // Load agency profile for Zustand store
+      const { data: agency } = await supabase
+        .from('agencies')
+        .select('*')
+        .eq('owner_id', user.id)
+        .single()
+
+      if (agency && mounted) {
+        updateAgencyProfile(agency as any)
+      }
+
+      if (mounted) setIsCheckingAuth(false)
+    }
+
+    loadUser()
+
+    // Keep session state in sync -- redirect on sign-out
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_OUT') {
+        router.push('/login')
+      }
+    })
+
+    return () => {
+      mounted = false
+      subscription.unsubscribe()
+    }
+  }, [isExcluded, router, updateAgencyProfile])
 
   if (isExcluded) {
     return (
@@ -99,23 +101,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <header className="h-14 border-b bg-card flex items-center justify-between px-4 shrink-0 z-50">
           <Logo iconOnly className="scale-75" />
           <div className="flex items-center gap-1">
-             <Button variant="ghost" size="icon" className="h-9 w-9" onClick={toggleRoster}>
-                <Users className="w-5 h-5 text-muted-foreground" />
-             </Button>
-             <Button variant="ghost" size="icon" className="h-9 w-9" onClick={toggleSidebar}>
-                <Menu className="w-5 h-5 text-muted-foreground" />
-             </Button>
+            <Button variant="ghost" size="icon" className="h-9 w-9" onClick={toggleRoster}>
+              <Users className="w-5 h-5 text-muted-foreground" />
+            </Button>
+            <Button variant="ghost" size="icon" className="h-9 w-9" onClick={toggleSidebar}>
+              <Menu className="w-5 h-5 text-muted-foreground" />
+            </Button>
           </div>
         </header>
       )}
 
-      {!isMobile && <AppSidebar />}
-      
+      {!isMobile && sidebar}
+
       {isMobile && (
         <Sheet open={isSidebarOpen} onOpenChange={toggleSidebar}>
           <SheetContent side="left" className="p-0 w-64 border-r-0">
             <SheetTitle className="sr-only">Main Navigation</SheetTitle>
-            <AppSidebar />
+            {sidebar}
           </SheetContent>
         </Sheet>
       )}
@@ -128,7 +130,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </SheetContent>
         </Sheet>
       )}
-      
+
       <main className="flex-1 flex overflow-hidden relative">
         {children}
       </main>

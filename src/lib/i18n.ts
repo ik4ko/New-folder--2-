@@ -11,13 +11,13 @@ export const languages = [
 export const translations = {
   en: {
     common: {
-      dashboard: "Command Center",
-      members: "Member Roster",
-      accounting: "Accounting",
-      fax: "SSBCI Fax",
+      dashboard: "Retention Command Center",
+      members: "Book of Business",
+      accounting: "Commissions",
+      fax: "VCC Tool",
       checkins: "AI Check-ins",
-      ghl: "CRM Sync",
-      vault: "Vault",
+      ghl: "GHL Integration",
+      vault: "Credential Vault",
       ai: "Retention AI",
       settings: "Settings",
       login: "Log In",
@@ -26,17 +26,17 @@ export const translations = {
       demo: "Launch Demo",
     },
     landing: {
-      heroTitle: "Stop the 2026 Benefit Cliff. Protect Your Book Before They Churn.",
-      heroSubtitle: "The first autonomous Medicare retention platform that detects disenrollment attempts in real-time and locks in member loyalty before the next AEP.",
+      heroTitle: "Retention on Autopilot. Stop Churn Before It Starts.",
+      heroSubtitle: "The first autonomous Medicare retention platform that detects disenrollment attempts in carrier portals and triggers GHL alerts in real-time.",
       badge: "AGENT GRADE RETENTION OS",
     },
     dashboard: {
       title: "Retention Command Center",
-      subtitle: "Autonomous Medicare Monitoring",
-      bookOfBusiness: "Book of Business",
-      retentionScore: "Avg Retention Score",
-      switchAlerts: "CMS Switch Alerts",
-      pendingFaxes: "Pending SSBCI Faxes",
+      subtitle: "Autonomous Carrier Portal Monitoring",
+      bookOfBusiness: "Active Clients",
+      retentionScore: "Avg Retention Rate",
+      switchAlerts: "Portal Change Alerts",
+      pendingFaxes: "Pending VCC Forms",
     }
   },
   es: {
@@ -44,7 +44,7 @@ export const translations = {
       dashboard: "Centro de Mando",
       members: "Lista de Miembros",
       accounting: "Contabilidad",
-      fax: "Fax SSBCI",
+      fax: "Fax VCC",
       checkins: "Chequeos IA",
       ghl: "Sincronización CRM",
       vault: "Bóveda",
@@ -66,7 +66,7 @@ export const translations = {
       bookOfBusiness: "Cartera de Clientes",
       retentionScore: "Puntuación Media de Retención",
       switchAlerts: "Alertas de Cambio CMS",
-      pendingFaxes: "Faxes SSBCI Pendientes",
+      pendingFaxes: "Faxes VCC Pendientes",
     }
   },
   fr: {
@@ -74,7 +74,7 @@ export const translations = {
       dashboard: "Centre de Commande",
       members: "Liste des Membres",
       accounting: "Comptabilité",
-      fax: "Fax SSBCI",
+      fax: "Fax VCC",
       checkins: "Suivis IA",
       ghl: "Sync CRM",
       vault: "Coffre-fort",
@@ -96,7 +96,7 @@ export const translations = {
       bookOfBusiness: "Portefeuille Clients",
       retentionScore: "Score Moyen de Rétention",
       switchAlerts: "Alertes de Changement CMS",
-      pendingFaxes: "Faxes SSBCI en Attente",
+      pendingFaxes: "Faxes VCC en Attente",
     }
   },
   de: {
@@ -104,7 +104,7 @@ export const translations = {
       dashboard: "Kommandozentrale",
       members: "Mitgliederliste",
       accounting: "Buchhaltung",
-      fax: "SSBCI Fax",
+      fax: "VCC Fax",
       checkins: "KI-Check-ins",
       ghl: "CRM Sync",
       vault: "Tresor",
@@ -126,7 +126,7 @@ export const translations = {
       bookOfBusiness: "Geschäftsbuch",
       retentionScore: "Durchschn. Retentions-Score",
       switchAlerts: "CMS Wechsel-Warnungen",
-      pendingFaxes: "Ausstehende SSBCI-Faxe",
+      pendingFaxes: "Ausstehende VCC-Faxe",
     }
   },
   zh: {
@@ -134,7 +134,7 @@ export const translations = {
       dashboard: "指挥中心",
       members: "成员名册",
       accounting: "会计",
-      fax: "SSBCI 传真",
+      fax: "VCC 传真",
       checkins: "AI 签到",
       ghl: "CRM 同步",
       vault: "保险库",
@@ -156,7 +156,7 @@ export const translations = {
       bookOfBusiness: "业务账簿",
       retentionScore: "平均留存分数",
       switchAlerts: "CMS 转换警报",
-      pendingFaxes: "待处理 SSBCI 传真",
+      pendingFaxes: "待处理 VCC 传真",
     }
   },
   ja: {
@@ -164,7 +164,7 @@ export const translations = {
       dashboard: "コマンドセンター",
       members: "メンバー名簿",
       accounting: "会計",
-      fax: "SSBCI ファックス",
+      fax: "VCC ファックス",
       checkins: "AI チェックイン",
       ghl: "CRM 同期",
       vault: "保管庫",
@@ -186,7 +186,7 @@ export const translations = {
       bookOfBusiness: "保有契約",
       retentionScore: "平均リテンションスコア",
       switchAlerts: "CMS スイッチアラート",
-      pendingFaxes: "保留中の SSBCI ファックス",
+      pendingFaxes: "保留中の VCC ファックス",
     }
   },
   pt: {
@@ -194,7 +194,7 @@ export const translations = {
       dashboard: "Centro de Comando",
       members: "Lista de Membros",
       accounting: "Contabilidade",
-      fax: "Fax SSBCI",
+      fax: "Fax VCC",
       checkins: "Check-ins IA",
       ghl: "Sincronização CRM",
       vault: "Cofre",
@@ -216,7 +216,7 @@ export const translations = {
       bookOfBusiness: "Carteira de Negócios",
       retentionScore: "Pontuação Média de Retenção",
       switchAlerts: "Alertas de Mudança CMS",
-      pendingFaxes: "Faxes SSBCI Pendentes",
+      pendingFaxes: "Faxes VCC Pendentes",
     }
   },
   it: {
@@ -224,7 +224,7 @@ export const translations = {
       dashboard: "Centro di Comando",
       members: "Elenco Membri",
       accounting: "Contabilità",
-      fax: "Fax SSBCI",
+      fax: "Fax VCC",
       checkins: "Check-in IA",
       ghl: "Sincronizzazione CRM",
       vault: "Vault",
@@ -246,7 +246,7 @@ export const translations = {
       bookOfBusiness: "Portafoglio Clienti",
       retentionScore: "Punteggio Medio di Ritenzione",
       switchAlerts: "Avvisi di Cambio CMS",
-      pendingFaxes: "Fax SSBCI in Sospeso",
+      pendingFaxes: "Fax VCC in Sospeso",
     }
   },
   ru: {
@@ -254,7 +254,7 @@ export const translations = {
       dashboard: "Командный центр",
       members: "Список участников",
       accounting: "Бухгалтерия",
-      fax: "Факс SSBCI",
+      fax: "Факс VCC",
       checkins: "ИИ-проверки",
       ghl: "Синхронизация CRM",
       vault: "Хранилище",
@@ -276,7 +276,7 @@ export const translations = {
       bookOfBusiness: "Клиентская база",
       retentionScore: "Средний балл удержания",
       switchAlerts: "Оповещения CMS о смене",
-      pendingFaxes: "Ожидающие факсы SSBCI",
+      pendingFaxes: "Ожидающие факсы VCC",
     }
   },
   ar: {
@@ -284,7 +284,7 @@ export const translations = {
       dashboard: "مركز القيادة",
       members: "قائمة الأعضاء",
       accounting: "المحاسبة",
-      fax: "فاكس SSBCI",
+      fax: "فاكس VCC",
       checkins: "متابعة الذكاء الاصطناعي",
       ghl: "مزامنة CRM",
       vault: "الخزنة",
@@ -306,7 +306,7 @@ export const translations = {
       bookOfBusiness: "سجل الأعمال",
       retentionScore: "متوسط درجة الاحتفاظ",
       switchAlerts: "تنبيهات تغيير CMS",
-      pendingFaxes: "فاكسات SSBCI المعلقة",
+      pendingFaxes: "فاكسات VCC المعلقة",
     }
   }
 };

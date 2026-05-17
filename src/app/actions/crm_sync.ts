@@ -1,6 +1,6 @@
 'use server'
 
-import { adminDb, admin } from '@/lib/firebase-admin';
+import { supabaseAdmin } from '@/lib/supabase';
 import crypto from 'crypto';
 
 interface CrmConfig {
@@ -13,8 +13,7 @@ interface CrmConfig {
 // ---------------------------------------------------------------------------
 function deriveConfigEncKey(agencyId: string): Buffer {
   const masterSecret = process.env.PHI_MASTER_SECRET;
-  if (!masterSecret) throw new Error('PHI_MASTER_SECRET is not configured.');
-  // Different salt for CRM keys to prevent cross-context attacks
+  if (!masterSecret) throw new Error('PHI_MASTER_SECRET environment variable is not set');
   return crypto.pbkdf2Sync(masterSecret, `crm:${agencyId}`, 100_000, 32, 'sha256');
 }
 
@@ -34,16 +33,14 @@ function encryptCredential(plaintext: string, key: Buffer) {
 }
 
 function decryptCredential(cipherData: any, key: Buffer) {
-  if (!cipherData || !cipherData.cipher || !cipherData.iv) return '';
+  if (!cipherData?.cipher || !cipherData?.iv) return '';
   try {
     const encryptedBuffer = Buffer.from(cipherData.cipher, 'base64');
     const iv = Buffer.from(cipherData.iv, 'base64');
     const authTag = encryptedBuffer.subarray(encryptedBuffer.length - 16);
     const ciphertext = encryptedBuffer.subarray(0, encryptedBuffer.length - 16);
-    
     const decipher = crypto.createDecipheriv('aes-256-gcm', key, iv);
     decipher.setAuthTag(authTag);
-    
     let decrypted = decipher.update(ciphertext, undefined, 'utf8');
     decrypted += decipher.final('utf8');
     return decrypted;
@@ -59,117 +56,110 @@ function decryptCredential(cipherData: any, key: Buffer) {
 
 export async function saveCrmConfig(agencyId: string, config: CrmConfig) {
   if (!agencyId) throw new Error('Unauthorized');
-  
+
   const encKey = deriveConfigEncKey(agencyId);
-  const dataToSave: any = { updatedAt: Date.now() };
+  const patch: Record<string, any> = {
+    agency_id: agencyId,
+    updated_at: new Date().toISOString(),
+  };
 
   if (config.ghlApiKey !== undefined) {
-    dataToSave.ghlApiKey = encryptCredential(config.ghlApiKey, encKey);
+    patch.ghl_api_key_enc = encryptCredential(config.ghlApiKey, encKey);
   }
   if (config.webhookUrl !== undefined) {
-    dataToSave.webhookUrl = encryptCredential(config.webhookUrl, encKey);
+    patch.webhook_url_enc = encryptCredential(config.webhookUrl, encKey);
   }
 
-  await adminDb.collection('agencies').doc(agencyId).collection('crm_settings').doc('config').set(dataToSave, { merge: true });
+  await supabaseAdmin
+    .from('agency_credentials')
+    .upsert(patch, { onConflict: 'agency_id' });
+
   return { success: true };
 }
 
 export async function getCrmConfig(agencyId: string): Promise<CrmConfig> {
   if (!agencyId) return {};
-  
-  const doc = await adminDb.collection('agencies').doc(agencyId).collection('crm_settings').doc('config').get();
-  if (!doc.exists) return {};
-  
-  const data = doc.data() as any;
+
+  const { data } = await supabaseAdmin
+    .from('agency_credentials')
+    .select('ghl_api_key_enc, webhook_url_enc')
+    .eq('agency_id', agencyId)
+    .maybeSingle();
+
+  if (!data) return {};
+
   const encKey = deriveConfigEncKey(agencyId);
-  
+
   return {
-    ghlApiKey: data.ghlApiKey ? decryptCredential(data.ghlApiKey, encKey) : '',
-    webhookUrl: data.webhookUrl ? decryptCredential(data.webhookUrl, encKey) : ''
+    ghlApiKey: data.ghl_api_key_enc
+      ? decryptCredential(data.ghl_api_key_enc, encKey)
+      : '',
+    webhookUrl: data.webhook_url_enc
+      ? decryptCredential(data.webhook_url_enc, encKey)
+      : '',
   };
 }
 
-export async function syncToCrm(agencyId: string, memberId: string, scriptText: string, riskLevel: string) {
-  if (!agencyId || !memberId) throw new Error('Unauthorized');
+export async function syncToCrm(
+  agencyId: string,
+  contactId: string,
+  scriptText: string,
+  riskLevel: string
+) {
+  if (!agencyId || !contactId) throw new Error('Unauthorized');
 
-  // 1. Fetch CRM Config
   const config = await getCrmConfig(agencyId);
   if (!config.ghlApiKey && !config.webhookUrl) {
     throw new Error('No CRM configuration found. Please setup in Settings.');
   }
 
-  // 2. Fetch Member Data
-  const memberSnap = await adminDb.collection('members').doc(memberId).get();
-  if (!memberSnap.exists) throw new Error('Member not found');
-  const member = memberSnap.data() as any;
+  const { data: contact } = await supabaseAdmin
+    .from('ghl_contacts')
+    .select('*')
+    .eq('id', contactId)
+    .maybeSingle();
 
-  // 3. Decrypt Member Phone/MBI for payload
-  const phiEncKey = crypto.pbkdf2Sync(process.env.PHI_MASTER_SECRET!, `fle:${agencyId}`, 100_000, 32, 'sha256');
-  const phone = decryptCredential({ cipher: member.phone_number_cipher, iv: member.phone_number_iv }, phiEncKey);
-  const mbi = decryptCredential({ cipher: member.mbi_number_cipher, iv: member.mbi_number_iv }, phiEncKey);
+  if (!contact) throw new Error('Member not found');
+
+  const phiMasterSecret = process.env.PHI_MASTER_SECRET;
+  if (!phiMasterSecret) throw new Error('PHI_MASTER_SECRET environment variable is not set');
+
+  const phiEncKey = crypto.pbkdf2Sync(phiMasterSecret, `fle:${agencyId}`, 100_000, 32, 'sha256');
+  const phone = decryptCredential(contact.phone_enc, phiEncKey);
+  const mbi = decryptCredential(contact.mbi_enc, phiEncKey);
 
   const payload = {
     mbi,
     phone,
     riskLevel,
-    currentPlanId: member.current_plan_id,
+    currentPlanId: contact.current_plan_id,
     talkingPoints: scriptText,
-    source: 'AegisSage-Intelligence'
+    source: 'AegisSage-Intelligence',
   };
 
-  const results = [];
+  const results: string[] = [];
 
-  // 4a. GHL Integration
   if (config.ghlApiKey) {
-    try {
-      // Mocked GHL 'Create/Update Contact' API
-      // In a real scenario, we'd use fetch() to https://rest.gohighlevel.com/v1/contacts/
-      /*
-      await fetch('https://rest.gohighlevel.com/v1/contacts/', {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${config.ghlApiKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          phone: payload.phone,
-          tags: ['AegisSage-High-Risk'],
-          customField: { talking_points: payload.talkingPoints }
-        })
-      });
-      */
-      console.log('Mock GHL Sync triggered for', phone);
-      results.push('GHL');
-    } catch (e) {
-      console.error('GHL Sync failed', e);
-      throw new Error('GHL Sync failed');
-    }
+    console.log('Mock GHL Sync triggered for', phone);
+    results.push('GHL');
   }
 
-  // 4b. Webhook Outbound Logic (EnrollHere)
   if (config.webhookUrl) {
-    try {
-      const resp = await fetch(config.webhookUrl, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-      if (!resp.ok) throw new Error(`Webhook failed with status ${resp.status}`);
-      results.push('Webhook');
-    } catch (e) {
-      console.error('Webhook Sync failed', e);
-      throw new Error('Webhook Sync failed');
-    }
+    const resp = await fetch(config.webhookUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    if (!resp.ok) throw new Error(`Webhook failed with status ${resp.status}`);
+    results.push('Webhook');
   }
 
-  // 5. Update UI Sync Feedback
-  const timestamp = admin.firestore.FieldValue.serverTimestamp();
-  
-  await adminDb.collection('members').doc(memberId).update({
-    lastCrmSync: timestamp
-  });
-
-  await adminDb.collection('members').doc(memberId).collection('crm_sync_logs').add({
-    destinations: results,
-    payloadSnippet: { riskLevel, hasScript: !!scriptText },
-    syncedAt: timestamp
+  await supabaseAdmin.from('audit_log').insert({
+    agency_id: agencyId,
+    action: 'CRM_SYNC',
+    resource_type: 'ghl_contacts',
+    resource_id: contactId,
+    metadata: { destinations: results, riskLevel, hasScript: !!scriptText },
   });
 
   return { success: true, destinations: results };

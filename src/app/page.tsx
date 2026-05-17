@@ -1,106 +1,42 @@
-﻿
 "use client"
 
-import { useState } from "react"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { 
-  Activity, 
-  ArrowRight, CheckCircle2, 
-  Loader2, PlayCircle, Quote, Star,
-  Terminal, Printer, PhoneCall, 
-  Search,
-  ShieldPlus, X,
-  Zap
-} from "lucide-react"
+import { CheckCircle2, Activity, Printer, ShieldPlus } from "lucide-react"
 import Link from "next/link"
-import { useRouter } from "next/navigation"
-import { 
-  getAuth, 
-  signInAnonymously
-} from "firebase/auth"
-import { useToast } from "@/hooks/use-toast"
-import { cn } from "@/lib/utils"
-import { useAppStore } from "@/lib/store"
 import { Logo } from "@/components/logo"
 import { useTranslation } from "@/lib/i18n"
 import { LanguageSelector } from "@/components/language-selector"
 import { ComplianceShield } from "@/components/ComplianceShield"
 
+const FEATURES = [
+  {
+    title: '48-Hour Roster Monitoring',
+    desc: 'AegisSage compares your carrier roster against your book of business every 48 hours and fires an alert the moment a client disappears from your roster — before you lose the commission.',
+    icon: Activity,
+    demo: 'Switch alert fired — Margaret Thompson missing from Humana roster.',
+  },
+  {
+    title: 'VCC Form Automation',
+    desc: 'Submit CMS Vendor-Contractor-Certification chronic illness forms directly to your clients\' doctors by fax. VCC approval locks in the plan benefit tier and protects your renewal stream.',
+    icon: Printer,
+    demo: 'VCC faxed to Dr. Patricia Smith — Humana Gold Plus H5619.',
+  },
+  {
+    title: 'Client Relationship Protection',
+    desc: 'AegisSage includes advanced compliance tools that legally secure your broker-client relationships with carriers — keeping your book protected from competitor interference.',
+    icon: ShieldPlus,
+    demo: 'Protection confirmed — Robert Sanchez secured to your book.',
+  },
+]
+
 export default function LandingPage() {
-  const router = useRouter()
-  const { toast } = useToast()
   const { t } = useTranslation()
-  const [loading, setLoading] = useState(false)
-  const { importFromGHL, updateAgencyProfile } = useAppStore()
-
-  const reviews = [
-    {
-      name: "Brenda Rollins",
-      role: "Owner, Gulf Coast Medicare",
-      text: "AegisSage detected 14 'stealth' disenrollements in our first week. It paid for itself in one AEP cycle.",
-      rating: 5
-    },
-    {
-      name: "Michael Cho",
-      role: "Director, Senior Health Partners",
-      text: "The LIS auto-filler is a game changer. We've moved 200 members to Extra Help without hiring extra staff.",
-      rating: 5
-    }
-  ];
-
-  const pricingTiers = [
-    {
-      name: "Solo / Starter",
-      price: "$49",
-      yearly: "$490",
-      desc: "For Small Books & New Agents",
-      features: ["Up to 500 Active Members", "MARX Switch Monitoring", "Manual & Basic CSV Upload", "CRM Integration (GHL, Webhooks)"],
-      planId: "broker-individual"
-    },
-    {
-      name: "Growth",
-      price: "$149",
-      yearly: "$1,490",
-      desc: "For Established Agents & Small Teams",
-      features: ["Up to 2,500 Active Members", "Bulk CSV/Carrier Report Uploader", "Full CRM Integration Sync", "LIS & Gap Opportunity Scanner"],
-      highlight: true,
-      planId: "agency-pro"
-    },
-    {
-      name: "Premier",
-      price: "$399",
-      yearly: "$3,990",
-      desc: "For Large Agencies & Call Centers",
-      features: ["Unlimited Active Members", "Multi-Agent Performance Dashboard", "Dedicated Account Manager", "Enterprise BAA & Audit Logging"],
-      planId: "enterprise"
-    }
-  ]
-
-  const startDemoMode = async () => {
-    setLoading(true)
-    const auth = getAuth()
-    try {
-      await signInAnonymously(auth)
-      // Set trial as initialized for demo mode to bypass redirection
-      updateAgencyProfile({ isTrialInitialized: true })
-      importFromGHL(12)
-      toast({ title: "Demo Mode Ready", description: "Launching sandbox with simulated carrier data..." })
-      router.push('/dashboard')
-    } catch (error: any) {
-      toast({ variant: "destructive", title: "Demo Initialization Failed", description: error.message })
-    } finally {
-      setLoading(false)
-    }
-  }
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground selection:bg-primary/10 scroll-smooth overflow-y-auto">
       {/* Navigation */}
-      <header className="h-20 border-b border-border/50 px-8 flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur-xl z-50">
+      <header className="h-16 md:h-20 border-b border-border/50 px-4 md:px-8 flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur-xl z-50">
         <div className="flex items-center gap-10">
           <Link href="/">
             <Logo />
@@ -108,8 +44,6 @@ export default function LandingPage() {
           <nav className="hidden md:flex items-center gap-8">
             <Link href="#features" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors">Features</Link>
             <Link href="#pricing" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors">Pricing</Link>
-            <Link href="#reviews" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors">Reviews</Link>
-            <Link href="/docs" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors">Docs</Link>
           </nav>
         </div>
         <div className="flex items-center gap-4">
@@ -125,20 +59,17 @@ export default function LandingPage() {
 
       <main className="flex-1">
         {/* Hero Section */}
-        <section id="hero" className="relative py-20 md:py-32 px-8">
-          <div className="max-w-7xl mx-auto bg-slate-950 rounded-[4rem] p-12 md:p-32 text-center space-y-10 border border-white/5 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.5)]">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-xs font-black uppercase tracking-widest border border-primary/20 mb-4">
-              <Zap size={14} className="fill-primary" /> {t('landing.badge')}
-            </div>
-            <h1 className="text-6xl md:text-9xl font-black tracking-tighter leading-[0.85] text-white">
-              {t('landing.heroTitle')}
+        <section id="hero" className="relative py-12 md:py-32 px-4 md:px-8">
+          <div className="max-w-7xl mx-auto bg-slate-950 rounded-[2.5rem] md:rounded-[4rem] p-8 md:p-32 text-center space-y-8 border border-white/5 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.5)]">
+            <h1 className="text-4xl sm:text-6xl md:text-9xl font-black tracking-tighter leading-[0.9] md:leading-[0.85] text-white">
+              Protect Your Book.<br />Retain Every Client.
             </h1>
-            <p className="text-xl md:text-2xl text-slate-400 font-medium leading-relaxed max-w-3xl mx-auto mb-12">
-              {t('landing.heroSubtitle')}
+            <p className="text-base sm:text-xl md:text-2xl text-slate-300 font-medium leading-relaxed max-w-3xl mx-auto mb-8">
+              AegisSage monitors your Medicare book of business, automates VCC chronic illness forms directly to your clients&apos; doctors, and legally secures your broker-client relationships with carriers &mdash; so you never lose a client to a silent plan switch.
             </p>
-            <div className="flex flex-wrap justify-center gap-6">
-              <Button size="lg" asChild className="h-20 px-16 rounded-[2.5rem] text-xl font-black shadow-2xl shadow-primary/30 transition-all hover:scale-105 bg-primary hover:bg-primary/90 text-white">
-                <Link href="/signup">{t('common.trial')}</Link>
+            <div className="flex justify-center">
+              <Button size="lg" asChild className="w-full sm:w-auto h-14 md:h-20 px-8 md:px-16 rounded-[2rem] md:rounded-[2.5rem] text-base md:text-xl font-black shadow-2xl shadow-primary/30 transition-all hover:scale-105 bg-primary hover:bg-primary/90 text-white">
+                <Link href="/signup">Start Free Trial</Link>
               </Button>
             </div>
           </div>
@@ -146,46 +77,15 @@ export default function LandingPage() {
 
         <ComplianceShield />
 
-        {/* 6 Core Demos */}
+        {/* Features Section */}
         <section id="features" className="py-32 px-8 max-w-7xl mx-auto space-y-24">
           <div className="text-center space-y-4 max-w-2xl mx-auto">
             <h2 className="text-5xl font-black uppercase tracking-tighter">Retention <span className="text-primary">Intelligence</span></h2>
-            <p className="text-muted-foreground font-black uppercase tracking-widest text-xs">Six clinical grade modules designed to protect your agency's renewal revenue.</p>
+            <p className="text-muted-foreground font-black uppercase tracking-widest text-xs">Three core modules designed to protect your agency&apos;s renewal revenue.</p>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {[
-              { 
-                title: 'MARx Switch Detection', 
-                desc: 'Instantly detect carrier switches via nightly snapshot polls from CMS. Catch "stealth" disenrollements within 24 hours.', 
-                icon: Activity, 
-                demo: 'Detected Switch: Member #9KL2 moved to Clover Health. Alert sent.' 
-              },
-              { 
-                title: 'EDI Operations', 
-                desc: 'Secure X12 handshakes via Stedi Core for real-time eligibility checks and enrollment validation.', 
-                icon: Terminal,
-                demo: 'Stedi 270/271 Handshake: Medicare Eligibility Verified in 42ms.'
-              },
-              { 
-                title: 'SSBCI Fax Automation', 
-                desc: 'Auto-verify chronic conditions with PCP offices via secure SageStream clinical fax bridge.', 
-                icon: Printer,
-                demo: 'Fax Sent: SSBCI Condition Form transmitted to NPI-99201.'
-              },
-              { 
-                title: 'LIS Gap Analysis', 
-                desc: 'Scan your roster for members eligible for LIS/Extra Help. Increase loyalty by saving them $5,000+/yr.', 
-                icon: Search,
-                demo: 'Audit: 14 members identified for Low Income Subsidy eligibility.'
-              },
-              { 
-                title: 'AEP Shield Orchestrator', 
-                desc: 'Orchestrate loyalty campaigns and preference mapping (SMS/Mail) before high-churn windows.', 
-                icon: ShieldPlus,
-                demo: 'AEP Shield: 98% Protection Score active. Loyalty triggers locked.'
-              },
-            ].map((feature, i) => (
+            {FEATURES.map((feature, i) => (
               <Card key={i} className="p-10 rounded-[3rem] border border-border space-y-8 hover:border-primary/30 transition-all group bg-card shadow-sm">
                 <div className="w-16 h-16 rounded-2xl bg-primary/5 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all shadow-inner">
                   <feature.icon className="w-8 h-8" />
@@ -210,85 +110,106 @@ export default function LandingPage() {
 
         {/* Pricing Section */}
         <section id="pricing" className="py-32 px-8 bg-slate-50 border-y border-border/50">
-          <div className="max-w-7xl mx-auto space-y-20">
+          <div className="max-w-4xl mx-auto space-y-16">
             <div className="text-center space-y-4">
-              <h2 className="text-5xl font-black uppercase tracking-tighter text-black">Agency <span className="text-primary">Pricing</span></h2>
-              <p className="text-black font-black uppercase tracking-widest text-xs opacity-70">Clinical Grade Retention Plans for Agencies of all sizes.</p>
+              <h2 className="text-5xl font-black uppercase tracking-tighter text-black">Simple <span className="text-primary">Pricing</span></h2>
+              <p className="text-slate-700 font-black uppercase tracking-widest text-xs">Two plans. No hidden fees. Start your free trial today.</p>
             </div>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              {pricingTiers.map((tier, i) => (
-                <Card key={i} className={cn(
-                  "rounded-[3.5rem] border p-10 flex flex-col justify-between transition-all bg-white",
-                  tier.highlight ? "ring-2 ring-primary shadow-2xl scale-105" : "border-border shadow-sm hover:border-primary/30"
-                )}>
-                  <div>
-                    <div className="flex justify-between items-start mb-8">
-                      <h3 className="text-2xl font-black uppercase tracking-tighter text-black">{tier.name}</h3>
-                      {tier.highlight && <Badge className="rounded-lg font-black uppercase text-[10px] px-3 py-1 bg-primary text-white">Most Popular</Badge>}
-                    </div>
-                    <div className="mb-8">
-                      <div className="flex items-baseline gap-1">
-                        <span className="text-6xl font-black tracking-tighter text-black">{tier.price}</span>
-                        <span className="text-sm font-bold text-black uppercase opacity-60">/MO</span>
-                      </div>
-                      <p className="text-[10px] font-bold text-primary uppercase mt-2 tracking-widest">OR {tier.yearly} / YEAR</p>
-                    </div>
-                    <p className="text-sm font-bold text-black mb-10 uppercase leading-snug opacity-80">{tier.desc}</p>
-                    <div className="space-y-5 mb-10">
-                      {tier.features.map((f, j) => (
-                        <div key={j} className="flex items-center gap-4 text-xs font-black text-black uppercase tracking-tight">
-                          <CheckCircle2 size={16} className="text-primary shrink-0" />
-                          <span>{f}</span>
-                        </div>
-                      ))}
-                    </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {/* Broker Plan */}
+              <Card className="rounded-[3.5rem] border border-border p-10 flex flex-col justify-between transition-all bg-white shadow-sm hover:border-primary/30">
+                <div>
+                  <h3 className="text-2xl font-black uppercase tracking-tighter text-black mb-2">Broker</h3>
+                  <div className="flex items-baseline gap-1 mb-6">
+                    <span className="text-6xl font-black tracking-tighter text-black">$79</span>
+                    <span className="text-sm font-bold text-black uppercase opacity-60">/mo</span>
                   </div>
-                  <Button asChild className="w-full h-16 rounded-3xl font-black uppercase text-xs tracking-widest shadow-xl bg-slate-900 text-white hover:bg-primary transition-all">
-                    <Link href={`/signup?plan=${tier.planId}`}>Start Trial</Link>
-                  </Button>
-                </Card>
-              ))}
+                  <div className="space-y-4 mb-10">
+                    {[
+                      '1 broker seat',
+                      'My Book view',
+                      'VCC Forms',
+                      'Churn alerts',
+                      'GHL connect',
+                    ].map((f, i) => (
+                      <div key={i} className="flex items-center gap-4 text-xs font-black text-black uppercase tracking-tight">
+                        <CheckCircle2 size={16} className="text-primary shrink-0" />
+                        <span>{f}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <Button asChild className="w-full h-16 rounded-3xl font-black uppercase text-xs tracking-widest shadow-xl bg-slate-900 text-white hover:bg-primary transition-all">
+                  <Link href="/signup?plan=broker">Start Free Trial</Link>
+                </Button>
+              </Card>
+
+              {/* Agency/Owner Plan */}
+              <Card className="rounded-[3.5rem] border-0 ring-2 ring-primary p-10 flex flex-col justify-between transition-all bg-white shadow-2xl scale-[1.02]">
+                <div>
+                  <div className="flex items-start justify-between mb-2">
+                    <h3 className="text-2xl font-black uppercase tracking-tighter text-black">Agency / Owner</h3>
+                  </div>
+                  <div className="flex items-baseline gap-1 mb-6">
+                    <span className="text-6xl font-black tracking-tighter text-black">$497</span>
+                    <span className="text-sm font-bold text-black uppercase opacity-60">/mo</span>
+                  </div>
+                  <div className="space-y-4 mb-10">
+                    {[
+                      '1 owner + 3 managers',
+                      'Full agency view',
+                      'Master roster import',
+                      'Revenue-at-risk view',
+                      'Compliance vault',
+                      'Broker performance',
+                    ].map((f, i) => (
+                      <div key={i} className="flex items-center gap-4 text-xs font-black text-black uppercase tracking-tight">
+                        <CheckCircle2 size={16} className="text-primary shrink-0" />
+                        <span>{f}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <Button asChild className="w-full h-16 rounded-3xl font-black uppercase text-xs tracking-widest shadow-xl bg-primary text-white hover:bg-primary/90 transition-all">
+                  <Link href="/signup?plan=agency">Start Free Trial</Link>
+                </Button>
+              </Card>
             </div>
           </div>
         </section>
-
-        {/* Social Proof */}
-        <section id="reviews" className="py-32 bg-slate-950 text-white px-8">
-          <div className="max-w-7xl mx-auto grid lg:grid-cols-2 gap-20 items-center">
-            <div className="space-y-10">
-              <Quote className="text-primary mb-8 w-20 h-20 opacity-50" />
-              <h2 className="text-6xl font-black tracking-tight leading-[0.9] uppercase tracking-tighter">
-                Trusted by 450+ <br/>Independent Agencies.
-              </h2>
-              <div className="flex gap-16">
-                <div>
-                  <p className="text-5xl font-black text-primary mb-2">$22M</p>
-                  <p className="text-slate-400 font-bold text-[10px] uppercase tracking-[0.2em]">Commissions Saved</p>
-                </div>
-                <div>
-                  <p className="text-5xl font-black text-primary mb-2">94%</p>
-                  <p className="text-slate-400 font-bold text-[10px] uppercase tracking-[0.2em]">Avg. Retention Rate</p>
-                </div>
-              </div>
-            </div>
+        {/* Contact Section */}
+        <section id="contact" className="py-32 px-8 max-w-7xl mx-auto">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
             <div className="space-y-8">
-              {reviews.map((rev, i) => (
-                <div key={i} className="bg-white/5 border border-white/10 p-12 rounded-[3.5rem] backdrop-blur-xl hover:bg-white/10 transition-all">
-                  <div className="flex gap-1 mb-8">
-                    {[...Array(rev.rating)].map((_, j) => <Star key={j} size={18} className="fill-primary text-primary" />)}
-                  </div>
-                  <p className="text-2xl font-medium leading-relaxed mb-10 italic text-slate-200">"{rev.text}"</p>
-                  <div className="flex items-center gap-5">
-                    <div className="w-14 h-14 bg-primary rounded-full flex items-center justify-center font-black text-xl">
-                      {rev.name[0]}
-                    </div>
-                    <div>
-                      <p className="font-black text-xl text-white uppercase tracking-tight">{rev.name}</p>
-                      <p className="text-primary text-[10px] font-black uppercase tracking-[0.2em] mt-1">{rev.role}</p>
-                    </div>
-                  </div>
-                </div>
-              ))}
+              <div className="space-y-4">
+                <h2 className="text-5xl font-black uppercase tracking-tighter text-black">
+                  Ready to <span className="text-primary">protect</span> your book?
+                </h2>
+                <p className="text-muted-foreground font-bold text-sm uppercase tracking-widest">
+                  Start your free trial today. No credit card required.
+                </p>
+              </div>
+              <Button asChild size="lg"
+                className="h-16 px-12 rounded-3xl font-black uppercase text-sm tracking-widest shadow-xl bg-primary text-white hover:bg-primary/90 transition-all hover:scale-105">
+                <Link href="/signup">Start Free Trial</Link>
+              </Button>
+            </div>
+            <div className="space-y-6">
+              <div className="space-y-2">
+                <h3 className="text-2xl font-black uppercase tracking-tight text-black">Get in Touch</h3>
+                <p className="text-muted-foreground font-bold text-sm">
+                  Questions before you sign up? We&apos;d love to hear from you.
+                </p>
+              </div>
+              <a
+                href="mailto:hello@aegissage.com"
+                className="inline-block text-xl font-black text-primary hover:text-primary/80 transition-colors"
+              >
+                hello@aegissage.com
+              </a>
+              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">
+                We typically respond within one business day.
+              </p>
             </div>
           </div>
         </section>
@@ -299,14 +220,14 @@ export default function LandingPage() {
         <div className="flex items-center justify-center gap-3 mb-10">
           <Logo />
         </div>
-        <p className="text-slate-400 text-sm font-bold uppercase tracking-widest mb-4">© 2026 AegisSage Intelligence Inc. HIPAA Compliant.</p>
+        <p className="text-slate-400 text-sm font-bold uppercase tracking-widest mb-4">&copy; 2026 AegisSage Intelligence Inc. HIPAA Compliant.</p>
         <p className="text-slate-500 text-[10px] font-bold leading-relaxed max-w-2xl mx-auto mb-10">
           Notice: For licensed Medicare agents who are the Agent of Record only. AegisSage is not affiliated with CMS or any government agency.
         </p>
-        <div className="flex justify-center gap-10 text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">
-          <Link href="/policy" className="hover:text-primary transition-colors">Privacy Policy</Link>
+        <div className="flex flex-wrap justify-center gap-8 text-[10px] font-black text-slate-500 uppercase tracking-[0.3em]">
+          <Link href="/privacy" className="hover:text-primary transition-colors">Privacy Policy</Link>
           <Link href="/terms" className="hover:text-primary transition-colors">Terms of Service</Link>
-          <Link href="/docs/baa-agreement" className="hover:text-primary transition-colors">BAA Agreement</Link>
+          <Link href="/baa" className="hover:text-primary transition-colors">BAA Agreement</Link>
         </div>
       </footer>
     </div>

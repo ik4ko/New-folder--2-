@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useAppStore } from "@/lib/store"
 import { Button } from "@/components/ui/button"
@@ -32,7 +32,7 @@ const TUTORIALS = {
   retention: [
     {
       title: "The Retention Playbook",
-      desc: "Retention isn't a defensive task—it's offensive. We protect your $600/yr commission per member through autonomous monitoring.",
+      desc: "Retention isn't a defensive task--it's offensive. We protect your $600/yr commission per member through autonomous monitoring.",
       icon: ShieldCheck,
     },
     {

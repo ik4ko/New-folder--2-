@@ -2,7 +2,7 @@
 
 import React, { useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
-import { auth } from '@/lib/firebase';
+import { createClient } from '@/lib/supabase/client';
 import { processCsvIngestion } from '@/app/actions/ingest';
 
 import { Card, CardContent } from '@/components/ui/card';
@@ -42,14 +42,14 @@ export default function UploadPage() {
       if (lines.length < 2) throw new Error('File is empty or missing data rows.');
 
       const headers = lines[0].split(',').map(h => h.trim().toLowerCase());
-      
+
       const hasPlanId = headers.includes('plan_id') || headers.includes('new_plan_id');
       if (!headers.includes('mbi_number') || !headers.includes('effective_date') || !hasPlanId) {
         throw new Error('Missing mandatory headers. Required: mbi_number, effective_date, plan_id (or new_plan_id).');
       }
 
       const getIdx = (field: string) => headers.indexOf(field);
-      
+
       const payload = lines.slice(1).map(line => {
         const cols = line.split(',').map(c => c.trim());
         const planIdIdx = getIdx('plan_id') >= 0 ? getIdx('plan_id') : getIdx('new_plan_id');
@@ -59,26 +59,36 @@ export default function UploadPage() {
           effective_date: cols[getIdx('effective_date')] || '',
           date_of_birth: getIdx('date_of_birth') >= 0 ? cols[getIdx('date_of_birth')] : '',
           phone_number: getIdx('phone_number') >= 0 ? cols[getIdx('phone_number')] : '',
-          source: 'csv_upload'
+          source: 'csv_upload',
         };
       }).filter(row => row.mbi_number && row.plan_id);
 
-      const agencyId = auth.currentUser?.uid;
-      const brokerId = auth.currentUser?.uid;
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) throw new Error('User not authenticated. Please log in.');
 
-      if (!agencyId || !brokerId) {
-        throw new Error('User not authenticated. Please log in.');
-      }
+      const { data: agency } = await supabase
+        .from('agencies')
+        .select('id')
+        .eq('owner_id', user.id)
+        .maybeSingle();
 
-      const result = await processCsvIngestion(agencyId, brokerId, payload);
-      
-      toast({ 
-        title: 'Ingestion Complete', 
-        description: `Successfully updated ${result.updated} members. Detected ${result.highRisk} High-Risk switches.` 
+      const { data: broker } = await supabase
+        .from('brokers')
+        .select('id')
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (!agency || !broker) throw new Error('Agency or broker record not found.');
+
+      const result = await processCsvIngestion(agency.id, broker.id, payload);
+
+      toast({
+        title: 'Ingestion Complete',
+        description: `Successfully updated ${result.updated} members. Detected ${result.highRisk} High-Risk switches.`,
       });
 
       router.push('/dashboard');
-      
     } catch (e: any) {
       toast({ variant: 'destructive', title: 'Upload Failed', description: e.message });
     } finally {
@@ -95,7 +105,7 @@ export default function UploadPage() {
       </div>
 
       <Card className={`border-dashed border-2 transition-all duration-300 ${isDragging ? 'border-primary bg-primary/10 scale-[1.02]' : 'border-primary/20 bg-primary/5'} rounded-[2.5rem]`}>
-        <CardContent 
+        <CardContent
           className="flex flex-col items-center justify-center p-12 md:p-24 text-center"
           onDragOver={(e) => { e.preventDefault(); setIsDragging(true); }}
           onDragLeave={() => setIsDragging(false)}
@@ -111,17 +121,17 @@ export default function UploadPage() {
               <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center text-primary mb-6">
                 <UploadCloud className="w-10 h-10" />
               </div>
-              <h3 className="text-xl font-black uppercase tracking-tight mb-2">Drag & Drop CSV</h3>
+              <h3 className="text-xl font-black uppercase tracking-tight mb-2">Drag &amp; Drop CSV</h3>
               <p className="text-sm font-bold text-muted-foreground mb-8">Ensure headers match: mbi_number, effective_date, plan_id</p>
-              
-              <input 
-                type="file" 
-                accept=".csv" 
-                className="hidden" 
-                ref={fileInputRef} 
-                onChange={handleFileChange} 
+
+              <input
+                type="file"
+                accept=".csv"
+                className="hidden"
+                ref={fileInputRef}
+                onChange={handleFileChange}
               />
-              <Button 
+              <Button
                 onClick={() => fileInputRef.current?.click()}
                 className="h-12 px-8 rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-primary/20"
               >
@@ -131,7 +141,7 @@ export default function UploadPage() {
           )}
         </CardContent>
       </Card>
-      
+
       <div className="bg-amber-500/10 border border-amber-500/20 rounded-2xl p-4 flex gap-4 items-start max-w-3xl">
         <AlertTriangle className="w-5 h-5 text-amber-500 shrink-0" />
         <div>
