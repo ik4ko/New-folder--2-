@@ -81,7 +81,9 @@ export interface SwitchAlertEmailParams {
 
 export function switchAlertEmail(p: SwitchAlertEmailParams): { subject: string; html: string } {
   const alertLabel = p.alertType === 'missing_from_roster' ? 'Missing From Roster' : 'New Enrollment'
-  const subject = `[AegisSage] Alert: ${p.clientName} — ${alertLabel}`
+  const subject = p.alertType === 'missing_from_roster'
+    ? `⚠️ ${p.clientName} may have switched plans — act now`
+    : `[AegisSage] Alert: ${p.clientName} — ${alertLabel}`
 
   const body = `
     ${badge(alertLabel, '#f59e0b')}

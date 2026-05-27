@@ -8,22 +8,51 @@ import { createServiceClient } from '@/lib/supabase/service'
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.aegissage.com'
 
 // ── 1. Switch Alerts ───────────────────────────────────────────────────────
-// Called after diffRosterAgainstGHL — sends one email per broker per upload
+// Called after extension sync detects missing members — fires per-switch emails
 
 export async function notifyNewSwitchAlerts(uploadId: string, agencyId: string): Promise<void> {
+  if (!process.env.RESEND_API_KEY?.startsWith('re_')) return
+
   try {
     const supabase = createServiceClient()
 
-    // Fetch only critical (missing_from_roster) alerts for this upload
     const { data: alerts } = await supabase
       .from('switch_alerts')
-      .select('id, broker_id, ghl_contact_id, carrier, alert_type')
+      .select('id, broker_id, bob_member_id, ghl_contact_id, carrier, alert_type')
       .eq('upload_id', uploadId)
       .eq('agency_id', agencyId)
       .eq('alert_type', 'missing_from_roster')
       .eq('status', 'open')
 
     if (!alerts?.length) return
+
+    // Batch-fetch member names from book_of_business (extension syncs use bob_member_id)
+    const bobIds = [...new Set(alerts.map(a => a.bob_member_id).filter(Boolean))] as string[]
+    const { data: bobMembers } = await supabase
+      .from('book_of_business')
+      .select('id, full_name')
+      .in('id', bobIds)
+
+    const bobNameMap = new Map((bobMembers ?? []).map(m => [m.id, m.full_name ?? 'Unknown']))
+
+    // Fall back to ghl_contacts for legacy alerts (non-extension syncs)
+    const legacyContactIds = alerts
+      .filter(a => !a.bob_member_id)
+      .map(a => a.ghl_contact_id)
+      .filter(Boolean)
+    let ghlNameMap = new Map<string, string>()
+    if (legacyContactIds.length > 0) {
+      const { data: contacts } = await supabase
+        .from('ghl_contacts')
+        .select('ghl_contact_id, full_name')
+        .in('ghl_contact_id', legacyContactIds)
+      ghlNameMap = new Map((contacts ?? []).map(c => [c.ghl_contact_id, c.full_name ?? 'Unknown']))
+    }
+
+    const getClientName = (a: typeof alerts[0]) =>
+      (a.bob_member_id && bobNameMap.get(a.bob_member_id)) ||
+      (a.ghl_contact_id && ghlNameMap.get(a.ghl_contact_id)) ||
+      'Unknown Client'
 
     // Group by broker_id
     const byBroker = new Map<string, typeof alerts>()
@@ -42,25 +71,17 @@ export async function notifyNewSwitchAlerts(uploadId: string, agencyId: string):
 
       if (!broker?.email) continue
 
-      // Fetch contact names in batch
-      const contactIds = brokerAlerts.map(a => a.ghl_contact_id)
-      const { data: contacts } = await supabase
-        .from('ghl_contacts')
-        .select('ghl_contact_id, full_name')
-        .in('ghl_contact_id', contactIds)
-
-      const nameMap = new Map((contacts ?? []).map(c => [c.ghl_contact_id, c.full_name ?? 'Unknown']))
-
       const brokerName = `${broker.first_name} ${broker.last_name}`
 
-      // Send one email per alert (up to 5) to avoid overwhelming
+      // Send one immediate email per alert (up to 5)
       for (const alert of brokerAlerts.slice(0, 5)) {
+        const clientName = getClientName(alert)
         const { subject, html } = switchAlertEmail({
           brokerName,
-          clientName: nameMap.get(alert.ghl_contact_id) ?? 'Unknown Client',
+          clientName,
           carrier: alert.carrier ?? 'Unknown Carrier',
           alertType: alert.alert_type,
-          dashboardUrl: `${APP_URL}/dashboard/churn`,
+          dashboardUrl: `${APP_URL}/dashboard/alerts`,
         })
 
         await getResend().emails.send({
@@ -71,14 +92,14 @@ export async function notifyNewSwitchAlerts(uploadId: string, agencyId: string):
         })
       }
 
-      // If more than 5, send a summary
+      // Summary email if more than 5 alerts
       if (brokerAlerts.length > 5) {
         const { subject, html } = switchAlertEmail({
           brokerName,
           clientName: `${brokerAlerts.length} clients`,
           carrier: brokerAlerts[0]?.carrier ?? 'Multiple Carriers',
           alertType: 'missing_from_roster',
-          dashboardUrl: `${APP_URL}/dashboard/churn`,
+          dashboardUrl: `${APP_URL}/dashboard/alerts`,
         })
         await getResend().emails.send({ from: FROM_EMAIL, to: broker.email, subject, html })
       }
@@ -198,6 +219,169 @@ export async function sendTeamInviteEmail(params: {
     })
   } catch (err) {
     console.error('[sendTeamInviteEmail]', err)
+  }
+}
+
+// ── 5b. MARx Switch Alert (immediate, per-client) ─────────────────────────
+// Called by /api/marx/verify when a change is confirmed via CMS MARx lookup.
+
+export async function sendSwitchAlertEmail(
+  toEmail: string,
+  data: {
+    memberName: string
+    carrier: string
+    switchType: string
+    planCode: string
+    previousPlanCode: string
+    planName: string
+    futurePlanName?: string
+    futureEffectiveDate?: string
+    endDate?: string
+    detectedVia: string
+    alertUrl: string
+  }
+): Promise<void> {
+  if (!process.env.RESEND_API_KEY?.startsWith('re_')) {
+    console.warn('[email] Resend key not configured — skipping MARx alert email')
+    return
+  }
+
+  let subject: string
+  let body: string
+
+  if (data.switchType === 'future_plan_change') {
+    subject = `⏰ ACTION REQUIRED — ${data.memberName} switching plans ${data.futureEffectiveDate}`
+    body = `AegisSage detected an upcoming plan change for one of your clients.
+
+Client: ${data.memberName}
+Current: ${data.previousPlanCode}
+Incoming: ${data.futurePlanName ?? data.planCode}
+Effective Date: ${data.futureEffectiveDate}
+Carrier: ${data.carrier}
+Detected via: ${data.detectedVia}
+
+${data.memberName} has an upcoming plan change effective ${data.futureEffectiveDate}. You still have time to reach out.
+
+View alert and take action:
+${data.alertUrl}`
+  } else if (data.switchType === 'termed') {
+    subject = `🚨 ${data.memberName} has left Medicare Advantage`
+    body = `AegisSage detected that a client no longer has an active Medicare Advantage plan.
+
+Client: ${data.memberName}
+Previous Plan: ${data.previousPlanCode}
+Carrier: ${data.carrier}
+Detected via: ${data.detectedVia}
+
+${data.memberName} no longer has an active Medicare Advantage plan as of today. They may have disenrolled, switched to Original Medicare, or passed away.
+
+View alert and take action:
+${data.alertUrl}`
+  } else {
+    // plan_change, carrier_switch, active_changed
+    subject = `⚠️ ${data.memberName} — Plan Change Detected`
+    body = `AegisSage detected a plan change for one of your clients.
+
+Client: ${data.memberName}
+Previous: ${data.previousPlanCode}
+New: ${data.planCode}
+Carrier: ${data.carrier}
+Detected via: ${data.detectedVia}
+
+${data.memberName} has switched plans. They are still on Medicare Advantage.
+
+View alert and take action:
+${data.alertUrl}`
+  }
+
+  try {
+    await getResend().emails.send({
+      from: FROM_EMAIL,
+      to: toEmail,
+      subject,
+      text: body,
+    })
+  } catch (err) {
+    console.error('[sendSwitchAlertEmail]', err)
+  }
+}
+
+// ── 5a. Open Alert Notifications ──────────────────────────────────────────────
+// Called every cron run — finds open alerts with no notified_at, groups by broker,
+// sends one summary email per broker, then stamps notified_at on each alert.
+
+export async function notifyOpenAlerts(): Promise<void> {
+  if (!process.env.RESEND_API_KEY?.startsWith('re_')) return
+
+  try {
+    const supabase = createServiceClient()
+
+    const { data: alerts } = await supabase
+      .from('switch_alerts')
+      .select('id, agency_id, broker_id, bob_member_id, alert_type, switch_type, carrier, previous_plan_code, new_plan_code, previous_value, new_value')
+      .eq('status', 'open')
+      .is('notified_at', null)
+
+    if (!alerts?.length) return
+
+    const bobIds = [...new Set(alerts.map(a => a.bob_member_id).filter(Boolean))] as string[]
+    const { data: bobMembers } = await supabase
+      .from('book_of_business')
+      .select('id, full_name')
+      .in('id', bobIds)
+    const nameMap = new Map((bobMembers ?? []).map(m => [m.id, m.full_name ?? 'Unknown']))
+
+    const byBroker = new Map<string, typeof alerts>()
+    for (const a of alerts) {
+      if (!a.broker_id) continue
+      if (!byBroker.has(a.broker_id)) byBroker.set(a.broker_id, [])
+      byBroker.get(a.broker_id)!.push(a)
+    }
+
+    const now = new Date().toISOString()
+
+    for (const [brokerId, brokerAlerts] of byBroker) {
+      const { data: broker } = await supabase
+        .from('brokers')
+        .select('first_name, last_name, email')
+        .eq('id', brokerId)
+        .maybeSingle()
+
+      if (!broker?.email) continue
+
+      const alertLines = brokerAlerts.map(a => {
+        const name = nameMap.get(a.bob_member_id ?? '') ?? 'Unknown Client'
+        const prev = a.previous_plan_code ?? a.previous_value ?? 'Unknown'
+        const next = a.new_plan_code ?? a.new_value ?? 'Unknown'
+        const carrier = a.carrier ?? 'Unknown'
+        if (a.alert_type === 'termed' || a.switch_type === 'termed') {
+          return `• ${name} — No longer on Medicare Advantage (was: ${carrier} ${prev})`
+        }
+        if (a.alert_type === 'aor_change') {
+          return `• ${name} — AOR change detected (may have switched brokers) — ${carrier}`
+        }
+        return `• ${name} — Plan switch: ${prev} → ${next} (${carrier})`
+      }).join('\n')
+
+      const count = brokerAlerts.length
+      const subject = `⚠️ AegisSage — ${count} client${count > 1 ? 's' : ''} need${count === 1 ? 's' : ''} attention`
+      const html = `
+<p>Hi ${broker.first_name},</p>
+<p>AegisSage detected the following changes in your book of business:</p>
+<pre style="font-family:monospace;background:#f4f4f4;padding:16px;border-radius:8px;white-space:pre-wrap">${alertLines}</pre>
+<p><a href="${APP_URL}/dashboard/alerts" style="background:#6366f1;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:bold">View All Alerts →</a></p>
+<p style="color:#888;font-size:12px">AegisSage Medicare Retention Platform</p>`
+
+      await getResend().emails.send({ from: FROM_EMAIL, to: broker.email, subject, html })
+
+      const alertIds = brokerAlerts.map(a => a.id)
+      await supabase
+        .from('switch_alerts')
+        .update({ notified_at: now, notification_email: broker.email })
+        .in('id', alertIds)
+    }
+  } catch (err) {
+    console.error('[notifyOpenAlerts]', err)
   }
 }
 

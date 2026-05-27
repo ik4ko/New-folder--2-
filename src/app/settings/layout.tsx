@@ -5,41 +5,27 @@ import { useAppStore, initializeStore } from "@/lib/store"
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import {
-  Building2, Users2, Briefcase,
-  ShieldAlert, CreditCard, ShieldCheck,
+  CreditCard,
   PanelLeftClose, PanelLeft,
   User, Link2, Bell,
 } from "lucide-react"
-import { usePathname, useRouter } from "next/navigation"
+import { usePathname } from "next/navigation"
 import { useEffect } from "react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
-import { useRole } from "@/hooks/useRole"
+
+const SETTINGS_ITEMS = [
+  { id: "profile",       label: "My Profile",       icon: User,      href: "/settings/profile" },
+  { id: "ghl-connect",   label: "GoHighLevel CRM",  icon: Link2,     href: "/settings/ghl-connect" },
+  { id: "notifications", label: "Notifications",    icon: Bell,      href: "/settings/notifications" },
+  { id: "billing",       label: "Plan & Billing",   icon: CreditCard, href: "/settings/billing" },
+]
 
 function SettingsSidebar() {
   const pathname = usePathname()
   const { isSidebarOpen, toggleSidebar } = useAppStore()
-  const { isPrincipal, isCS, isStaff, loading: roleLoading } = useRole()
 
-  const ALL_ITEMS = [
-    { id: "identity",      label: "Agency Identity",   icon: Building2,   href: "/settings/identity",      principalOnly: true,  brokerOnly: false },
-    { id: "team",          label: "Team & Splits",     icon: Users2,      href: "/settings/team",          principalOnly: true,  brokerOnly: false },
-    { id: "carriers",      label: "Carrier Contracts", icon: Briefcase,   href: "/settings/carriers",      principalOnly: true,  brokerOnly: false },
-    { id: "security",      label: "Security",           icon: ShieldAlert, href: "/settings/security",      principalOnly: false, brokerOnly: false },
-    { id: "billing",       label: "Plan & Billing",    icon: CreditCard,  href: "/settings/billing",       principalOnly: false, brokerOnly: false },
-    { id: "compliance",    label: "Compliance Logs",   icon: ShieldCheck, href: "/settings/compliance",    principalOnly: true,  brokerOnly: false },
-    { id: "profile",       label: "My Profile",        icon: User,        href: "/settings/profile",       principalOnly: false, brokerOnly: true },
-    { id: "ghl-connect",   label: "GHL Connection",    icon: Link2,       href: "/settings/ghl-connect",   principalOnly: false, brokerOnly: true },
-    { id: "notifications", label: "Notifications",     icon: Bell,        href: "/settings/notifications", principalOnly: false, brokerOnly: true },
-  ]
-
-  const menuItems = roleLoading
-    ? ALL_ITEMS
-    : ALL_ITEMS.filter(item => {
-        if (item.principalOnly && !isPrincipal && !isCS) return false
-        if (item.brokerOnly && isStaff) return false
-        return true
-      })
+  const menuItems = SETTINGS_ITEMS
 
   return (
     <aside className={cn(

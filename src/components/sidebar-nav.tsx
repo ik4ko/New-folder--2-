@@ -2,8 +2,8 @@
 
 import * as React from "react"
 import {
-  LayoutDashboard, Users, FileCheck, Radar, Megaphone, Brain,
-  UserPlus, Shield, Lock, Settings, LifeBuoy, LogOut,
+  LayoutDashboard, Users, FileCheck, Radar, Megaphone,
+  UserPlus, Shield, Lock, Settings, LifeBuoy, LogOut, Bell,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
@@ -18,16 +18,16 @@ import { useAppStore } from '@/lib/store'
 import { languages } from '@/lib/i18n'
 import { createClient } from '@/lib/supabase/client'
 
-type NavItem = { href: string; icon: React.ElementType; label: string; desc: string }
+type NavItem = { href: string; icon: React.ElementType; label: string; desc: string; badge?: number }
 
 const CORE_NAV: NavItem[] = [
-  { href: '/dashboard',              icon: LayoutDashboard, label: 'My Book',       desc: 'Your clients' },
-  { href: '/dashboard/retention',    icon: Users,           label: 'My Book',       desc: 'Your clients' },
-  { href: '/dashboard/churn',        icon: Radar,           label: 'Churn Monitor', desc: 'Plan change events' },
-  { href: '/dashboard/vcc',          icon: FileCheck,       label: 'VCC Forms',     desc: 'Doctor-signed carrier forms' },
-  { href: '/dashboard/campaigns',    icon: Megaphone,       label: 'Campaigns',     desc: 'Maya AI outreach campaigns' },
-  { href: '/dashboard/ai-retention', icon: Brain,           label: 'AI Retention',  desc: 'Scripts and AI check-ins' },
-  { href: '/dashboard/aor',          icon: Lock,            label: 'Aegis Lock',    desc: 'AOR fulfillment CMS-1696' },
+  { href: '/dashboard',              icon: LayoutDashboard, label: 'Dashboard',            desc: 'Real-time monitoring' },
+  { href: '/dashboard/book',         icon: Users,           label: 'Book of Business',     desc: 'Monitored clients' },
+  { href: '/dashboard/alerts',         icon: Bell,     label: 'Alerts',        desc: 'Switch & plan change alerts' },
+  { href: '/dashboard/churn/upload',  icon: Radar,    label: 'Upload Roster', desc: 'Upload roster CSV' },
+  { href: '/dashboard/vcc',           icon: FileCheck, label: 'VCC Forms',    desc: 'Doctor-signed carrier forms' },
+  { href: '/dashboard/campaigns',     icon: Megaphone, label: 'Campaigns',    desc: 'Maya AI outreach campaigns' },
+  { href: '/dashboard/aor',           icon: Lock,      label: 'Aegis Lock',   desc: 'AOR fulfillment CMS-1696' },
 ]
 
 const STAFF_MGMT_NAV: NavItem[] = [
@@ -40,27 +40,42 @@ const FOOTER_NAV: NavItem[] = [
 ]
 
 function NavLink({ item, isActive, isOpen }: { item: NavItem; isActive: boolean; isOpen: boolean }) {
+  const showBadge = (item.badge ?? 0) > 0
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Link
+        <a
           href={item.href}
           className={cn(
-            "flex items-center rounded-xl transition-all duration-150 group",
+            "flex items-center rounded-xl transition-all duration-150 group relative",
             isOpen ? "px-3 py-2.5 gap-3" : "justify-center py-3",
             isActive
               ? "bg-primary/10 text-primary font-bold shadow-sm"
               : "text-slate-400 hover:bg-white/5 hover:text-white"
           )}
         >
-          <item.icon className={cn(
-            "w-5 h-5 shrink-0",
-            isActive ? "text-primary" : "text-slate-400 group-hover:text-white"
-          )} />
+          <div className="relative shrink-0">
+            <item.icon className={cn(
+              "w-5 h-5",
+              isActive ? "text-primary" : "text-slate-400 group-hover:text-white"
+            )} />
+            {showBadge && !isOpen && (
+              <span className="absolute -top-1.5 -right-1.5 min-w-[14px] h-3.5 rounded-full bg-red-500 text-[8px] font-black text-white flex items-center justify-center px-0.5">
+                {(item.badge ?? 0) > 99 ? '99+' : item.badge}
+              </span>
+            )}
+          </div>
           {isOpen && (
-            <span className="text-[11px] font-bold uppercase tracking-widest truncate">{item.label}</span>
+            <>
+              <span className="text-[11px] font-bold uppercase tracking-widest truncate flex-1">{item.label}</span>
+              {showBadge && (
+                <span className="min-w-[18px] h-4 rounded-full bg-red-500 text-[8px] font-black text-white flex items-center justify-center px-1">
+                  {(item.badge ?? 0) > 99 ? '99+' : item.badge}
+                </span>
+              )}
+            </>
           )}
-        </Link>
+        </a>
       </TooltipTrigger>
       {!isOpen && (
         <TooltipContent side="right">
@@ -77,9 +92,10 @@ interface SidebarNavProps {
   role: string
   name: string
   email: string
+  criticalAlerts?: number
 }
 
-export function SidebarNav({ isStaff, role, name, email }: SidebarNavProps) {
+export function SidebarNav({ isStaff, role, name, email, criticalAlerts = 0 }: SidebarNavProps) {
   const pathname = usePathname()
   const router = useRouter()
   const isOpen = true
@@ -96,13 +112,11 @@ export function SidebarNav({ isStaff, role, name, email }: SidebarNavProps) {
       ? pathname === '/dashboard'
       : pathname?.startsWith(href) ?? false
 
-  const coreNav = CORE_NAV.map(item =>
-    item.href === '/dashboard/retention'
-      ? { ...item, label: isStaff ? 'All Clients' : 'My Book', desc: isStaff ? 'All agency contacts' : 'Your assigned contacts' }
-      : item.href === '/dashboard'
-        ? { ...item, label: 'Dashboard', desc: 'Real-time monitoring' }
-        : item
-  )
+  const coreNav = CORE_NAV.map(item => {
+    if (item.href === '/dashboard/alerts')
+      return { ...item, badge: criticalAlerts > 0 ? criticalAlerts : undefined }
+    return item
+  })
 
   const roleLabel =
     role === 'agency_owner' ? 'Owner'
@@ -120,9 +134,9 @@ export function SidebarNav({ isStaff, role, name, email }: SidebarNavProps) {
         {/* Brand */}
         <div className={cn("p-4 flex items-center shrink-0 h-16 border-b border-white/10", isOpen ? "justify-between" : "justify-center px-0")}>
           {isOpen ? (
-            <Link href="/dashboard" className="flex items-center gap-2">
+            <a href="/dashboard" className="flex items-center gap-2">
               <Logo className="scale-90" />
-            </Link>
+            </a>
           ) : (
             <Logo iconOnly className="scale-75" />
           )}

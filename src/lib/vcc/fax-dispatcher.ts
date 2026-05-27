@@ -1,4 +1,4 @@
-﻿export interface FaxResult {
+export interface FaxResult {
   success: boolean
   confirmationId?: string
   error?: string

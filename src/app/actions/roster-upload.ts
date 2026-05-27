@@ -6,6 +6,48 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { parseRosterFile, hashName, normalizeStr } from '@/lib/churn/roster-parser'
 import { diffRosterAgainstGHL } from '@/lib/churn/diff-engine'
 import { notifyNewSwitchAlerts } from '@/lib/email/send-notifications'
+import type { RosterRow } from '@/lib/churn/roster-parser'
+
+const CARRIER_DISPLAY: Record<string, string> = {
+  humana: 'Humana', uhc: 'UHC', clover: 'Clover',
+  aetna: 'Aetna', bcbs: 'BCBS', wellcare: 'Wellcare', cigna: 'Cigna',
+  devoted: 'Devoted Health', healthfirst: 'Health First',
+}
+
+function generateMemberId(name: string, carrier: string): string {
+  const normalized = (name ?? '').toLowerCase().trim().replace(/\s+/g, '_')
+  return carrier + '_' + normalized
+}
+
+async function upsertToBookOfBusiness(
+  rows: RosterRow[],
+  { agencyId, brokerId, userId, carrier }: { agencyId: string; brokerId: string | null; userId: string; carrier: string }
+) {
+  if (!brokerId) return
+  const supabaseAdmin = createServiceClient()
+  const now = new Date().toISOString()
+  const upserts = rows.map(r => ({
+    agency_id: agencyId,
+    broker_id: brokerId,
+    synced_by: userId,
+    carrier,
+    carrier_display_name: CARRIER_DISPLAY[carrier] ?? carrier,
+    member_id: r.member_id ?? generateMemberId(r.full_name, carrier),
+    full_name: r.full_name || null,
+    plan_name: r.plan_name ?? null,
+    plan_id: r.plan_id ?? null,
+    effective_date: r.effective_date ? parseDate(r.effective_date) : null,
+    status: 'active',
+    verification_status: 'verified',
+    last_verified_at: now,
+  }))
+  for (let i = 0; i < upserts.length; i += 500) {
+    const { error } = await supabaseAdmin
+      .from('book_of_business')
+      .upsert(upserts.slice(i, i + 500), { onConflict: 'broker_id,carrier,member_id', ignoreDuplicates: false })
+    if (error) console.error('[uploadRoster] book_of_business upsert error:', error.message)
+  }
+}
 
 export interface UploadResult {
   uploadId: string
@@ -138,6 +180,8 @@ export async function uploadRoster(formData: FormData): Promise<UploadResult> {
   }
 
   const diffResult = await diffRosterAgainstGHL(uploadId, agencyId, rows, carrier, brokerId ?? '')
+
+  await upsertToBookOfBusiness(rows, { agencyId, brokerId, userId: user.id, carrier })
 
   if (diffResult.alertCount > 0) {
     notifyNewSwitchAlerts(uploadId, agencyId).catch(() => {})
@@ -280,6 +324,7 @@ export async function routeMasterRoster(formData: FormData): Promise<RoutingResu
         }
 
         const diff = await diffRosterAgainstGHL(uploadRecord.id, agencyId, groupRows, carrier, matched.id)
+        await upsertToBookOfBusiness(groupRows, { agencyId, brokerId: matched.id, userId: user.id, carrier })
         totalAlerts += diff.alertCount
         if (diff.alertCount > 0) {
           notifyNewSwitchAlerts(uploadRecord.id, agencyId).catch(() => {})

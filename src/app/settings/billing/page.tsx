@@ -10,6 +10,7 @@ import {
   XCircle, RefreshCw, ArrowUpRight, Clock, Building2, Lock, Users, User, Shield,
 } from 'lucide-react'
 import Link from 'next/link'
+import { getCancelUrl } from '@/app/actions/billing'
 
 type BillingCase = 'owner' | 'staff_non_owner' | 'agency_broker' | 'solo_broker' | null
 
@@ -66,8 +67,16 @@ export default function BillingPage() {
   const [brokerCount, setBrokerCount] = useState(0)
   const [loading, setLoading] = useState(true)
   const [portalPending, startPortal] = useTransition()
+  const [cancelPending, startCancel] = useTransition()
   const [upgradePending, startUpgrade] = useTransition()
   const [upgradingPlan, setUpgradingPlan] = useState<string | null>(null)
+  const [cancelledBanner, setCancelledBanner] = useState(false)
+
+  useEffect(() => {
+    if (typeof window !== 'undefined' && window.location.search.includes('cancelled=true')) {
+      setCancelledBanner(true)
+    }
+  }, [])
 
   useEffect(() => {
     const supabase = createClient()
@@ -136,6 +145,15 @@ export default function BillingPage() {
     })
   }
 
+  const handleCancel = () => {
+    if (!confirm('Are you sure you want to cancel your subscription? Your access continues until the end of the billing period.')) return
+    startCancel(async () => {
+      const result = await getCancelUrl()
+      if (result.url) window.location.href = result.url
+      else alert(result.error ?? 'Could not open cancellation portal')
+    })
+  }
+
   const handleUpgrade = (plan: string) => {
     setUpgradingPlan(plan)
     startUpgrade(async () => {
@@ -178,6 +196,12 @@ export default function BillingPage() {
       <div className="flex flex-col h-full w-full">
         <PageHeader subtitle="Agency subscription & seats" />
         <div className="flex-1 overflow-y-auto p-8 max-w-3xl mx-auto w-full space-y-6 pb-32">
+          {cancelledBanner && (
+            <div className="rounded-2xl bg-amber-500/10 border border-amber-500/20 px-5 py-4">
+              <p className="text-amber-400 text-sm font-bold">Your subscription has been cancelled.</p>
+              <p className="text-amber-300/70 text-xs mt-1">Your access continues until {fmtDate(agency?.current_period_end) ?? 'end of billing period'}.</p>
+            </div>
+          )}
 
           <Card className="rounded-3xl border border-border shadow-sm">
             <CardContent className="p-8 space-y-6">
@@ -250,6 +274,17 @@ export default function BillingPage() {
                   </Button>
                 )}
               </div>
+              {hasSubscription && status !== 'cancelled' && (
+                <div className="flex justify-center pt-1">
+                  <button
+                    onClick={handleCancel}
+                    disabled={cancelPending}
+                    className="text-red-400/70 hover:text-red-400 text-[11px] font-bold transition-colors disabled:opacity-50"
+                  >
+                    {cancelPending ? 'Opening portal...' : 'Cancel Subscription'}
+                  </button>
+                </div>
+              )}
             </CardContent>
           </Card>
 
@@ -279,6 +314,12 @@ export default function BillingPage() {
       <div className="flex flex-col h-full w-full">
         <PageHeader subtitle="Your broker plan" />
         <div className="flex-1 overflow-y-auto p-8 max-w-2xl mx-auto w-full space-y-6 pb-32">
+          {cancelledBanner && (
+            <div className="rounded-2xl bg-amber-500/10 border border-amber-500/20 px-5 py-4">
+              <p className="text-amber-400 text-sm font-bold">Your subscription has been cancelled.</p>
+              <p className="text-amber-300/70 text-xs mt-1">Your access continues until {fmtDate(agency?.current_period_end) ?? 'end of billing period'}.</p>
+            </div>
+          )}
 
           <Card className="rounded-3xl border border-border shadow-sm">
             <CardContent className="p-8 space-y-5">
@@ -332,6 +373,17 @@ export default function BillingPage() {
                   </Button>
                 )}
               </div>
+              {hasSubscription && status !== 'cancelled' && (
+                <div className="flex justify-center pt-1">
+                  <button
+                    onClick={handleCancel}
+                    disabled={cancelPending}
+                    className="text-red-400/70 hover:text-red-400 text-[11px] font-bold transition-colors disabled:opacity-50"
+                  >
+                    {cancelPending ? 'Opening portal...' : 'Cancel Subscription'}
+                  </button>
+                </div>
+              )}
             </CardContent>
           </Card>
 

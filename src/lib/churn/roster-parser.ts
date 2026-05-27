@@ -22,15 +22,18 @@ export function hashName(name: string, dob?: string): string {
     .digest('hex')
 }
 
-// Carrier-specific column name maps
-const CARRIER_COLUMNS: Record<string, Record<string, string>> = {
+// Carrier-specific column name maps.
+// Values may be a single string or an array of fallback candidates
+// (first one found in the actual CSV headers wins).
+const CARRIER_COLUMNS: Record<string, Record<string, string | string[]>> = {
   humana: {
-    full_name:      'Member Name',
-    member_id:      'Member ID',
-    plan_name:      'Plan Name',
-    effective_date: 'Effective Date',
-    dob:            'Date of Birth',
-    status:         'Status',
+    // "All Columns" CSV export from Humana Vantage → Active Policies → Reports
+    full_name:      ['Name', 'Member Name', 'Client Name'],
+    member_id:      ['ID', 'Member ID', 'Policy Number'],
+    plan_name:      ['Plan Type', 'Plan Name', 'Product'],
+    effective_date: ['Effective Date', 'Eff Date'],
+    dob:            ['Date of Birth', 'DOB', 'Birth Date'],
+    status:         ['Status', 'Policy Status'],
   },
   uhc: {
     full_name:      'Full Name',
@@ -95,6 +98,20 @@ function extractValue(row: Record<string, unknown>, col: string | undefined): st
   return String(row[col] ?? '').trim()
 }
 
+// Resolve carrier column candidates (string | string[]) against actual CSV headers.
+// Returns a map of field → matched header name (or undefined if not found).
+function resolveCarrierColumns(
+  headers: string[],
+  mapping: Record<string, string | string[]>
+): Record<string, string | undefined> {
+  const resolved: Record<string, string | undefined> = {}
+  for (const [field, candidates] of Object.entries(mapping)) {
+    const list = Array.isArray(candidates) ? candidates : [candidates]
+    resolved[field] = list.find(c => headers.includes(c))
+  }
+  return resolved
+}
+
 export function parseRosterFile(buffer: ArrayBuffer, carrier: string): RosterRow[] {
   const workbook = XLSX.read(new Uint8Array(buffer), { type: 'array' })
   const sheetName = workbook.SheetNames[0]
@@ -105,8 +122,11 @@ export function parseRosterFile(buffer: ArrayBuffer, carrier: string): RosterRow
   if (rows.length === 0) return []
 
   const headers = Object.keys(rows[0])
-  const carrierKey = carrier.toLowerCase()
-  const colMap = CARRIER_COLUMNS[carrierKey] ?? detectColumns(headers)
+  const carrierKey = carrier.toLowerCase().split('_')[0] // bcbs_ca → bcbs
+  const carrierMapping = CARRIER_COLUMNS[carrierKey]
+  const colMap: Record<string, string | undefined> = carrierMapping
+    ? resolveCarrierColumns(headers, carrierMapping)
+    : detectColumns(headers)
 
   return rows.reduce<RosterRow[]>((acc, row) => {
     const name = extractValue(row, colMap.full_name)

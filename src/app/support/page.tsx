@@ -43,9 +43,9 @@ export default async function SupportPage() {
   return (
     <div className="min-h-screen bg-background text-foreground flex flex-col">
       <header className="h-16 border-b border-border px-6 md:px-8 flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur-xl z-50">
-        <Link href="/">
+        <a href={isLoggedIn ? '/dashboard' : '/'}>
           <Logo />
-        </Link>
+        </a>
         {isLoggedIn ? (
           <Button variant="ghost" asChild className="text-[10px] font-black uppercase tracking-widest gap-2">
             <Link href="/dashboard">

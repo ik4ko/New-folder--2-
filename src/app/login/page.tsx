@@ -1,11 +1,11 @@
 "use client"
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, Suspense } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
 import { Loader2, ArrowLeft, Lock, Mail, Key, ShieldCheck, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
@@ -16,6 +16,14 @@ import { useAppStore } from '@/lib/store';
 import { createClient } from '@/lib/supabase/client';
 
 export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="min-h-screen bg-slate-950" />}>
+      <LoginPageContent />
+    </Suspense>
+  )
+}
+
+function LoginPageContent() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -27,6 +35,8 @@ export default function LoginPage() {
   const [resendSent, setResendSent] = useState(false);
 
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const redirectTo = searchParams.get('redirect') ?? '/dashboard';
   const { toast } = useToast();
   const { updateAgencyProfile } = useAppStore();
 
@@ -45,8 +55,7 @@ export default function LoginPage() {
             .eq('owner_id', user.id)
             .single();
           if (agency) updateAgencyProfile(agency as any);
-          router.refresh();
-          router.push('/dashboard');
+          router.push(redirectTo);
         } else {
           setReady(true);
         }
@@ -55,7 +64,7 @@ export default function LoginPage() {
         // Network error on session check -- show login form anyway
         setReady(true);
       });
-  }, [router, updateAgencyProfile]);
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -89,10 +98,9 @@ export default function LoginPage() {
           .single();
         if (agency) updateAgencyProfile(agency as any);
 
-        // router.refresh() is critical: clears Next.js RSC cache so middleware
-        // reads the newly-set session cookies on the next navigation request.
-        router.refresh();
-        router.push('/dashboard');
+        // Hard navigation ensures the server re-renders with the session cookie
+        // so AppSidebar (a server component) sees the authenticated user.
+        window.location.href = redirectTo;
       }
     } catch (err: any) {
       console.error('Login error details:', {

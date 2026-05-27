@@ -46,9 +46,8 @@ export default async function ManagerPage() {
     supabase.from('brokers').select('role, agency_id').eq('user_id', user.id).maybeSingle(),
   ])
 
-  const isPrincipal = !!agency || ['agency_admin', 'agency_owner'].includes(brokerRow?.role ?? '')
-  const isCS    = brokerRow?.role === 'customer_service'
-  const isStaff = isPrincipal || isCS
+  const staffRoles = ['agency_owner', 'agency_admin', 'customer_service']
+  const isStaff = staffRoles.includes(brokerRow?.role ?? '')
   const isOwner = !!agency
   if (!isStaff) redirect('/dashboard')
 

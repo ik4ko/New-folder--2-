@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      width: 320px;
+      padding: 16px;
+      font-family: -apple-system, BlinkMacSystemFont, 'Inter', sans-serif;
+      background: #0f172a;
+      color: white;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #1e293b;
+    }
+    .logo-text {
+      font-size: 15px;
+      font-weight: 900;
+      color: #3b82f6;
+      letter-spacing: -0.5px;
+      text-transform: uppercase;
+    }
+    .logo-sub {
+      font-size: 9px;
+      font-weight: 700;
+      color: #475569;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+    }
+    .status {
+      padding: 8px 12px;
+      border-radius: 8px;
+      margin-bottom: 12px;
+      font-size: 12px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .connected { background: #052e16; color: #86efac; }
+    .connected .status-dot { background: #4ade80; animation: pulse 2s infinite; }
+    .disconnected { background: #1c0a00; color: #fbbf24; }
+    .disconnected .status-dot { background: #f59e0b; }
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+    .btn {
+      width: 100%;
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 800;
+      margin-bottom: 8px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      transition: opacity 0.15s;
+    }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-primary { background: #3b82f6; color: white; }
+    .btn-primary:not(:disabled):hover { background: #2563eb; }
+    .btn-secondary {
+      background: #1e293b;
+      color: #94a3b8;
+      border: 1px solid #334155;
+    }
+    .btn-secondary:hover { background: #273549; }
+    .btn-success { background: #052e16; color: #86efac; cursor: default; }
+    .btn-error { background: #450a0a; color: #fca5a5; }
+    .btn-stop { background: #7f1d1d; color: #fca5a5; border: 1px solid #991b1b; }
+    .section-label {
+      font-size: 9px;
+      font-weight: 800;
+      color: #475569;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      margin-bottom: 8px;
+      margin-top: 4px;
+    }
+    .carrier-list { margin-top: 8px; }
+    .carrier-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 8px 10px;
+      border-radius: 6px;
+      margin-bottom: 4px;
+      background: #1e293b;
+      border: 1px solid #263044;
+    }
+    .carrier-name {
+      font-size: 11px;
+      font-weight: 700;
+      color: #cbd5e1;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .carrier-status {
+      font-size: 10px;
+      font-weight: 600;
+    }
+    .synced { color: #4ade80; }
+    .not-synced { color: #475569; }
+    .not-on-portal {
+      padding: 10px;
+      border-radius: 8px;
+      background: #1e293b;
+      border: 1px solid #263044;
+      font-size: 11px;
+      color: #64748b;
+      text-align: center;
+      line-height: 1.5;
+    }
+    .desc {
+      color: #64748b;
+      font-size: 12px;
+      line-height: 1.6;
+      margin-bottom: 14px;
+    }
+    #portal-hint {
+      font-size: 10px;
+      font-weight: 600;
+      color: #3b82f6;
+      text-align: center;
+      margin-top: 6px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div>
+      <div class="logo-text">AegisSage</div>
+      <div class="logo-sub">Roster Sync</div>
+    </div>
+  </div>
+
+  <div id="status" class="status disconnected">
+    <div class="status-dot"></div>
+    <span>Not connected to AegisSage</span>
+  </div>
+
+  <!-- Not connected state -->
+  <div id="not-connected">
+    <p class="desc">
+      Connect your AegisSage account to sync carrier rosters directly from the portal with one click.
+    </p>
+    <button class="btn btn-primary" id="connect-btn">Connect Account</button>
+    <button id="debug-btn" style="background:none;border:none;color:#475569;font-size:11px;cursor:pointer;margin-top:6px;width:100%;text-align:center">
+      Debug connection
+    </button>
+  </div>
+
+  <!-- Connected state -->
+  <div id="connected" style="display:none">
+
+    <!-- Account info card -->
+    <div id="account-info" style="display:none;padding:8px 10px;border-radius:8px;background:#1e293b;border:1px solid #263044;margin-bottom:10px">
+      <div style="font-size:9px;font-weight:800;color:#475569;letter-spacing:0.12em;text-transform:uppercase;margin-bottom:3px">Connected Account</div>
+      <div id="broker-name" style="font-size:12px;font-weight:700;color:#e2e8f0"></div>
+      <div id="agency-name" style="font-size:10px;color:#64748b;margin-top:1px"></div>
+      <div id="member-count" style="font-size:10px;font-weight:600;color:#4ade80;margin-top:5px"></div>
+      <div id="last-sync" style="font-size:10px;color:#475569;margin-top:2px"></div>
+    </div>
+
+    <div id="portal-status" style="font-size:12px;font-weight:600;margin-bottom:10px;color:#94a3b8;min-height:18px"></div>
+
+    <div id="sync-section">
+      <button class="btn btn-primary" id="sync-btn">Sync Current Portal</button>
+      <button class="btn btn-primary" id="marx-btn" style="background:#4f46e5;margin-bottom:8px">Run MARx Check</button>
+      <button class="btn btn-stop" id="stop-btn" style="display:none">&#9632; Stop Verification</button>
+      <p id="portal-hint">Navigate to a carrier portal first</p>
+    </div>
+
+    <button class="btn btn-secondary" id="disconnect-btn" style="margin-top:10px">
+      Disconnect Account
+    </button>
+  </div>
+
+  <script src="popup.js"></script>
+</body>
+</html>

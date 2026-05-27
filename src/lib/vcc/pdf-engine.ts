@@ -1,4 +1,4 @@
-﻿import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
+import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
 import { createServiceClient } from '@/lib/supabase/service'
 
 export interface VCCFieldData {

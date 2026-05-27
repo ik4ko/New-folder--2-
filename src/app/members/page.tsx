@@ -86,7 +86,9 @@ export default function MemberRosterPage() {
                   <TableRow key={member.id} className="hover:bg-primary/5 transition-colors border-border/50">
                     <TableCell className="px-6 py-4">
                       <div className="flex flex-col whitespace-nowrap">
-                        <span className="font-bold text-foreground text-sm">{member.fullName}</span>
+                        <Link href={`/members/${member.id}`} className="font-bold text-foreground text-sm hover:text-primary hover:underline transition-colors">
+                          {member.fullName}
+                        </Link>
                         <span className="text-[9px] text-muted-foreground font-mono uppercase tracking-tighter">{member.medicareId}</span>
                       </div>
                     </TableCell>

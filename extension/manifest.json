@@ -1,0 +1,84 @@
+{
+  "manifest_version": 3,
+  "name": "AegisSage Roster Sync",
+  "short_name": "AegisSage",
+  "description": "Sync Medicare carrier rosters directly from portals to your AegisSage dashboard with one click.",
+  "version": "1.0.0",
+
+  "icons": {
+    "16": "icons/icon16.png",
+    "48": "icons/icon48.png",
+    "128": "icons/icon128.png"
+  },
+
+  "action": {
+    "default_popup": "popup.html",
+    "default_title": "AegisSage Roster Sync",
+    "default_icon": {
+      "16": "icons/icon16.png",
+      "48": "icons/icon48.png",
+      "128": "icons/icon128.png"
+    }
+  },
+
+  "background": {
+    "service_worker": "background.js"
+  },
+
+  "content_scripts": [
+    {
+      "matches": [
+        "https://agentportal.humana.com/*",
+        "https://*.evolvenxt.com/*",
+        "https://uhcprovider.com/*",
+        "https://*.uhcprovider.com/*",
+        "https://producer.aetna.com/*",
+        "https://agent.devoted.com/*",
+        "https://myhfgroup.org/*",
+        "https://*.myhfgroup.org/*",
+        "https://portal.cms.gov/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    },
+    {
+      "matches": [
+        "https://aegissage.com/*",
+        "https://www.aegissage.com/*"
+      ],
+      "js": ["connect-bridge.js"],
+      "run_at": "document_idle"
+    }
+  ],
+
+  "permissions": [
+    "storage",
+    "tabs",
+    "activeTab"
+  ],
+
+  "host_permissions": [
+    "https://aegissage.com/*",
+    "https://www.aegissage.com/*",
+    "https://agentportal.humana.com/*",
+    "https://*.evolvenxt.com/*",
+    "https://uhcprovider.com/*",
+    "https://*.uhcprovider.com/*",
+    "https://producer.aetna.com/*",
+    "https://agent.devoted.com/*",
+    "https://myhfgroup.org/*",
+    "https://*.myhfgroup.org/*",
+    "https://portal.cms.gov/*"
+  ],
+
+  "externally_connectable": {
+    "matches": [
+      "https://aegissage.com/*",
+      "https://www.aegissage.com/*"
+    ]
+  },
+
+  "content_security_policy": {
+    "extension_pages": "script-src 'self'; object-src 'self';"
+  }
+}

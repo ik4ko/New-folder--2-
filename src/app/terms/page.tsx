@@ -56,6 +56,28 @@ export default function TermsPage() {
               Access to the Command Center is contingent upon the Agency having a signed Business Associate Agreement (BAA) on file with AegisSage Intelligence Inc.
             </p>
           </div>
+
+          <div id="carrier-authorization" className="p-8 rounded-3xl bg-muted/20 border border-border space-y-4">
+            <h2 className="text-xl font-black uppercase tracking-tight flex items-center gap-3">
+              <Gavel className="w-5 h-5 text-primary" />
+              04. Carrier Portal Authorization
+            </h2>
+            <p className="text-sm font-medium text-muted-foreground leading-relaxed uppercase opacity-80">
+              By providing carrier portal credentials through the AegisSage platform, you expressly authorize
+              AegisSage Intelligence Inc. to access carrier portals on your behalf solely for the purpose of
+              retrieving your active member roster to provide retention monitoring services. AegisSage acts as
+              your agent in accessing these systems. You represent that you are authorized to access the carrier
+              portals for which you provide credentials, and that such access is permitted under your agreements
+              with those carriers. Credentials are encrypted using AES-256-GCM and are never transmitted in
+              plaintext or shared with third parties. You may revoke this authorization at any time by removing
+              your credentials from the Carrier Portals settings page.
+            </p>
+            <ul className="list-disc list-inside space-y-2 text-sm font-medium text-muted-foreground leading-relaxed uppercase opacity-80 pl-2">
+              <li>
+                You are responsible for ensuring you are authenticated to the carrier portal before initiating any extension sync. AegisSage processes only data visible within your authenticated portal session and does not access carrier systems independently on your behalf.
+              </li>
+            </ul>
+          </div>
         </section>
 
         <div className="pt-12 text-center border-t border-border/50">

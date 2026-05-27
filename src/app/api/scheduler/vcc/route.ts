@@ -5,8 +5,13 @@ import { sendFax } from '@/lib/vcc/fax-dispatcher'
 export const dynamic = 'force-dynamic'
 
 export async function GET(req: NextRequest) {
+  const cronSecret = process.env.CRON_SECRET
+  if (!cronSecret) {
+    console.error('[scheduler/vcc] CRON_SECRET not set — rejecting request')
+    return NextResponse.json({ error: 'Cron not configured' }, { status: 500 })
+  }
   const secret = req.headers.get('authorization')?.replace('Bearer ', '')
-  if (secret !== process.env.CRON_SECRET) {
+  if (secret !== cronSecret) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

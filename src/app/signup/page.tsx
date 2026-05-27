@@ -70,6 +70,10 @@ function FieldError({ message }: { message?: string }) {
 
 function SignupFormContent() {
   const [isMounted, setIsMounted] = useState(false);
+  const [emailPending, setEmailPending] = useState(false);
+  const [submittedEmail, setSubmittedEmail] = useState('');
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendSent, setResendSent] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
   const planParam = searchParams.get('plan') || 'broker-individual';
@@ -92,6 +96,19 @@ function SignupFormContent() {
   const tpmoCertified = watch('tpmoCertified');
 
   useEffect(() => { setIsMounted(true); }, []);
+
+  const handleResend = async () => {
+    if (!submittedEmail || resendLoading || resendSent) return;
+    setResendLoading(true);
+    const supabase = createClient();
+    const { error } = await supabase.auth.resend({ type: 'signup', email: submittedEmail });
+    setResendLoading(false);
+    if (error) {
+      toast({ variant: 'destructive', title: 'Could not resend', description: error.message });
+    } else {
+      setResendSent(true);
+    }
+  };
 
   const onSubmit = async (data: SignupFormValues) => {
     const supabase = createClient();
@@ -118,21 +135,14 @@ function SignupFormContent() {
         billingPlan: planParam,
       });
 
-      toast({
-        title: 'Account Created',
-        description: 'Identity verified. Redirecting to your agency workspace.',
-      });
-
       if (authData.session) {
-        // Email confirmation disabled -- session is live, go straight to dashboard
-        router.push('/dashboard');
+        // Email confirmation disabled -- session is live, hard-navigate to dashboard
+        // for a fresh server render that picks up the session cookie.
+        window.location.href = '/dashboard';
       } else {
-        // Email confirmation required -- user must verify before logging in
-        toast({
-          title: 'Confirm your email',
-          description: 'Check your inbox and click the confirmation link to activate your account.',
-        });
-        router.push('/login');
+        // Email confirmation required -- show full-page confirmation screen
+        setSubmittedEmail(data.email);
+        setEmailPending(true);
       }
     } catch (error: any) {
       console.error('CRITICAL Registration Error:', {
@@ -143,6 +153,39 @@ function SignupFormContent() {
       toast({ variant: 'destructive', title: 'Registration Failed', description: error.message });
     }
   };
+
+  if (emailPending) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-950 px-6">
+        <div className="max-w-md w-full text-center space-y-6">
+          <div className="text-5xl">✉️</div>
+          <h1 className="text-2xl font-black text-white uppercase tracking-tighter">Check Your Email</h1>
+          <p className="text-slate-400 text-sm leading-relaxed">
+            We sent a confirmation link to{' '}
+            <span className="text-white font-semibold">{submittedEmail}</span>.
+            Click the link in that email to activate your account and get started.
+          </p>
+          <p className="text-slate-600 text-xs mt-2">
+            Didn&apos;t receive it? Check your spam folder or{' '}
+            <button
+              onClick={handleResend}
+              disabled={resendLoading || resendSent}
+              className="text-primary hover:text-primary/80 underline underline-offset-2 transition-colors disabled:opacity-50"
+            >
+              {resendSent ? 'email sent' : resendLoading ? 'sending…' : 'resend the email'}
+            </button>
+            .
+          </p>
+          <a
+            href="/login"
+            className="inline-block mt-4 text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-primary transition-colors"
+          >
+            Back to Login
+          </a>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative flex flex-col min-h-screen bg-slate-950 text-foreground overflow-hidden">

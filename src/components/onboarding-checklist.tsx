@@ -29,7 +29,7 @@ const STEPS: Step[] = [
     id: 'ghl',
     label: 'Connect GoHighLevel',
     description: 'Sync your GHL account to import contacts automatically.',
-    href: '/settings/identity',
+    href: '/settings/ghl-connect',
     checkFn: ctx => ctx.hasGHL,
   },
   {
@@ -87,8 +87,9 @@ export function OnboardingChecklist() {
 
       if (!broker) return
 
-      const [{ count: contactCount }, { count: vccCount }, { count: aepCount }] = await Promise.all([
+      const [{ count: contactCount }, { count: rosterCount }, { count: vccCount }, { count: aepCount }] = await Promise.all([
         supabase.from('ghl_contacts').select('id', { count: 'exact', head: true }).eq('agency_id', broker.agency_id),
+        supabase.from('book_of_business').select('id', { count: 'exact', head: true }).eq('agency_id', broker.agency_id),
         supabase.from('vcc_submissions').select('id', { count: 'exact', head: true }).eq('broker_id', broker.id),
         supabase.from('campaign_enrollments').select('id', { count: 'exact', head: true }).eq('agency_id', broker.agency_id),
       ])
@@ -96,7 +97,7 @@ export function OnboardingChecklist() {
       setCtx({
         hasGHL: !!(broker as any).ghl_api_key,
         hasContacts: (contactCount ?? 0) > 0,
-        hasRoster: (contactCount ?? 0) > 0,
+        hasRoster: (rosterCount ?? 0) > 0,
         hasVCC: (vccCount ?? 0) > 0,
         hasAEP: (aepCount ?? 0) > 0,
       })

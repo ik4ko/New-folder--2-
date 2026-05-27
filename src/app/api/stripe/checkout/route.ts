@@ -55,6 +55,8 @@ export async function POST(req: NextRequest) {
         metadata: { agency_id: agency.id },
       },
       allow_promotion_codes: true,
+      // ⬇️ THIS IS THE MAGICAL LINE THAT REMOVES THE CREDIT CARD FIELD FOR TRIALS
+      payment_method_collection: 'if_required', 
     })
 
     return NextResponse.json({ url: session.url })

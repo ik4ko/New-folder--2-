@@ -8,7 +8,7 @@ export default function SettingsPage() {
   const router = useRouter()
 
   useEffect(() => {
-    router.replace("/settings/identity")
+    router.replace("/settings/profile")
   }, [router])
 
   return (

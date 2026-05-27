@@ -1,6 +1,7 @@
 "use client"
 
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { Card } from "@/components/ui/card"
 import { CheckCircle2, Activity, Printer, ShieldPlus } from "lucide-react"
 import Link from "next/link"
@@ -65,7 +66,7 @@ export default function LandingPage() {
               Protect Your Book.<br />Retain Every Client.
             </h1>
             <p className="text-base sm:text-xl md:text-2xl text-slate-300 font-medium leading-relaxed max-w-3xl mx-auto mb-8">
-              AegisSage monitors your Medicare book of business, automates VCC chronic illness forms directly to your clients&apos; doctors, and legally secures your broker-client relationships with carriers &mdash; so you never lose a client to a silent plan switch.
+              Your clients trust you with their coverage. We make sure nothing gets in the way of that.
             </p>
             <div className="flex justify-center">
               <Button size="lg" asChild className="w-full sm:w-auto h-14 md:h-20 px-8 md:px-16 rounded-[2rem] md:rounded-[2.5rem] text-base md:text-xl font-black shadow-2xl shadow-primary/30 transition-all hover:scale-105 bg-primary hover:bg-primary/90 text-white">
@@ -112,8 +113,9 @@ export default function LandingPage() {
         <section id="pricing" className="py-32 px-8 bg-slate-50 border-y border-border/50">
           <div className="max-w-4xl mx-auto space-y-16">
             <div className="text-center space-y-4">
-              <h2 className="text-5xl font-black uppercase tracking-tighter text-black">Simple <span className="text-primary">Pricing</span></h2>
-              <p className="text-slate-700 font-black uppercase tracking-widest text-xs">Two plans. No hidden fees. Start your free trial today.</p>
+              <Badge className="bg-slate-800 text-white border border-slate-600 px-4 py-1.5 font-black uppercase tracking-widest text-[10px]">Simple Pricing</Badge>
+              <h2 className="text-5xl font-black uppercase tracking-tighter" style={{ color: '#111827' }}>Two Plans. <span className="text-primary">Zero Surprises.</span></h2>
+              <p className="text-slate-600 font-black uppercase tracking-widest text-xs" style={{ color: '#374151' }}>No hidden fees. Start your free trial today.</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
               {/* Broker Plan */}

@@ -6,9 +6,14 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 export async function GET(request: NextRequest) {
-  const secret = request.headers.get('x-cron-secret')
-  if (!secret || secret !== process.env.CRON_SECRET) {
-    return NextResponse.json({ error: 'unauthorized' }, { status: 401 })
+  const cronSecret = process.env.CRON_SECRET
+  if (!cronSecret) {
+    console.error('[scheduler/aep] CRON_SECRET not set — rejecting request')
+    return NextResponse.json({ error: 'Cron not configured' }, { status: 500 })
+  }
+  const secret = request.headers.get('authorization')?.replace('Bearer ', '')
+  if (secret !== cronSecret) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   const supabase = createServiceClient()
