@@ -483,12 +483,6 @@ export default function ChurnUploadPage() {
                   {importResult.carrierCount}/{importResult.imported}
                 </span>
               </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-400">Dropped (no MBI)</span>
-                <span className={importResult.dropped === 0 ? 'text-gray-400' : 'text-red-400'}>
-                  {importResult.dropped}
-                </span>
-              </div>
             </div>
 
             {(importResult.planCount < importResult.imported || importResult.carrierCount < importResult.imported) && (
@@ -501,6 +495,12 @@ export default function ChurnUploadPage() {
                   {' '}for best results, or run a MARx baseline check to auto-populate plan data from CMS.
                 </p>
               </div>
+            )}
+
+            {importResult.dropped > 0 && (
+              <p className="mt-3 text-xs text-gray-500">
+                {importResult.dropped} row{importResult.dropped !== 1 ? 's' : ''} in your source file had no Medicare ID and were skipped.
+              </p>
             )}
           </div>
 
