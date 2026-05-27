@@ -3,7 +3,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { parseRosterFile, hashName, normalizeStr } from '@/lib/churn/roster-parser'
+import { parseRosterFileWithErrors, hashName, normalizeStr } from '@/lib/churn/roster-parser'
 import { diffRosterAgainstGHL } from '@/lib/churn/diff-engine'
 import { notifyNewSwitchAlerts } from '@/lib/email/send-notifications'
 import type { RosterRow } from '@/lib/churn/roster-parser'
@@ -132,9 +132,22 @@ export async function uploadRoster(formData: FormData): Promise<UploadResult> {
     return { uploadId: '', rowCount: 0, matched: 0, missing: 0, new: 0, alertCount: 0, error: `Storage error: ${storageError.message}` }
   }
 
-  const rows = parseRosterFile(buffer, carrier)
+  // ── Parse with per-row error capture ────────────────────────────────────────
+  let parseResult: Awaited<ReturnType<typeof parseRosterFileWithErrors>>
+  try {
+    parseResult = parseRosterFileWithErrors(buffer, carrier)
+  } catch (parseErr) {
+    const msg = parseErr instanceof Error ? parseErr.message : 'File could not be parsed'
+    return { uploadId: '', rowCount: 0, matched: 0, missing: 0, new: 0, alertCount: 0, error: msg }
+  }
+
+  const { rows, errors: parseErrors } = parseResult
+
   if (rows.length === 0) {
-    return { uploadId: '', rowCount: 0, matched: 0, missing: 0, new: 0, alertCount: 0, error: 'No valid rows found in file' }
+    return {
+      uploadId: '', rowCount: 0, matched: 0, missing: 0, new: 0, alertCount: 0,
+      error: `No valid rows found in file. ${parseErrors.length} row(s) had errors.`,
+    }
   }
 
   const { data: uploadRecord, error: uploadErr } = await supabaseAdmin
@@ -156,6 +169,26 @@ export async function uploadRoster(formData: FormData): Promise<UploadResult> {
   }
 
   const uploadId = uploadRecord.id
+
+  // ── Persist bad rows to error table ─────────────────────────────────────────
+  if (parseErrors.length > 0) {
+    const errorRecords = parseErrors.map(e => ({
+      upload_id: uploadId,
+      agency_id: agencyId,
+      row_index: e.rowIndex,
+      reason: e.reason,
+      raw_data: e.rawData,
+    }))
+    for (let i = 0; i < errorRecords.length; i += 200) {
+      const { error: errInsertErr } = await supabaseAdmin
+        .from('roster_upload_errors')
+        .insert(errorRecords.slice(i, i + 200))
+      if (errInsertErr) {
+        console.error('[uploadRoster] roster_upload_errors insert failed:', errInsertErr.message)
+      }
+    }
+    console.warn(`[uploadRoster] ${parseErrors.length} rows had parse errors — logged to roster_upload_errors`)
+  }
 
   const memberRecords = rows.map(r => ({
     upload_id: uploadId,
@@ -184,7 +217,10 @@ export async function uploadRoster(formData: FormData): Promise<UploadResult> {
   await upsertToBookOfBusiness(rows, { agencyId, brokerId, userId: user.id, carrier })
 
   if (diffResult.alertCount > 0) {
-    notifyNewSwitchAlerts(uploadId, agencyId).catch(() => {})
+    // Intentionally fire-and-forget — failures are logged inside notifyNewSwitchAlerts
+    notifyNewSwitchAlerts(uploadId, agencyId).catch(err =>
+      console.error('[uploadRoster] notifyNewSwitchAlerts error (non-fatal):', err?.message ?? err)
+    )
   }
 
   return {
@@ -194,6 +230,7 @@ export async function uploadRoster(formData: FormData): Promise<UploadResult> {
     missing: diffResult.missing,
     new: diffResult.new,
     alertCount: diffResult.alertCount,
+    ...(parseErrors.length > 0 && { parseErrorCount: parseErrors.length }),
   }
 }
 
@@ -216,10 +253,18 @@ export async function routeMasterRoster(formData: FormData): Promise<RoutingResu
 
   const supabaseAdmin = createServiceClient()
   const buffer = await file.arrayBuffer()
-  const rows = parseRosterFile(buffer, carrier)
+
+  let masterParseResult: Awaited<ReturnType<typeof parseRosterFileWithErrors>>
+  try {
+    masterParseResult = parseRosterFileWithErrors(buffer, carrier)
+  } catch (parseErr) {
+    const msg = parseErr instanceof Error ? parseErr.message : 'File could not be parsed'
+    return { totalRows: 0, routedBrokers: [], unmatchedRows: [], alertsGenerated: 0, error: msg }
+  }
+  const rows = masterParseResult.rows
 
   if (rows.length === 0) {
-    return { totalRows: 0, routedBrokers: [], unmatchedRows: [], alertsGenerated: 0, error: 'No valid rows found in file' }
+    return { totalRows: 0, routedBrokers: [], unmatchedRows: [], alertsGenerated: 0, error: `No valid rows found in file. ${masterParseResult.errors.length} row(s) had errors.` }
   }
 
   // Upload raw file once
@@ -320,7 +365,7 @@ export async function routeMasterRoster(formData: FormData): Promise<RoutingResu
         }))
 
         for (let i = 0; i < memberRecords.length; i += 500) {
-          await supabaseAdmin.from('roster_members').insert(memberRecords.slice(i, i + 500)).catch(() => {})
+          try { await supabaseAdmin.from('roster_members').insert(memberRecords.slice(i, i + 500)) } catch {}
         }
 
         const diff = await diffRosterAgainstGHL(uploadRecord.id, agencyId, groupRows, carrier, matched.id)
@@ -339,18 +384,19 @@ export async function routeMasterRoster(formData: FormData): Promise<RoutingResu
       })
     } else {
       // Flag as unmatched
-      await supabaseAdmin
-        .from('roster_uploads')
-        .insert({
-          agency_id: agencyId,
-          broker_id: null,
-          uploaded_by: user.id,
-          carrier,
-          file_path: storagePath,
-          row_count: groupRows.length,
-          status: 'needs_review',
-        })
-        .catch(() => {})
+      try {
+        await supabaseAdmin
+          .from('roster_uploads')
+          .insert({
+            agency_id: agencyId,
+            broker_id: null,
+            uploaded_by: user.id,
+            carrier,
+            file_path: storagePath,
+            row_count: groupRows.length,
+            status: 'needs_review',
+          })
+      } catch {}
 
       unmatchedRows.push({ npn: key, name: key, rowCount: groupRows.length })
     }

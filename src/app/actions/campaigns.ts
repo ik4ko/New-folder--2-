@@ -158,19 +158,19 @@ export async function triggerReactiveSave(alertId: string): Promise<{ success: b
     .update({ ghl_workflow_triggered: true, status: 'contacted' })
     .eq('id', alertId)
 
-  // Audit log (best-effort)
-  await supabaseAdmin
-    .from('audit_log')
-    .insert({
-      agency_id: agencyId,
-      actor_id: user.id,
-      action: 'CAMPAIGN_TRIGGERED',
-      resource_type: 'switch_alert',
-      resource_id: alertId,
-      metadata: { template_id: 'reactive_save', enrollment_id: enrollment?.id },
-    })
-    .then(() => {})
-    .catch(() => {})
+  // Audit log (best-effort — ignore errors so campaign still succeeds)
+  try {
+    await supabaseAdmin
+      .from('audit_log')
+      .insert({
+        agency_id: agencyId,
+        actor_id: user.id,
+        action: 'CAMPAIGN_TRIGGERED',
+        resource_type: 'switch_alert',
+        resource_id: alertId,
+        metadata: { template_id: 'reactive_save', enrollment_id: enrollment?.id },
+      })
+  } catch {}
 
   return { success: true, taskId: taskResult.taskId }
 }

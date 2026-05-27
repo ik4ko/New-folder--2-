@@ -4,11 +4,12 @@ import {
   teamInviteEmail, weeklyDigestEmail,
 } from './templates'
 import { createServiceClient } from '@/lib/supabase/service'
+import { withRetry, withRetrySafe } from '@/lib/utils/retry'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.aegissage.com'
 
-// ── 1. Switch Alerts ───────────────────────────────────────────────────────
-// Called after extension sync detects missing members — fires per-switch emails
+// -- 1. Switch Alerts -------------------------------------------------------
+// Called after extension sync detects missing members -- fires per-switch emails
 
 export async function notifyNewSwitchAlerts(uploadId: string, agencyId: string): Promise<void> {
   if (!process.env.RESEND_API_KEY?.startsWith('re_')) return
@@ -26,7 +27,7 @@ export async function notifyNewSwitchAlerts(uploadId: string, agencyId: string):
 
     if (!alerts?.length) return
 
-    // Batch-fetch member names from book_of_business (extension syncs use bob_member_id)
+    // Batch-fetch member names from book_of_business
     const bobIds = [...new Set(alerts.map(a => a.bob_member_id).filter(Boolean))] as string[]
     const { data: bobMembers } = await supabase
       .from('book_of_business')
@@ -35,7 +36,7 @@ export async function notifyNewSwitchAlerts(uploadId: string, agencyId: string):
 
     const bobNameMap = new Map((bobMembers ?? []).map(m => [m.id, m.full_name ?? 'Unknown']))
 
-    // Fall back to ghl_contacts for legacy alerts (non-extension syncs)
+    // Fall back to ghl_contacts for legacy alerts
     const legacyContactIds = alerts
       .filter(a => !a.bob_member_id)
       .map(a => a.ghl_contact_id)
@@ -62,55 +63,72 @@ export async function notifyNewSwitchAlerts(uploadId: string, agencyId: string):
       byBroker.get(a.broker_id)!.push(a)
     }
 
-    for (const [brokerId, brokerAlerts] of byBroker) {
-      const { data: broker } = await supabase
-        .from('brokers')
-        .select('first_name, last_name, email')
-        .eq('id', brokerId)
-        .maybeSingle()
+    // Process each broker independently -- one failure must not block others
+    await Promise.allSettled(
+      Array.from(byBroker.entries()).map(async ([brokerId, brokerAlerts]) => {
+        try {
+          const { data: broker } = await supabase
+            .from('brokers')
+            .select('first_name, last_name, email')
+            .eq('id', brokerId)
+            .maybeSingle()
 
-      if (!broker?.email) continue
+          if (!broker?.email) return
 
-      const brokerName = `${broker.first_name} ${broker.last_name}`
+          const brokerName = `${broker.first_name} ${broker.last_name}`
 
-      // Send one immediate email per alert (up to 5)
-      for (const alert of brokerAlerts.slice(0, 5)) {
-        const clientName = getClientName(alert)
-        const { subject, html } = switchAlertEmail({
-          brokerName,
-          clientName,
-          carrier: alert.carrier ?? 'Unknown Carrier',
-          alertType: alert.alert_type,
-          dashboardUrl: `${APP_URL}/dashboard/alerts`,
-        })
+          // Send one immediate email per alert (up to 5), each isolated
+          await Promise.allSettled(
+            brokerAlerts.slice(0, 5).map(async alert => {
+              try {
+                const clientName = getClientName(alert)
+                const { subject, html } = switchAlertEmail({
+                  brokerName,
+                  clientName,
+                  carrier: alert.carrier ?? 'Unknown Carrier',
+                  alertType: alert.alert_type,
+                  dashboardUrl: `${APP_URL}/dashboard/alerts`,
+                })
+                await withRetry(
+                  () => getResend().emails.send({ from: FROM_EMAIL, to: broker.email!, subject, html }),
+                  { maxAttempts: 2, baseDelayMs: 400, label: `notifyNewSwitchAlerts alert=${alert.id}` }
+                )
+              } catch (alertErr) {
+                console.error(`[notifyNewSwitchAlerts] email failed for alert ${alert.id}:`, alertErr)
+              }
+            })
+          )
 
-        await getResend().emails.send({
-          from: FROM_EMAIL,
-          to: broker.email,
-          subject,
-          html,
-        })
-      }
-
-      // Summary email if more than 5 alerts
-      if (brokerAlerts.length > 5) {
-        const { subject, html } = switchAlertEmail({
-          brokerName,
-          clientName: `${brokerAlerts.length} clients`,
-          carrier: brokerAlerts[0]?.carrier ?? 'Multiple Carriers',
-          alertType: 'missing_from_roster',
-          dashboardUrl: `${APP_URL}/dashboard/alerts`,
-        })
-        await getResend().emails.send({ from: FROM_EMAIL, to: broker.email, subject, html })
-      }
-    }
+          // Summary email if more than 5 alerts
+          if (brokerAlerts.length > 5) {
+            try {
+              const { subject, html } = switchAlertEmail({
+                brokerName,
+                clientName: `${brokerAlerts.length} clients`,
+                carrier: brokerAlerts[0]?.carrier ?? 'Multiple Carriers',
+                alertType: 'missing_from_roster',
+                dashboardUrl: `${APP_URL}/dashboard/alerts`,
+              })
+              await withRetry(
+                () => getResend().emails.send({ from: FROM_EMAIL, to: broker.email!, subject, html }),
+                { maxAttempts: 2, baseDelayMs: 400, label: `notifyNewSwitchAlerts summary broker=${brokerId}` }
+              )
+            } catch (summaryErr) {
+              console.error(`[notifyNewSwitchAlerts] summary email failed for broker ${brokerId}:`, summaryErr)
+            }
+          }
+        } catch (brokerErr) {
+          console.error(`[notifyNewSwitchAlerts] broker ${brokerId} processing failed:`, brokerErr)
+        }
+      })
+    )
   } catch (err) {
     console.error('[notifyNewSwitchAlerts]', err)
   }
 }
 
-// ── 2. VCC Deadlines ──────────────────────────────────────────────────────
-// Called by the daily notifications cron — finds forms sending within 7 days
+// -- 2. VCC Deadlines -------------------------------------------------------
+// Called by the daily notifications cron -- finds forms sending within 7 days
 
 export async function notifyVCCDeadlines(): Promise<void> {
   try {
@@ -156,8 +174,8 @@ export async function notifyVCCDeadlines(): Promise<void> {
   }
 }
 
-// ── 3. AOR Signed ─────────────────────────────────────────────────────────
-// Called after client signs AOR — notifies the assigned broker
+// -- 3. AOR Signed ----------------------------------------------------------
+// Called after client signs AOR -- notifies the assigned broker
 
 export async function notifyAORSigned(submissionId: string): Promise<void> {
   try {
@@ -192,7 +210,7 @@ export async function notifyAORSigned(submissionId: string): Promise<void> {
   }
 }
 
-// ── 4. Team Invite ────────────────────────────────────────────────────────
+// -- 4. Team Invite ---------------------------------------------------------
 // Called after broker insert in /api/team/invite
 
 export async function sendTeamInviteEmail(params: {
@@ -222,7 +240,7 @@ export async function sendTeamInviteEmail(params: {
   }
 }
 
-// ── 5b. MARx Switch Alert (immediate, per-client) ─────────────────────────
+// -- 5b. MARx Switch Alert (immediate, per-client) --------------------------
 // Called by /api/marx/verify when a change is confirmed via CMS MARx lookup.
 
 export async function sendSwitchAlertEmail(
@@ -242,7 +260,7 @@ export async function sendSwitchAlertEmail(
   }
 ): Promise<void> {
   if (!process.env.RESEND_API_KEY?.startsWith('re_')) {
-    console.warn('[email] Resend key not configured — skipping MARx alert email')
+    console.warn('[email] Resend key not configured -- skipping MARx alert email')
     return
   }
 
@@ -250,7 +268,7 @@ export async function sendSwitchAlertEmail(
   let body: string
 
   if (data.switchType === 'future_plan_change') {
-    subject = `⏰ ACTION REQUIRED — ${data.memberName} switching plans ${data.futureEffectiveDate}`
+    subject = `ACTION REQUIRED -- ${data.memberName} switching plans ${data.futureEffectiveDate}`
     body = `AegisSage detected an upcoming plan change for one of your clients.
 
 Client: ${data.memberName}
@@ -265,7 +283,7 @@ ${data.memberName} has an upcoming plan change effective ${data.futureEffectiveD
 View alert and take action:
 ${data.alertUrl}`
   } else if (data.switchType === 'termed') {
-    subject = `🚨 ${data.memberName} has left Medicare Advantage`
+    subject = `ALERT: ${data.memberName} has left Medicare Advantage`
     body = `AegisSage detected that a client no longer has an active Medicare Advantage plan.
 
 Client: ${data.memberName}
@@ -278,8 +296,7 @@ ${data.memberName} no longer has an active Medicare Advantage plan as of today. 
 View alert and take action:
 ${data.alertUrl}`
   } else {
-    // plan_change, carrier_switch, active_changed
-    subject = `⚠️ ${data.memberName} — Plan Change Detected`
+    subject = `WARNING: ${data.memberName} -- Plan Change Detected`
     body = `AegisSage detected a plan change for one of your clients.
 
 Client: ${data.memberName}
@@ -303,12 +320,14 @@ ${data.alertUrl}`
     })
   } catch (err) {
     console.error('[sendSwitchAlertEmail]', err)
+    throw err  // re-throw so callers can retry or log delivery failure
   }
 }
 
-// ── 5a. Open Alert Notifications ──────────────────────────────────────────────
-// Called every cron run — finds open alerts with no notified_at, groups by broker,
-// sends one summary email per broker, then stamps notified_at on each alert.
+// -- 5a. Open Alert Notifications -------------------------------------------
+// Called every cron run -- finds open alerts with no notified_at, groups by
+// broker, sends one summary email per broker, then stamps notified_at ONLY on
+// successful sends. Failed brokers remain unnotified for next cron retry.
 
 export async function notifyOpenAlerts(): Promise<void> {
   if (!process.env.RESEND_API_KEY?.startsWith('re_')) return
@@ -340,59 +359,108 @@ export async function notifyOpenAlerts(): Promise<void> {
 
     const now = new Date().toISOString()
 
-    for (const [brokerId, brokerAlerts] of byBroker) {
-      const { data: broker } = await supabase
-        .from('brokers')
-        .select('first_name, last_name, email')
-        .eq('id', brokerId)
-        .maybeSingle()
+    // Process each broker independently -- one failure must not block others
+    const brokerResults = await Promise.allSettled(
+      Array.from(byBroker.entries()).map(async ([brokerId, brokerAlerts]) => {
+        const { data: broker } = await supabase
+          .from('brokers')
+          .select('first_name, last_name, email')
+          .eq('id', brokerId)
+          .maybeSingle()
 
-      if (!broker?.email) continue
+        if (!broker?.email) return { brokerId, skipped: true, reason: 'no email' }
 
-      const alertLines = brokerAlerts.map(a => {
-        const name = nameMap.get(a.bob_member_id ?? '') ?? 'Unknown Client'
-        const prev = a.previous_plan_code ?? a.previous_value ?? 'Unknown'
-        const next = a.new_plan_code ?? a.new_value ?? 'Unknown'
-        const carrier = a.carrier ?? 'Unknown'
-        if (a.alert_type === 'termed' || a.switch_type === 'termed') {
-          return `• ${name} — No longer on Medicare Advantage (was: ${carrier} ${prev})`
-        }
-        if (a.alert_type === 'aor_change') {
-          return `• ${name} — AOR change detected (may have switched brokers) — ${carrier}`
-        }
-        return `• ${name} — Plan switch: ${prev} → ${next} (${carrier})`
-      }).join('\n')
+        const alertLines = brokerAlerts.map(a => {
+          const name = nameMap.get(a.bob_member_id ?? '') ?? 'Unknown Client'
+          const prev = a.previous_plan_code ?? a.previous_value ?? 'Unknown'
+          const next = a.new_plan_code ?? a.new_value ?? 'Unknown'
+          const carrier = a.carrier ?? 'Unknown'
+          if (a.alert_type === 'termed' || a.switch_type === 'termed') {
+            return `- ${name} -- No longer on Medicare Advantage (was: ${carrier} ${prev})`
+          }
+          if (a.alert_type === 'aor_change') {
+            return `- ${name} -- AOR change detected (may have switched brokers) -- ${carrier}`
+          }
+          return `- ${name} -- Plan switch: ${prev} -> ${next} (${carrier})`
+        }).join('\n')
 
-      const count = brokerAlerts.length
-      const subject = `⚠️ AegisSage — ${count} client${count > 1 ? 's' : ''} need${count === 1 ? 's' : ''} attention`
-      const html = `
-<p>Hi ${broker.first_name},</p>
+        const count = brokerAlerts.length
+        const subject = `AegisSage -- ${count} client${count > 1 ? 's' : ''} need${count === 1 ? 's' : ''} attention`
+        const html = `<p>Hi ${broker.first_name},</p>
 <p>AegisSage detected the following changes in your book of business:</p>
 <pre style="font-family:monospace;background:#f4f4f4;padding:16px;border-radius:8px;white-space:pre-wrap">${alertLines}</pre>
-<p><a href="${APP_URL}/dashboard/alerts" style="background:#6366f1;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:bold">View All Alerts →</a></p>
+<p><a href="${APP_URL}/dashboard/alerts" style="background:#6366f1;color:#fff;padding:10px 20px;border-radius:8px;text-decoration:none;font-weight:bold">View All Alerts</a></p>
 <p style="color:#888;font-size:12px">AegisSage Medicare Retention Platform</p>`
 
-      await getResend().emails.send({ from: FROM_EMAIL, to: broker.email, subject, html })
+        const alertIds = brokerAlerts.map(a => a.id)
+        let emailSent = false
+        let emailError: string | null = null
 
-      const alertIds = brokerAlerts.map(a => a.id)
-      await supabase
-        .from('switch_alerts')
-        .update({ notified_at: now, notification_email: broker.email })
-        .in('id', alertIds)
+        try {
+          await withRetry(
+            () => getResend().emails.send({ from: FROM_EMAIL, to: broker.email!, subject, html }),
+            { maxAttempts: 3, baseDelayMs: 500, label: `notifyOpenAlerts broker=${brokerId}` }
+          )
+          emailSent = true
+        } catch (sendErr) {
+          emailError = sendErr instanceof Error ? sendErr.message : String(sendErr)
+          console.error(`[notifyOpenAlerts] email failed for broker ${brokerId}:`, emailError)
+        }
+
+        // Stamp notified_at ONLY on successful send -- failed alerts stay unnotified for retry
+        if (emailSent) {
+          await withRetrySafe<void>(
+            async () => {
+              const res = await supabase
+                .from('switch_alerts')
+                .update({ notified_at: now, notification_email: broker.email })
+                .in('id', alertIds)
+              if (res.error) throw res.error
+            },
+            { maxAttempts: 3, baseDelayMs: 200, label: 'notifyOpenAlerts stamp notified_at' }
+          )
+        }
+
+        // Write delivery log for every alert in this batch
+        const deliveryLogs = alertIds.map(alertId => ({
+          alert_id:         alertId,
+          delivery_status:  emailSent ? 'sent' : 'failed',
+          delivery_channel: 'email',
+          recipient_email:  broker.email,
+          error_message:    emailError,
+          attempted_at:     now,
+        }))
+        await withRetrySafe<void>(
+          async () => {
+            const res = await supabase.from('alert_delivery_log').insert(deliveryLogs)
+            if (res.error) throw res.error
+          },
+          { maxAttempts: 2, baseDelayMs: 200, label: 'notifyOpenAlerts delivery log' }
+        )
+
+        return { brokerId, sent: emailSent, alertCount: brokerAlerts.length, error: emailError }
+      })
+    )
+
+    const failCount = brokerResults.filter(r =>
+      r.status === 'rejected' ||
+      (r.status === 'fulfilled' && r.value && !(r.value as any).skipped && !(r.value as any).sent)
+    ).length
+    if (failCount > 0) {
+      console.error(`[notifyOpenAlerts] ${failCount} broker(s) had delivery failures -- will retry next cron run`)
     }
   } catch (err) {
     console.error('[notifyOpenAlerts]', err)
   }
 }
 
-// ── 5. Weekly Digests ─────────────────────────────────────────────────────
+// -- 5. Weekly Digests ------------------------------------------------------
 // Called every Monday by the notifications cron
 
 export async function sendWeeklyDigests(): Promise<void> {
   try {
     const supabase = createServiceClient()
 
-    // Get all active agencies
     const { data: agencies } = await supabase
       .from('agencies')
       .select('id, name')
@@ -400,7 +468,6 @@ export async function sendWeeklyDigests(): Promise<void> {
     if (!agencies?.length) return
 
     for (const agency of agencies) {
-      // Get all brokers in agency with email
       const { data: brokers } = await supabase
         .from('brokers')
         .select('id, user_id, first_name, last_name, email, role')
@@ -409,7 +476,6 @@ export async function sendWeeklyDigests(): Promise<void> {
 
       if (!brokers?.length) continue
 
-      // Agency-wide stats
       const [{ count: openAlerts }, { count: vccPending }, { count: aorPending }, { count: clientsAtRisk }] =
         await Promise.all([
           supabase.from('switch_alerts').select('id', { count: 'exact', head: true })
@@ -422,19 +488,28 @@ export async function sendWeeklyDigests(): Promise<void> {
             .eq('agency_id', agency.id).in('risk_level', ['critical', 'high']),
         ])
 
-      for (const broker of brokers) {
-        const { subject, html } = weeklyDigestEmail({
-          brokerName: `${broker.first_name} ${broker.last_name}`,
-          agencyName: agency.name,
-          openAlerts: openAlerts ?? 0,
-          vccPending: vccPending ?? 0,
-          aorPending: aorPending ?? 0,
-          clientsAtRisk: clientsAtRisk ?? 0,
-          dashboardUrl: `${APP_URL}/dashboard`,
+      // Each broker digest is isolated -- one send failure won't block the rest
+      await Promise.allSettled(
+        brokers.map(async broker => {
+          try {
+            const { subject, html } = weeklyDigestEmail({
+              brokerName: `${broker.first_name} ${broker.last_name}`,
+              agencyName: agency.name,
+              openAlerts: openAlerts ?? 0,
+              vccPending: vccPending ?? 0,
+              aorPending: aorPending ?? 0,
+              clientsAtRisk: clientsAtRisk ?? 0,
+              dashboardUrl: `${APP_URL}/dashboard`,
+            })
+            await withRetry(
+              () => getResend().emails.send({ from: FROM_EMAIL, to: broker.email!, subject, html }),
+              { maxAttempts: 2, baseDelayMs: 500, label: `sendWeeklyDigests broker=${broker.id}` }
+            )
+          } catch (brokerErr) {
+            console.error(`[sendWeeklyDigests] email failed for broker ${broker.id}:`, brokerErr)
+          }
         })
-
-        await getResend().emails.send({ from: FROM_EMAIL, to: broker.email!, subject, html })
-      }
+      )
     }
   } catch (err) {
     console.error('[sendWeeklyDigests]', err)

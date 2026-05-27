@@ -1,13 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { sendSwitchAlertEmail } from '@/lib/email/send-notifications'
+import { withRetry, withRetrySafe } from '@/lib/utils/retry'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.aegissage.com'
 
-// Inline service client — no imported wrapper that might intercept or fail
 function getDb() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -31,7 +31,6 @@ export async function POST(req: NextRequest) {
     detectedPlanCode: body.detectedPlanCode,
   }))
 
-  // Auth
   const authHeader = req.headers.get('authorization') || req.headers.get('Authorization') || ''
   const token = authHeader.replace('Bearer ', '').trim()
   if (!token || token.length < 32) {
@@ -40,7 +39,6 @@ export async function POST(req: NextRequest) {
 
   const db = getDb()
 
-  // Broker lookup
   const { data: broker, error: brokerErr } = await db
     .from('brokers')
     .select('id, agency_id, user_id, email, first_name, last_name')
@@ -52,7 +50,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
   }
 
-  // Fall back to auth email if broker.email is null
   let notificationEmail: string | null = broker.email
   if (!notificationEmail && broker.user_id) {
     try {
@@ -64,7 +61,6 @@ export async function POST(req: NextRequest) {
 
   console.log('[verify] broker:', broker.id, '| agency:', broker.agency_id)
 
-  // Member lookup — try by UUID first, fall back to MBI
   let member: any = null
 
   if (body.memberId && String(body.memberId).length === 36) {
@@ -99,13 +95,12 @@ export async function POST(req: NextRequest) {
   const isValidPlanCode = (code: string | null): boolean =>
     code !== null && /^[HSE]\d{4}-\d{3}/.test(code)
 
-  const marxResult       = String(body.marxResult ?? '')
-  const detectedPlanCode = (body.detectedPlanCode as string | null) ?? null
-  const detectedCarrier  = (body.detectedCarrier  as string | null) ?? null
+  const marxResult          = String(body.marxResult ?? '')
+  const detectedPlanCode    = (body.detectedPlanCode    as string | null) ?? null
+  const detectedCarrier     = (body.detectedCarrier     as string | null) ?? null
   const detectedFuturePlan  = (body.detectedFuturePlan  as string | null) ?? null
   const detectedFutureStart = (body.detectedFutureStart as string | null) ?? null
 
-  // Plan code comparison
   const storedCode     = member.last_known_plan_code || member.plan_id || null
   const storedContract = (
     member.plan_contract?.toUpperCase() ||
@@ -122,7 +117,6 @@ export async function POST(req: NextRequest) {
   const detectedContract = detectedPlanCode?.match(/^([HRS]\d{4})/)?.[1]?.toUpperCase() ?? null
   const detectedPbp      = detectedPlanCode?.split('-')[1] ?? null
 
-  // Look up real plan name from CMS directory
   let realPlanName: string | null = null
   let realCarrierName: string | null = detectedCarrier
   let detectedPlanType: string | null = null
@@ -134,12 +128,11 @@ export async function POST(req: NextRequest) {
       .eq('contract', detectedContract)
       .eq('pbp', detectedPbp.padStart(3, '0'))
       .maybeSingle()
-
     if (planInfo) {
       realPlanName     = planInfo.plan_name
       realCarrierName  = planInfo.carrier_name
       detectedPlanType = planInfo.plan_type
-      console.log('[verify] plan lookup:', detectedContract + '-' + detectedPbp, '→', realPlanName)
+      console.log('[verify] plan lookup:', detectedContract + '-' + detectedPbp, '->', realPlanName)
     } else {
       console.log('[verify] plan lookup: no match for', detectedContract + '-' + detectedPbp)
     }
@@ -151,7 +144,6 @@ export async function POST(req: NextRequest) {
     marxResult, realPlanName, realCarrierName,
   }))
 
-  // Determine final state
   let finalStatus  = 'verified'
   let alertType: string | null = null
   let alertPriority = 'high'
@@ -173,7 +165,6 @@ export async function POST(req: NextRequest) {
     finalStatus = 'unverified'
     alertType   = null
   } else if (marxResult === 'active_same' || marxResult === 'active_changed') {
-    // First-time baseline — store plan code, no alert
     if (!storedCode && !storedContract && isValidPlanCode(detectedPlanCode)) {
       console.log('[verify] setting baseline:', detectedPlanCode)
       const baselinePayload: Record<string, any> = {
@@ -184,14 +175,21 @@ export async function POST(req: NextRequest) {
         last_verified_at:     new Date().toISOString(),
         last_marx_check:      new Date().toISOString(),
       }
-      if (realPlanName)     baselinePayload.plan_name  = realPlanName
-      if (detectedPlanType) baselinePayload.plan_type  = detectedPlanType
-      const { error: baselineErr } = await db
-        .from('book_of_business')
-        .update(baselinePayload)
-        .eq('id', member.id)
-      if (baselineErr) console.error('[verify] baseline UPDATE failed:', JSON.stringify(baselineErr))
-      else console.log('[verify] baseline UPDATE OK')
+      if (realPlanName)     baselinePayload.plan_name = realPlanName
+      if (detectedPlanType) baselinePayload.plan_type = detectedPlanType
+
+      const baselineResult = await withRetrySafe<void>(
+        async () => {
+          const res = await db.from('book_of_business').update(baselinePayload).eq('id', member.id)
+          if (res.error) throw res.error
+        },
+        { maxAttempts: 3, baseDelayMs: 300, label: 'marx/verify baseline UPDATE' }
+      )
+      if (baselineResult.error) {
+        console.error('[verify] baseline UPDATE failed after retries:', JSON.stringify(baselineResult.error))
+      } else {
+        console.log('[verify] baseline UPDATE OK')
+      }
       return NextResponse.json({ changed: false, status: 'baseline_set' })
     }
 
@@ -214,26 +212,23 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // ── STEP 1: Update member status ───────────────────────────────────────────
+  // STEP 1: Update member status (with retry)
   const updatePayload: Record<string, any> = {
     verification_status: finalStatus,
-    last_verified_at: new Date().toISOString(),
-    last_marx_check: new Date().toISOString(),
+    last_verified_at:    new Date().toISOString(),
+    last_marx_check:     new Date().toISOString(),
   }
   if (isValidPlanCode(detectedPlanCode)) updatePayload.last_known_plan_code = detectedPlanCode
-  if (realPlanName)      updatePayload.plan_name  = realPlanName
-  if (realCarrierName)   updatePayload.carrier    = realCarrierName
-  if (detectedPlanType)  updatePayload.plan_type  = detectedPlanType
-  if (finalStatus === 'termed') updatePayload.enrollment_status = 'disenrolled'
+  if (realPlanName)     updatePayload.plan_name = realPlanName
+  if (realCarrierName)  updatePayload.carrier   = realCarrierName
+  if (detectedPlanType) updatePayload.plan_type = detectedPlanType
+  if (finalStatus === 'termed')                              updatePayload.enrollment_status = 'disenrolled'
   if (finalStatus === 'verified' || finalStatus === 'changed') updatePayload.enrollment_status = 'active'
 
-  // Backfill full_name if captured from MARx and member name is missing or partial
   const capturedName = typeof body.capturedName === 'string' ? body.capturedName.trim() : null
   if (capturedName && capturedName.length > 2) {
     const currentName = member.full_name || ''
-    const looksPartial = !currentName ||
-      currentName === member.mbi ||
-      currentName.split(' ').length < 2
+    const looksPartial = !currentName || currentName === member.mbi || currentName.split(' ').length < 2
     if (looksPartial) {
       updatePayload.full_name = capturedName
       console.log('[verify] backfilling full_name from MARx capture:', capturedName)
@@ -241,26 +236,45 @@ export async function POST(req: NextRequest) {
   }
 
   console.log('[verify] updating to:', finalStatus, '| member.id:', member.id)
-  const { error: updateErr } = await db
-    .from('book_of_business')
-    .update(updatePayload)
-    .eq('id', member.id)
+  const memberUpdateResult = await withRetrySafe<void>(
+    async () => {
+      const res = await db.from('book_of_business').update(updatePayload).eq('id', member.id)
+      if (res.error) throw res.error
+    },
+    { maxAttempts: 3, baseDelayMs: 300, label: 'marx/verify UPDATE member' }
+  )
 
-  if (updateErr) {
-    console.error('[verify] UPDATE FAILED:', JSON.stringify(updateErr))
+  if (memberUpdateResult.error) {
+    console.error('[verify] UPDATE FAILED after retries:', JSON.stringify(memberUpdateResult.error))
+    await withRetrySafe<void>(
+      async () => {
+        const res = await db.from('book_of_business')
+          .update({ needs_reverification: true })
+          .eq('id', member.id)
+        if (res.error) throw res.error
+      },
+      { maxAttempts: 2, baseDelayMs: 200, label: 'marx/verify flag needs_reverification' }
+    )
   } else {
     console.log('[verify] UPDATE OK | member:', member.full_name)
   }
 
-  // ── STEP 2: Insert alert if needed ────────────────────────────────────────
+  // STEP 2: Insert alert if needed (with retry)
   if (alertType) {
-    const { data: existing } = await db
-      .from('switch_alerts')
-      .select('id')
-      .eq('bob_member_id', member.id)
-      .eq('alert_type', alertType)
-      .eq('status', 'open')
-      .maybeSingle()
+    const existingResult = await withRetrySafe<{ id: string } | null>(
+      async () => {
+        const res = await db.from('switch_alerts')
+          .select('id')
+          .eq('bob_member_id', member.id)
+          .eq('alert_type', alertType)
+          .eq('status', 'open')
+          .maybeSingle()
+        if (res.error) throw res.error
+        return res.data as { id: string } | null
+      },
+      { maxAttempts: 3, baseDelayMs: 200, label: 'marx/verify check existing alert' }
+    )
+    const existing = existingResult.data
 
     if (!existing) {
       let effectiveDate: string | null = null
@@ -274,9 +288,11 @@ export async function POST(req: NextRequest) {
         alert_type:       alertType,
         switch_type:      alertType,
         previous_value:   member.plan_name || storedCode || 'unknown',
-        new_value:        marxResult === 'no_ma_plan'      ? 'no_active_ma_plan'                :
-                          marxResult === 'pending_switch'   ? (detectedFuturePlan || 'pending') :
-                          realPlanName || detectedPlanCode  || 'unknown',
+        new_value:        marxResult === 'no_ma_plan'
+                          ? 'no_active_ma_plan'
+                          : marxResult === 'pending_switch'
+                            ? (detectedFuturePlan || 'pending')
+                            : realPlanName || detectedPlanCode || 'unknown',
         priority:         alertPriority,
         status:           'open',
         detection_source: 'marx_extension',
@@ -286,37 +302,83 @@ export async function POST(req: NextRequest) {
       }
 
       console.log('[verify] inserting alert:', JSON.stringify(alertPayload))
-      const { data: inserted, error: insertErr } = await db
-        .from('switch_alerts')
-        .insert(alertPayload)
-        .select()
-        .single()
+      const insertResult = await withRetrySafe<{ id: string }>(
+        async () => {
+          const res = await db.from('switch_alerts').insert(alertPayload).select('id').single()
+          if (res.error) throw res.error
+          return res.data as { id: string }
+        },
+        { maxAttempts: 3, baseDelayMs: 300, label: 'marx/verify INSERT alert' }
+      )
+      const inserted  = insertResult.data
+      const insertErr = insertResult.error
 
       if (insertErr) {
-        console.error('[verify] INSERT FAILED:', JSON.stringify(insertErr))
+        console.error('[verify] INSERT FAILED after retries:', JSON.stringify(insertErr))
       } else {
         console.log('[verify] INSERT OK | alert id:', inserted?.id)
 
-        // ── STEP 3: Email AFTER successful DB write ────────────────────────
+        // STEP 3: Email AFTER successful DB write
         if (notificationEmail) {
           try {
-            await sendSwitchAlertEmail(notificationEmail, {
-              memberName:        member.full_name ?? 'Unknown Member',
-              carrier:           member.carrier   ?? 'Unknown Carrier',
-              switchType:        marxResult === 'no_ma_plan'    ? 'termed'              :
-                                 marxResult === 'pending_switch' ? 'future_plan_change' :
-                                 alertType === 'carrier_switch'  ? 'carrier_switch'     : 'plan_change',
-              planCode:          detectedPlanCode ?? detectedFuturePlan ?? 'none',
-              previousPlanCode:  storedCode ?? '',
-              planName:          member.plan_name ?? '',
-              futurePlanName:    detectedFuturePlan ?? undefined,
-              futureEffectiveDate: detectedFutureStart ?? undefined,
-              detectedVia:       'MARx (CMS Portal)',
-              alertUrl:          `${APP_URL}/dashboard/alerts`,
-            })
+            await withRetry(
+              () => sendSwitchAlertEmail(notificationEmail!, {
+                memberName:          member.full_name ?? 'Unknown Member',
+                carrier:             member.carrier   ?? 'Unknown Carrier',
+                switchType:          marxResult === 'no_ma_plan'
+                                     ? 'termed'
+                                     : marxResult === 'pending_switch'
+                                       ? 'future_plan_change'
+                                       : alertType === 'carrier_switch'
+                                         ? 'carrier_switch'
+                                         : 'plan_change',
+                planCode:            detectedPlanCode ?? detectedFuturePlan ?? 'none',
+                previousPlanCode:    storedCode ?? '',
+                planName:            member.plan_name ?? '',
+                futurePlanName:      detectedFuturePlan ?? undefined,
+                futureEffectiveDate: detectedFutureStart ?? undefined,
+                detectedVia:         'MARx (CMS Portal)',
+                alertUrl:            `${APP_URL}/dashboard/alerts`,
+              }),
+              { maxAttempts: 2, baseDelayMs: 500, label: 'marx/verify send alert email' }
+            )
             console.log('[verify] email sent to:', notificationEmail)
+
+            if (inserted?.id) {
+              const alertId = inserted.id
+              await withRetrySafe<void>(
+                async () => {
+                  const res = await db.from('alert_delivery_log').insert({
+                    alert_id:         alertId,
+                    delivery_status:  'sent',
+                    delivery_channel: 'email',
+                    recipient_email:  notificationEmail,
+                    attempted_at:     new Date().toISOString(),
+                  })
+                  if (res.error) throw res.error
+                },
+                { maxAttempts: 2, baseDelayMs: 200, label: 'marx/verify log delivery sent' }
+              )
+            }
           } catch (emailErr: any) {
             console.error('[verify] email error (non-fatal):', emailErr?.message)
+            if (inserted?.id) {
+              const alertId = inserted.id
+              await withRetrySafe<void>(
+                async () => {
+                  const res = await db.from('alert_delivery_log').insert({
+                    alert_id:         alertId,
+                    delivery_status:  'failed',
+                    delivery_channel: 'email',
+                    recipient_email:  notificationEmail,
+                    error_message:    emailErr?.message ?? 'Unknown email error',
+                    attempted_at:     new Date().toISOString(),
+                  })
+                  if (res.error) throw res.error
+                },
+                { maxAttempts: 2, baseDelayMs: 200, label: 'marx/verify log delivery failed' }
+              )
+            }
           }
         }
       }
@@ -327,8 +389,8 @@ export async function POST(req: NextRequest) {
 
   console.log('[verify] DONE | member:', member.full_name, '| status:', finalStatus, '| alert:', alertType ?? 'none')
   return NextResponse.json({
-    changed: alertType !== null,
+    changed:    alertType !== null,
     marxResult: effectiveMarxResult,
-    status: finalStatus,
+    status:     finalStatus,
   })
 }

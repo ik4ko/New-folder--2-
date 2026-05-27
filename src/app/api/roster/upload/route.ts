@@ -215,8 +215,11 @@ export async function POST(req: NextRequest) {
 
     const records: object[] = []
     let dropped = 0
+    // Collect rejected rows so users can review and correct them
+    const rejectedRows: Array<{ row_index: number; reason: string; raw_data: Record<string, string> }> = []
 
-    for (const row of dataRows) {
+    for (let rowIdx = 0; rowIdx < dataRows.length; rowIdx++) {
+      const row = dataRows[rowIdx]
       if (row.every(cell => !cell.trim())) continue
 
       const get = (field: string) =>
@@ -224,7 +227,19 @@ export async function POST(req: NextRequest) {
 
       const rawMbi = get('mbi')
       const mbi = sanitizeMbi(rawMbi)
-      if (!mbi) { dropped++; continue }
+      if (!mbi) {
+        dropped++
+        const rawDataSnap: Record<string, string> = {}
+        headers.forEach((h, i) => { rawDataSnap[h] = row[i] ?? '' })
+        rejectedRows.push({
+          row_index: rowIdx + 2, // +2 = 1-based + header row
+          reason: rawMbi
+            ? `MBI "${rawMbi}" is invalid (must be 9–11 alphanumeric chars)`
+            : 'MBI column is empty or could not be resolved',
+          raw_data: rawDataSnap,
+        })
+        continue
+      }
 
       const firstName   = get('first_name')
       const lastName    = get('last_name')
@@ -298,7 +313,7 @@ export async function POST(req: NextRequest) {
 
     if (records.length === 0) {
       return NextResponse.json(
-        { error: `No valid records found. ${dropped} rows dropped (missing or invalid MBI).` },
+        { error: `No valid records found. ${dropped} rows dropped (missing or invalid MBI).`, dropped, rejectedRows },
         { status: 422 }
       )
     }
@@ -331,9 +346,28 @@ export async function POST(req: NextRequest) {
       )
     }
 
+    // Persist rejected rows so users can download/review them via the dashboard
+    if (rejectedRows.length > 0) {
+      const errorInserts = rejectedRows.map(r => ({
+        agency_id: broker.agency_id,
+        upload_source: 'mbi_upload',
+        row_index: r.row_index,
+        reason: r.reason,
+        raw_data: r.raw_data,
+      }))
+      const { error: errTableErr } = await supabase
+        .from('roster_upload_errors')
+        .insert(errorInserts)
+      if (errTableErr) {
+        // Non-fatal — log but don't fail the overall upload
+        console.error('[roster/upload] failed to log rejected rows:', errTableErr.message)
+      }
+    }
+
     return NextResponse.json({
       imported: deduped.length, dropped, mbiCount, planCount, carrierCount,
       ...(duplicateCount > 0 && { duplicates: duplicateCount, message: `${duplicateCount} duplicate MBI entries were merged` }),
+      ...(rejectedRows.length > 0 && { rejectedCount: rejectedRows.length, message_errors: `${rejectedRows.length} row(s) had invalid MBIs and were logged for review.` }),
     })
   } catch (err: unknown) {
     console.error('[roster/upload] error:', err)

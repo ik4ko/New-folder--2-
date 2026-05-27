@@ -12,6 +12,19 @@ export interface RosterRow {
   raw: Record<string, unknown>
 }
 
+/** Describes a single row that failed to parse */
+export interface RosterParseError {
+  rowIndex: number
+  reason: string
+  rawData: Record<string, unknown>
+}
+
+/** Extended result that includes both good rows and row-level errors */
+export interface ParseResult {
+  rows: RosterRow[]
+  errors: RosterParseError[]
+}
+
 export function normalizeStr(s: string): string {
   return s.toLowerCase().trim().replace(/[^a-z0-9 ]/g, '')
 }
@@ -112,36 +125,90 @@ function resolveCarrierColumns(
   return resolved
 }
 
+/**
+ * Parses a roster file and returns good rows only (original signature preserved).
+ * Silently drops malformed rows — use parseRosterFileWithErrors for full diagnostics.
+ */
 export function parseRosterFile(buffer: ArrayBuffer, carrier: string): RosterRow[] {
-  const workbook = XLSX.read(new Uint8Array(buffer), { type: 'array' })
+  try {
+    return parseRosterFileWithErrors(buffer, carrier).rows
+  } catch {
+    return []
+  }
+}
+
+/**
+ * Parses a roster file with per-row error capture.
+ * Returns both the successfully-parsed rows AND a log of every row that failed,
+ * including the reason and raw data — so callers can persist failures for user review.
+ *
+ * Throws only on catastrophic file-level errors (corrupt workbook, empty sheet).
+ */
+export function parseRosterFileWithErrors(buffer: ArrayBuffer, carrier: string): ParseResult {
+  let workbook: XLSX.WorkBook
+  try {
+    workbook = XLSX.read(new Uint8Array(buffer), { type: 'array' })
+  } catch (err) {
+    throw new Error(
+      `Could not read workbook: ${err instanceof Error ? err.message : String(err)}`
+    )
+  }
+
   const sheetName = workbook.SheetNames[0]
-  if (!sheetName) return []
+  if (!sheetName) throw new Error('Workbook contains no sheets')
 
   const sheet = workbook.Sheets[sheetName]
-  const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: '' })
-  if (rows.length === 0) return []
+  let rawRows: Record<string, unknown>[]
+  try {
+    rawRows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: '' })
+  } catch (err) {
+    throw new Error(
+      `Could not parse sheet "${sheetName}": ${err instanceof Error ? err.message : String(err)}`
+    )
+  }
 
-  const headers = Object.keys(rows[0])
+  if (rawRows.length === 0) throw new Error('Sheet is empty — no data rows found')
+
+  const headers = Object.keys(rawRows[0])
   const carrierKey = carrier.toLowerCase().split('_')[0] // bcbs_ca → bcbs
   const carrierMapping = CARRIER_COLUMNS[carrierKey]
   const colMap: Record<string, string | undefined> = carrierMapping
     ? resolveCarrierColumns(headers, carrierMapping)
     : detectColumns(headers)
 
-  return rows.reduce<RosterRow[]>((acc, row) => {
-    const name = extractValue(row, colMap.full_name)
-    if (!name) return acc
+  const rows: RosterRow[] = []
+  const errors: RosterParseError[] = []
 
-    acc.push({
-      member_id:      extractValue(row, colMap.member_id) || undefined,
-      full_name:      name,
-      dob:            extractValue(row, colMap.dob) || undefined,
-      effective_date: extractValue(row, colMap.effective_date) || undefined,
-      plan_name:      extractValue(row, colMap.plan_name) || undefined,
-      plan_id:        undefined,
-      status:         extractValue(row, colMap.status) || undefined,
-      raw:            row,
-    })
-    return acc
-  }, [])
+  rawRows.forEach((row, idx) => {
+    try {
+      const name = extractValue(row, colMap.full_name)
+      if (!name) {
+        errors.push({
+          rowIndex: idx + 2, // +2 = 1-based + header row
+          reason: 'Missing required field: full_name (member name could not be resolved)',
+          rawData: row,
+        })
+        return
+      }
+
+      rows.push({
+        member_id:      extractValue(row, colMap.member_id) || undefined,
+        full_name:      name,
+        dob:            extractValue(row, colMap.dob) || undefined,
+        effective_date: extractValue(row, colMap.effective_date) || undefined,
+        plan_name:      extractValue(row, colMap.plan_name) || undefined,
+        plan_id:        undefined,
+        status:         extractValue(row, colMap.status) || undefined,
+        raw:            row,
+      })
+    } catch (err) {
+      errors.push({
+        rowIndex: idx + 2,
+        reason: `Row parse exception: ${err instanceof Error ? err.message : String(err)}`,
+        rawData: row,
+      })
+    }
+  })
+
+  return { rows, errors }
 }

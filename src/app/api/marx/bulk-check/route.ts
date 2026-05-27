@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { withRetrySafe } from '@/lib/utils/retry'
 
 export const dynamic = 'force-dynamic'
 
@@ -52,26 +53,46 @@ export async function POST(req: NextRequest) {
   const withMbi    = members.filter(m => m.mbi).map(m => m.id)
   const withoutMbi = members.filter(m => !m.mbi).map(m => m.id)
 
-  const updates: Promise<unknown>[] = []
+  // Run both updates in parallel with retry -- allSettled preserves partial success
+  const updateResults = await Promise.allSettled([
+    withMbi.length > 0
+      ? withRetrySafe<void>(
+          async () => {
+            const res = await service.from('book_of_business').update({
+              verification_status: 'verified',
+              last_marx_check:     now,
+              last_verified_at:    now,
+            }).in('id', withMbi)
+            if (res.error) throw res.error
+          },
+          { maxAttempts: 3, baseDelayMs: 300, label: 'marx/bulk-check UPDATE verified' }
+        )
+      : Promise.resolve({ data: null, error: null }),
 
-  if (withMbi.length > 0) {
-    updates.push(
-      service.from('book_of_business').update({
-        verification_status: 'verified',
-        last_marx_check:     now,
-        last_verified_at:    now,
-      }).in('id', withMbi)
-    )
+    withoutMbi.length > 0
+      ? withRetrySafe<void>(
+          async () => {
+            const res = await service.from('book_of_business').update({
+              verification_status: 'missing',
+            }).in('id', withoutMbi)
+            if (res.error) throw res.error
+          },
+          { maxAttempts: 3, baseDelayMs: 300, label: 'marx/bulk-check UPDATE missing' }
+        )
+      : Promise.resolve({ data: null, error: null }),
+  ])
+
+  const warnings = updateResults
+    .filter((r): r is PromiseRejectedResult => r.status === 'rejected')
+    .map(r => String(r.reason))
+
+  if (warnings.length > 0) {
+    console.error('[marx/bulk-check] Partial update failure after retries:', warnings)
   }
 
-  if (withoutMbi.length > 0) {
-    updates.push(
-      service.from('book_of_business').update({
-        verification_status: 'missing',
-      }).in('id', withoutMbi)
-    )
-  }
-
-  await Promise.all(updates)
-  return NextResponse.json({ verified: withMbi.length, missing: withoutMbi.length })
+  return NextResponse.json({
+    verified: withMbi.length,
+    missing:  withoutMbi.length,
+    ...(warnings.length > 0 && { warnings }),
+  })
 }

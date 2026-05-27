@@ -150,13 +150,70 @@ const CARRIER_KEYWORDS: [string, string][] = [
   ['elevance', 'Elevance Health'],
 ]
 
+/**
+ * RFC 4180-compliant CSV parser.
+ * Handles quoted fields (which may contain commas and newlines),
+ * escaped double-quotes (""), and CRLF/LF line endings.
+ * The naive split-on-comma approach breaks whenever Google Sheets
+ * wraps any cell that contains a comma (e.g. "Smith, John",
+ * "Devoted Health, Medicare Plans"), shifting every subsequent
+ * column index and causing MBI/carrier detection to fail.
+ */
 function parseCSV(text: string): string[][] {
-  return text
-    .split(/\r?\n/)
-    .filter(Boolean)
-    .map(line =>
-      line.split(',').map(cell => cell.replace(/^"|"$/g, '').trim())
-    )
+  const rows: string[][] = []
+  let row: string[] = []
+  let cell = ''
+  let inQuotes = false
+  let i = 0
+
+  // Normalize line endings
+  const s = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
+
+  while (i < s.length) {
+    const ch = s[i]
+
+    if (inQuotes) {
+      if (ch === '"') {
+        // Peek ahead: "" means escaped quote inside quoted field
+        if (s[i + 1] === '"') {
+          cell += '"'
+          i += 2
+        } else {
+          // Closing quote — exit quoted mode
+          inQuotes = false
+          i++
+        }
+      } else {
+        cell += ch
+        i++
+      }
+    } else {
+      if (ch === '"') {
+        inQuotes = true
+        i++
+      } else if (ch === ',') {
+        row.push(cell.trim())
+        cell = ''
+        i++
+      } else if (ch === '\n') {
+        row.push(cell.trim())
+        cell = ''
+        // Only push non-empty rows (skip blank lines)
+        if (row.some(c => c !== '')) rows.push(row)
+        row = []
+        i++
+      } else {
+        cell += ch
+        i++
+      }
+    }
+  }
+
+  // Flush final cell/row
+  row.push(cell.trim())
+  if (row.some(c => c !== '')) rows.push(row)
+
+  return rows
 }
 
 async function fetchSheetCSV(url: string): Promise<string> {
@@ -344,18 +401,18 @@ export async function POST(req: NextRequest) {
   const typedRecords = records as Array<Record<string, unknown>>
 
   // Deduplicate by mbi — keep last occurrence (most complete data wins)
-  const deduped = Object.values(
-    typedRecords.reduce((acc, record) => {
+  const deduped: Record<string, unknown>[] = Object.values(
+    typedRecords.reduce<Record<string, Record<string, unknown>>>((acc, record) => {
       const key = `${record.mbi}-${record.agency_id}`
       acc[key] = record
       return acc
-    }, {} as Record<string, Record<string, unknown>>)
+    }, {})
   )
   const duplicateCount = typedRecords.length - deduped.length
 
   const mbiCount = deduped.length
-  const planCount = deduped.filter(r => r.plan_name).length
-  const carrierCount = deduped.filter(r => r.carrier !== 'unknown').length
+  const planCount = deduped.filter(r => (r as Record<string, unknown>).plan_name).length
+  const carrierCount = deduped.filter(r => (r as Record<string, unknown>).carrier !== 'unknown').length
 
   const { error: upsertError } = await supabase
     .from('book_of_business')
