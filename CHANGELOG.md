@@ -1,5 +1,25 @@
 # Aegis Sage — Changelog
 
+## [Marketing Overhaul: Tier Separation, Compliance Pages, Billing-v2 Sandbox] — 2026-05-28
+
+### Landing Page (`src/app/page.tsx`) — Full Overhaul
+- **Pricing updated**: Broker $79 → **$149/mo** (annual: $119). Agency $497 → **$749/mo base + $49/broker seat** (annual: $599 + $39/seat).
+- **Agency CTA changed**: "Start Free Trial" → **"Request Enterprise Onboarding & Security Docs"** — opens `EnterpriseModal` lead-capture form (no backend wiring yet; logs payload to console for beta inspection).
+- **Two-Tier Experience section added** (`#tiers`): Distinct visual housing for Independent Broker (slate/speed theme, live book preview) vs Agency Owner (primary/enterprise theme, Manager Control Center preview with downline broker table). Completely separate visual identities.
+- **Annual billing toggle** added to pricing section — switches all displayed prices live with no page reload.
+- **Enterprise trust microbar** added to hero: HIPAA / AES-256 / BAA / Not Affiliated with CMS.
+- **Compliance trust grid** added below pricing cards: 4 pillars (HIPAA, AES-256, BAA, SOC 2 Aligned).
+- **Footer overhauled**: Full 4-column layout (brand, platform links, legal links). New legal links: `/privacy-policy`, `/terms-of-service`, `/security-compliance`, `/baa`.
+- All "Start Free Trial" flows for broker tier preserved. Agency tier removed from free trial entirely — gated behind enterprise inquiry modal.
+
+### New Compliance Pages
+- **`/privacy-policy`** (`src/app/privacy-policy/page.tsx`): Healthcare-grade data minimization statement. Covers: data collected, HIPAA/BAA, data minimization principle, retention schedule, agent rights, sub-processor list (Supabase/AWS, Vercel, SendGrid, Stripe).
+- **`/terms-of-service`** (`src/app/terms-of-service/page.tsx`): Full service agreement. Covers: acceptance, subscription tiers ($149/$749), **annual commitment policy for Agency Plan (non-cancellable mid-term)**, cancellation/refund policy, permitted use restrictions, limitation of liability (not affiliated with CMS), modification terms.
+- **`/security-compliance`** (`src/app/security-compliance/page.tsx`): AES-256 architecture detail, TLS 1.3 in-transit, AWS/Supabase HIPAA-eligible hosting, RBAC + audit logging, API/extension authentication (JWT + hex key), BAA availability. Includes direct compliance@aegissage.com CTA.
+
+### Billing-v2 Sandbox (`src/components/billing-v2/`)
+- **`pricing-sandbox.tsx`**: Fully isolated pricing UI for new tiers. Includes monthly/annual toggle, per-broker seat calculator (live price math), Stripe product ID stubs (`SANDBOX_*`), and `onCheckout` callback prop (logs payload to console only — no live API calls). Import this ONLY for internal demos — not referenced by any active route.
+
 ## [Beta Cleanup: Code Hygiene, Dead Routes, UX Hardening] — 2026-05-28
 
 ### Dead Routes Neutered (17 pages → redirect stubs)
