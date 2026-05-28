@@ -52,11 +52,13 @@ export default async function ManagerPage() {
   if (!isStaff) redirect('/dashboard')
 
   const agencyId = agency?.id ?? brokerRow?.agency_id
+  if (!agencyId) redirect('/dashboard')
 
   // -- Section A: Revenue at Risk --------------------------------------------
   const { count: openSwitchCount } = await supabase
     .from('switch_alerts')
     .select('id', { count: 'exact', head: true })
+    .eq('agency_id', agencyId)
     .eq('status', 'open')
     .eq('alert_type', 'missing_from_roster')
 
@@ -66,6 +68,7 @@ export default async function ManagerPage() {
   const { data: submissions } = await supabase
     .from('vcc_submissions')
     .select('id, client_name, carrier, fax_status, fax_sent_at, fax_confirmation_id, deadline_at, filled_pdf_path, broker:broker_id (first_name, last_name)')
+    .eq('agency_id', agencyId)
     .order('deadline_at', { ascending: true })
 
   const allSubmissions = submissions ?? []
@@ -95,32 +98,32 @@ export default async function ManagerPage() {
 
   const [clientCounts, openAlertCounts, totalAlertCounts, resolvedAlertCounts, VCCCounts, campaignCounts, aorLockedCounts, protectionStats] =
     await Promise.all([
-      // clients per broker
-      supabase.from('ghl_contacts').select('broker_id').then(r =>
+      // clients per broker (scoped to agency)
+      supabaseAdmin.from('book_of_business').select('broker_id').eq('agency_id', agencyId).then(r =>
         groupCount(r.data ?? [], 'broker_id')
       ),
-      // open alerts per broker
-      supabase.from('switch_alerts').select('broker_id').in('status', ['open', 'contacted']).then(r =>
+      // open alerts per broker (scoped to agency)
+      supabaseAdmin.from('switch_alerts').select('broker_id').eq('agency_id', agencyId).in('status', ['open', 'contacted']).then(r =>
         groupCount(r.data ?? [], 'broker_id')
       ),
-      // total alerts per broker
-      supabase.from('switch_alerts').select('broker_id').then(r =>
+      // total alerts per broker (scoped to agency)
+      supabaseAdmin.from('switch_alerts').select('broker_id').eq('agency_id', agencyId).then(r =>
         groupCount(r.data ?? [], 'broker_id')
       ),
-      // resolved alerts per broker
-      supabase.from('switch_alerts').select('broker_id').eq('status', 'resolved').then(r =>
+      // resolved alerts per broker (scoped to agency)
+      supabaseAdmin.from('switch_alerts').select('broker_id').eq('agency_id', agencyId).eq('status', 'resolved').then(r =>
         groupCount(r.data ?? [], 'broker_id')
       ),
-      // VCC submissions per broker
-      supabase.from('vcc_submissions').select('broker_id').then(r =>
+      // VCC submissions per broker (scoped to agency)
+      supabaseAdmin.from('vcc_submissions').select('broker_id').eq('agency_id', agencyId).then(r =>
         groupCount(r.data ?? [], 'broker_id')
       ),
-      // active campaigns per broker
-      supabase.from('campaign_enrollments').select('broker_id').eq('status', 'active').then(r =>
+      // active campaigns per broker (scoped to agency)
+      supabaseAdmin.from('campaign_enrollments').select('broker_id').eq('agency_id', agencyId).eq('status', 'active').then(r =>
         groupCount(r.data ?? [], 'broker_id')
       ),
-      // AOR locked per broker
-      supabaseAdmin.from('aor_submissions').select('broker_id').in('status', ['faxed', 'confirmed']).then(r =>
+      // AOR locked per broker (scoped to agency)
+      supabaseAdmin.from('aor_submissions').select('broker_id').eq('agency_id', agencyId).in('status', ['faxed', 'confirmed']).then(r =>
         groupCount(r.data ?? [], 'broker_id')
       ),
       // Agency protection stats

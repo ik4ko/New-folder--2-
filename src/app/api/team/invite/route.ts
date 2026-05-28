@@ -45,16 +45,20 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json()
-    const { email, first_name, last_name, npn, role: inviteRole = 'broker' } = body as {
+    const { email, npn, role: inviteRole = 'broker' } = body as {
       email: string
-      first_name: string
-      last_name: string
+      first_name?: string
+      last_name?: string
       npn?: string
       role?: string
     }
 
-    if (!email || !first_name || !last_name) {
-      return NextResponse.json({ error: 'email, first_name, and last_name are required' }, { status: 400 })
+    // Derive name from email prefix when not explicitly supplied (e.g. bulk invites)
+    const first_name = (body.first_name as string | undefined)?.trim() || email.split('@')[0]
+    const last_name  = (body.last_name  as string | undefined)?.trim() || ''
+
+    if (!email) {
+      return NextResponse.json({ error: 'email is required' }, { status: 400 })
     }
 
     // agency_owner cannot be invited (only 1 per agency)

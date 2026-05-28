@@ -1,5 +1,20 @@
 # Aegis Sage — Changelog
 
+## [Deep Audit: Bug Fixes — Invite API, Agency Scoping, Manager Data Leak] — 2026-05-28
+
+### Bulk Invite Fix (`/api/team/invite/route.ts`)
+- Relaxed validation: `last_name` is no longer required. Bulk invites that provide email only will derive `first_name` from the email prefix automatically.
+- Single invite via the UI still enforces first + last name via the client-side check (unchanged).
+- Error message updated from "email, first_name, and last_name are required" → "email is required".
+- This fixes the blocker where bulk invite always returned 400 despite a valid email address.
+
+### Manager Page — Agency Scoping Fixes (`/dashboard/manager/page.tsx`)
+- **Critical data leak fixed**: All queries in the Manager (Agency View) page were missing `agency_id` filters. This could have exposed cross-agency stats to any manager-role user.
+- Revenue at Risk `switch_alerts` count: added `.eq('agency_id', agencyId)`.
+- Fax Audit Trail `vcc_submissions` query: added `.eq('agency_id', agencyId)`.
+- All 7 broker performance queries (clients, open alerts, total alerts, resolved alerts, VCC count, campaigns, AOR locked): added `.eq('agency_id', agencyId)` to every query. Also migrated from user-scoped `supabase` client to `supabaseAdmin` (service client) for consistency — these queries need to be authoritative for reporting.
+- Added null guard: if `agencyId` is undefined (no agency found), redirect to `/dashboard` immediately.
+
 ## [UX Overhaul: Lock Removal, RBAC, Future-Switch Alerts, Doctor/VCC] — 2026-05-28
 
 ### Aegis Lock (AOR) — Removed
