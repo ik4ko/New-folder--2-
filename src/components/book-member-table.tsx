@@ -14,7 +14,8 @@ import {
 import {
   Users, FileCheck,
   CheckCircle2, XCircle, Clock, Bell, KeyRound, AlertTriangle,
-  Trash2, Download, Activity, X,
+  Trash2, Download, Activity, X, Copy, Check as CheckIcon,
+  ChevronLeft, ChevronRight,
 } from 'lucide-react'
 
 interface MemberRow {
@@ -177,6 +178,10 @@ export function BookMemberTable({ members }: Props) {
   const [mbiEditOverlay, setMbiEditOverlay] = useState<{ id: string; name: string | null } | null>(null)
   const [mbiInput, setMbiInput]             = useState('')
   const [savingMbi, setSavingMbi]           = useState(false)
+  const [mbiCopied, setMbiCopied]           = useState(false)
+  const [page, setPage]                     = useState(1)
+
+  const PAGE_SIZE = 50
 
   const activeCount = members.filter(m =>
     m.enrollment_status !== 'termed' && m.enrollment_status !== 'disenrolled' && m.status !== 'termed'
@@ -201,6 +206,10 @@ export function BookMemberTable({ members }: Props) {
     }
     return true
   })
+
+  const totalPages   = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE))
+  const safePage     = Math.min(page, totalPages)
+  const paginated    = filtered.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE)
 
   const filteredIds = filtered.map(m => m.id)
   const allSelected = filteredIds.length > 0 && filteredIds.every(id => selected.has(id))
@@ -337,7 +346,7 @@ export function BookMemberTable({ members }: Props) {
           <div className="ml-auto flex items-center gap-1">
             {criticalCount > 0 && (
               <button
-                onClick={() => setFilter('critical')}
+                onClick={() => { setFilter('critical'); setPage(1) }}
                 className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest transition-colors border ${
                   filter === 'critical'
                     ? 'bg-red-500/20 text-red-400 border-red-500/40'
@@ -356,7 +365,7 @@ export function BookMemberTable({ members }: Props) {
               return (
                 <button
                   key={f}
-                  onClick={() => setFilter(f)}
+                  onClick={() => { setFilter(f); setPage(1) }}
                   className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest transition-colors ${
                     filter === f
                       ? 'bg-primary/20 text-primary border border-primary/30'
@@ -395,7 +404,7 @@ export function BookMemberTable({ members }: Props) {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {filtered.map(member => {
+                {paginated.map(member => {
                   const isTermed = member.enrollment_status === 'termed' || member.enrollment_status === 'disenrolled' || member.status === 'termed'
                   const badge = getEnrollmentBadge(member)
                   const BadgeIcon = badge.icon
@@ -487,10 +496,55 @@ export function BookMemberTable({ members }: Props) {
                   )
                 })}
               </TableBody>
-            </Table>
           </div>
         )}
       </Card>
+
+      {/* Pagination controls */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between px-5 py-3 border-t border-slate-800 bg-slate-900/40 rounded-b-3xl">
+          <span className="text-[10px] font-black uppercase tracking-widest text-slate-500">
+            {((safePage - 1) * PAGE_SIZE) + 1}–{Math.min(safePage * PAGE_SIZE, filtered.length)} of {filtered.length}
+          </span>
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setPage(p => Math.max(1, p - 1))}
+              disabled={safePage === 1}
+              className="h-7 w-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              <ChevronLeft className="w-3.5 h-3.5" />
+            </button>
+            {Array.from({ length: totalPages }, (_, i) => i + 1)
+              .filter(p => p === 1 || p === totalPages || Math.abs(p - safePage) <= 1)
+              .reduce<(number | string)[]>((acc, p, i, arr) => {
+                if (i > 0 && (p as number) - (arr[i - 1] as number) > 1) acc.push('…')
+                acc.push(p)
+                return acc
+              }, [])
+              .map((p, i) => p === '…'
+                ? <span key={`e-${i}`} className="text-[9px] text-slate-600 px-1">…</span>
+                : (
+                  <button
+                    key={p}
+                    onClick={() => setPage(p as number)}
+                    className={`h-7 min-w-[28px] px-2 rounded-lg text-[9px] font-black transition-colors ${
+                      safePage === p
+                        ? 'bg-primary/20 text-primary border border-primary/30'
+                        : 'text-slate-400 hover:text-white hover:bg-slate-800'
+                    }`}
+                  >{p}</button>
+                )
+              )}
+            <button
+              onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+              disabled={safePage === totalPages}
+              className="h-7 w-7 flex items-center justify-center rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+            >
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Floating action bar */}
       {someSelected && selectedIds.length > 0 && (
@@ -498,37 +552,31 @@ export function BookMemberTable({ members }: Props) {
           <span className="text-[10px] font-black uppercase tracking-widest text-slate-300">
             {selectedIds.length} selected
           </span>
-          <div className="w-px h-4 bg-slate-700" />
+          <div className="h-4 w-px bg-slate-700" />
           <Button
-            size="sm"
-            variant="ghost"
+            variant="ghost" size="sm"
             onClick={handleExportCsv}
             className="h-7 px-3 rounded-xl text-[9px] font-black uppercase tracking-widest text-slate-300 hover:text-white hover:bg-slate-800 gap-1.5"
           >
-            <Download className="w-3 h-3" />Export CSV
+            <Download className="w-3 h-3" /> Export CSV
           </Button>
           <Button
-            size="sm"
-            variant="ghost"
+            variant="ghost" size="sm"
             onClick={handleMarxCheck}
             disabled={checking}
-            className="h-7 px-3 rounded-xl text-[9px] font-black uppercase tracking-widest text-emerald-400 hover:text-white hover:bg-emerald-500/20 gap-1.5"
+            className="h-7 px-3 rounded-xl text-[9px] font-black uppercase tracking-widest text-emerald-400 hover:bg-emerald-500/10 gap-1.5"
           >
-            <Activity className="w-3 h-3" />{checking ? 'Checking…' : 'Run MARx Check'}
+            <Activity className="w-3 h-3" /> {checking ? 'Running…' : 'MARx Check'}
           </Button>
           <Button
-            size="sm"
-            variant="ghost"
+            variant="ghost" size="sm"
             onClick={() => setShowDeleteConfirm(true)}
-            className="h-7 px-3 rounded-xl text-[9px] font-black uppercase tracking-widest text-red-400 hover:text-white hover:bg-red-500/20 gap-1.5"
+            disabled={deleting}
+            className="h-7 px-3 rounded-xl text-[9px] font-black uppercase tracking-widest text-red-400 hover:bg-red-500/10 gap-1.5"
           >
-            <Trash2 className="w-3 h-3" />Delete
+            <Trash2 className="w-3 h-3" /> Remove
           </Button>
-          <button
-            onClick={() => setSelected(new Set())}
-            className="text-slate-500 hover:text-slate-300 ml-1"
-            aria-label="Clear selection"
-          >
+          <button onClick={() => setSelected(new Set())} className="text-slate-600 hover:text-slate-400 ml-1">
             <X className="w-3.5 h-3.5" />
           </button>
         </div>
@@ -536,101 +584,111 @@ export function BookMemberTable({ members }: Props) {
 
       {/* Delete confirmation modal */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm">
-          <div className="rounded-3xl bg-slate-900 border border-slate-700 p-8 max-w-sm w-full mx-4 shadow-2xl">
-            <p className="text-base font-black uppercase tracking-tight text-white">
-              Delete {selectedIds.length} member{selectedIds.length > 1 ? 's' : ''}?
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          onClick={() => setShowDeleteConfirm(false)}>
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-80 shadow-2xl space-y-4"
+            onClick={e => e.stopPropagation()}>
+            <p className="text-sm font-black uppercase tracking-tight text-white">
+              Remove {selectedIds.length} member{selectedIds.length !== 1 ? 's' : ''}?
             </p>
-            <p className="text-xs text-slate-400 mt-2">This cannot be undone. All records will be permanently removed.</p>
-            <div className="flex gap-3 mt-6">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowDeleteConfirm(false)}
-                className="flex-1 rounded-xl font-black uppercase text-[9px] tracking-widest border-slate-700 text-slate-400 hover:bg-slate-800"
-              >
+            <p className="text-[10px] text-slate-400 leading-relaxed">
+              This permanently removes them from your book of business. This action cannot be undone.
+            </p>
+            <div className="flex gap-2 pt-1">
+              <Button variant="outline" size="sm" onClick={() => setShowDeleteConfirm(false)}
+                className="flex-1 rounded-xl font-black uppercase text-[9px] tracking-widest">
                 Cancel
               </Button>
-              <Button
-                size="sm"
-                onClick={handleDelete}
-                disabled={deleting}
-                className="flex-1 rounded-xl font-black uppercase text-[9px] tracking-widest bg-red-500 hover:bg-red-600 text-white"
-              >
-                {deleting ? 'Deleting…' : 'Delete'}
+              <Button size="sm" onClick={handleDelete} disabled={deleting}
+                className="flex-1 rounded-xl font-black uppercase text-[9px] tracking-widest bg-red-600 hover:bg-red-700 border-0">
+                {deleting ? 'Removing…' : 'Remove'}
               </Button>
             </div>
           </div>
         </div>
       )}
 
-      {/* MBI edit overlay (no MBI on file) */}
-      {mbiEditOverlay && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
-          onClick={() => setMbiEditOverlay(null)}
-        >
-          <div
-            className="rounded-3xl bg-slate-900 border border-slate-700 p-8 max-w-xs w-full mx-4 shadow-2xl"
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between mb-4">
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Medicare ID (MBI)</p>
-              <button onClick={() => setMbiEditOverlay(null)} className="text-slate-500 hover:text-slate-300">
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            {mbiEditOverlay.name && (
-              <p className="text-xs text-slate-400 mb-3">{mbiEditOverlay.name}</p>
-            )}
-            <div className="text-xs p-3 rounded-lg bg-gray-900 border border-red-800">
-              <p className="text-red-400 mb-2">No MBI on file</p>
-              <div className="flex gap-2">
-                <input
-                  type="text"
-                  placeholder="Enter MBI (e.g. 1EG4TE5MK73)"
-                  maxLength={11}
-                  value={mbiInput}
-                  className="flex-1 px-2 py-1 text-xs rounded bg-gray-800 border border-gray-600 text-white font-mono uppercase"
-                  onChange={e => setMbiInput(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 11))}
-                />
-                <button
-                  onClick={() => saveMbi(mbiEditOverlay.id, mbiInput)}
-                  disabled={savingMbi || mbiInput.length !== 11}
-                  className="px-3 py-1 text-xs rounded bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50"
-                >
-                  {savingMbi ? 'Saving…' : 'Save'}
-                </button>
-              </div>
-              <p className="text-gray-500 mt-1 text-xs">MBI is 11 characters: letters and numbers only</p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* MBI overlay */}
+      {/* MBI reveal overlay */}
       {mbiOverlay && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
-          onClick={() => setMbiOverlay(null)}
-        >
-          <div
-            className="rounded-3xl bg-slate-900 border border-slate-700 p-8 max-w-xs w-full mx-4 shadow-2xl"
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="flex items-center justify-between mb-4">
-              <p className="text-[10px] font-black uppercase tracking-widest text-slate-400">Medicare ID (MBI)</p>
-              <button onClick={() => setMbiOverlay(null)} className="text-slate-500 hover:text-slate-300">
-                <X className="w-4 h-4" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          onClick={() => { setMbiOverlay(null); setMbiCopied(false) }}>
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-80 shadow-2xl space-y-3"
+            onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Medicare ID (MBI)</p>
+              <button onClick={() => { setMbiOverlay(null); setMbiCopied(false) }}
+                className="text-slate-600 hover:text-slate-300 transition-colors">
+                <X className="w-3.5 h-3.5" />
               </button>
             </div>
             {mbiOverlay.name && (
-              <p className="text-xs text-slate-400 mb-3">{mbiOverlay.name}</p>
+              <p className="text-xs text-slate-400 font-medium">{mbiOverlay.name}</p>
             )}
-            <p className="text-2xl font-mono font-black tracking-[0.2em] text-white select-all">
-              {mbiOverlay.mbi}
+            <div className="flex items-center justify-between gap-3">
+              <p className="text-2xl font-black tracking-widest text-white font-mono select-all">
+                {mbiOverlay.mbi}
+              </p>
+              <button
+                onClick={() => {
+                  navigator.clipboard.writeText(mbiOverlay!.mbi).then(() => {
+                    setMbiCopied(true)
+                    setTimeout(() => setMbiCopied(false), 2000)
+                  })
+                }}
+                className={`flex items-center gap-1.5 h-8 px-3 rounded-xl text-[9px] font-black uppercase tracking-widest border transition-all shrink-0 ${
+                  mbiCopied
+                    ? 'bg-emerald-500/10 text-emerald-400 border-emerald-600'
+                    : 'text-slate-400 border-slate-700 hover:text-white hover:border-slate-500 hover:bg-slate-800'
+                }`}
+              >
+                {mbiCopied ? <CheckIcon className="w-3 h-3" /> : <Copy className="w-3 h-3" />}
+                {mbiCopied ? 'Copied!' : 'Copy'}
+              </button>
+            </div>
+            <p className="text-[8px] text-slate-600 font-bold uppercase tracking-widest">
+              Click outside to close · Do not share PHI
             </p>
-            <p className="text-[9px] text-slate-600 mt-3 uppercase tracking-widest">Click outside to close · Do not share PHI</p>
+          </div>
+        </div>
+      )}
+
+      {/* MBI entry overlay */}
+      {mbiEditOverlay && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm"
+          onClick={() => setMbiEditOverlay(null)}>
+          <div className="bg-slate-900 border border-slate-700 rounded-2xl p-6 w-80 shadow-2xl space-y-4"
+            onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between">
+              <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">Enter Medicare ID (MBI)</p>
+              <button onClick={() => setMbiEditOverlay(null)} className="text-slate-600 hover:text-slate-300">
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+            {mbiEditOverlay.name && (
+              <p className="text-xs text-slate-400 font-medium">{mbiEditOverlay.name}</p>
+            )}
+            <input
+              autoFocus
+              value={mbiInput}
+              onChange={e => setMbiInput(e.target.value.toUpperCase())}
+              placeholder="1EG4-TE5-MK72"
+              className="w-full h-11 rounded-xl bg-slate-800 border border-slate-700 text-white text-sm font-mono px-3 placeholder:text-slate-600 focus:outline-none focus:border-primary"
+            />
+            <div className="flex gap-2">
+              <Button variant="outline" size="sm" onClick={() => setMbiEditOverlay(null)}
+                className="flex-1 rounded-xl font-black uppercase text-[9px] tracking-widest">
+                Cancel
+              </Button>
+              <Button size="sm"
+                onClick={() => saveMbi(mbiEditOverlay.id, mbiInput.trim())}
+                disabled={savingMbi || mbiInput.trim().length < 11}
+                className="flex-1 rounded-xl font-black uppercase text-[9px] tracking-widest">
+                {savingMbi ? 'Saving…' : 'Save MBI'}
+              </Button>
+            </div>
+            <p className="text-[8px] text-slate-600 font-bold uppercase tracking-widest">
+              Do not share PHI · Stored encrypted
+            </p>
           </div>
         </div>
       )}

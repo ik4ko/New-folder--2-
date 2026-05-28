@@ -191,6 +191,26 @@ export function parseRosterFileWithErrors(buffer: ArrayBuffer, carrier: string):
         return
       }
 
+      // ── Junk row guard ──────────────────────────────────────────────────────
+      // Reject rows whose "name" column is clearly a formula, subtotal, or
+      // summary cell rather than an actual person.  Patterns we filter out:
+      //   • Contains "=" (Excel formula artifact)
+      //   • Contains "TOTAL" (subtotal / summary row)
+      //   • Consists entirely of digits, spaces, commas, colons, +−×/= signs
+      //     (e.g. "450-3000= 3,450 TOTAL: 6")
+      //   • Fewer than 2 characters after trimming
+      const junkName = /=|TOTAL/i.test(name)
+        || /^[\d\s\.,;\:\+\-\*\/\(\)=]+$/.test(name.trim())
+        || name.trim().length < 2
+      if (junkName) {
+        errors.push({
+          rowIndex: idx + 2,
+          reason: `Skipped non-person row: "${name.slice(0, 40)}" does not look like a member name`,
+          rawData: row,
+        })
+        return
+      }
+
       rows.push({
         member_id:      extractValue(row, colMap.member_id) || undefined,
         full_name:      name,
