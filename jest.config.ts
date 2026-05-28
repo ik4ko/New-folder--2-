@@ -1,13 +1,15 @@
 import type { Config } from 'jest'
 
 const config: Config = {
-  preset: 'ts-jest',
   testEnvironment: 'node',
+  // Explicit transform avoids the preset resolution issue between ts-jest@29 and jest@30
+  transform: {
+    '^.+\\.tsx?$': ['ts-jest', { tsconfig: { jsx: 'react', esModuleInterop: true } }],
+  },
   moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/src/$1',
   },
   testMatch: ['**/__tests__/**/*.test.ts'],
-  // Only transform our source files — exclude node_modules
   transformIgnorePatterns: ['/node_modules/'],
 }
 

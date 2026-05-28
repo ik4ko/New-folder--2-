@@ -247,14 +247,16 @@ export async function sendSwitchAlertEmail(
   toEmail: string,
   data: {
     memberName: string
-    carrier: string
+    // Previous plan/carrier (from roster — what broker enrolled them in)
+    previousPlanName: string
+    previousCarrier: string
+    // New plan/carrier (from MARx — what CMS shows now)
+    newPlanName: string
+    newCarrier: string
     switchType: string
-    planCode: string
-    previousPlanCode: string
-    planName: string
+    // Pending switch extras
     futurePlanName?: string
     futureEffectiveDate?: string
-    endDate?: string
     detectedVia: string
     alertUrl: string
   }
@@ -265,58 +267,155 @@ export async function sendSwitchAlertEmail(
   }
 
   let subject: string
-  let body: string
+  let html: string
+
+  const styles = `
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; background:#0f172a; color:#e2e8f0; margin:0; padding:0; }
+    .wrapper { max-width:600px; margin:0 auto; padding:32px 16px; }
+    .card { background:#1e293b; border-radius:16px; padding:32px; border:1px solid #334155; }
+    .logo { font-size:11px; font-weight:900; letter-spacing:0.2em; text-transform:uppercase; color:#6366f1; margin-bottom:24px; }
+    .badge { display:inline-block; padding:4px 10px; border-radius:6px; font-size:10px; font-weight:900; text-transform:uppercase; letter-spacing:0.1em; margin-bottom:16px; }
+    .badge-red    { background:#450a0a; color:#f87171; border:1px solid #7f1d1d; }
+    .badge-orange { background:#431407; color:#fb923c; border:1px solid #7c2d12; }
+    .badge-yellow { background:#422006; color:#fbbf24; border:1px solid #78350f; }
+    h2 { font-size:20px; font-weight:900; color:#f8fafc; margin:0 0 8px; }
+    .subtitle { font-size:13px; color:#94a3b8; margin:0 0 24px; }
+    .plan-row { display:flex; gap:12px; margin-bottom:20px; }
+    .plan-box { flex:1; background:#0f172a; border-radius:10px; padding:14px; border:1px solid #334155; }
+    .plan-label { font-size:9px; font-weight:900; text-transform:uppercase; letter-spacing:0.15em; color:#64748b; margin-bottom:6px; }
+    .plan-name { font-size:13px; font-weight:700; color:#f1f5f9; margin-bottom:4px; }
+    .plan-carrier { font-size:11px; color:#94a3b8; }
+    .arrow { display:flex; align-items:center; padding-top:28px; color:#475569; font-size:18px; }
+    .details { background:#0f172a; border-radius:10px; padding:14px; margin-bottom:24px; border:1px solid #1e293b; }
+    .detail-row { display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid #1e293b; font-size:12px; }
+    .detail-row:last-child { border-bottom:none; }
+    .detail-label { color:#64748b; font-weight:700; }
+    .detail-value { color:#e2e8f0; font-weight:600; }
+    .cta { display:block; text-align:center; background:#6366f1; color:#fff!important; padding:14px 24px; border-radius:10px; font-weight:900; font-size:13px; text-decoration:none; letter-spacing:0.05em; text-transform:uppercase; }
+    .footer { text-align:center; margin-top:20px; font-size:10px; color:#475569; }
+  `.replace(/\n\s+/g, ' ').trim()
 
   if (data.switchType === 'future_plan_change') {
-    subject = `ACTION REQUIRED -- ${data.memberName} switching plans ${data.futureEffectiveDate}`
-    body = `AegisSage detected an upcoming plan change for one of your clients.
+    subject = `⚠ ACTION REQUIRED: ${data.memberName} — Upcoming Plan Change ${data.futureEffectiveDate ? `(eff. ${data.futureEffectiveDate})` : ''}`
+    html = `<!DOCTYPE html><html><head><style>${styles}</style></head><body>
+<div class="wrapper"><div class="card">
+  <div class="logo">AegisSage</div>
+  <span class="badge badge-yellow">⚠ Upcoming Switch</span>
+  <h2>${data.memberName} is switching plans</h2>
+  <p class="subtitle">A plan change is scheduled — you still have time to reach out and retain this client.</p>
+  <div class="plan-row">
+    <div class="plan-box">
+      <div class="plan-label">Current Plan</div>
+      <div class="plan-name">${data.previousPlanName || 'On file'}</div>
+      <div class="plan-carrier">${data.previousCarrier}</div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="plan-box" style="border-color:#78350f;">
+      <div class="plan-label" style="color:#d97706;">Incoming Plan</div>
+      <div class="plan-name">${data.futurePlanName || data.newPlanName || 'Unknown'}</div>
+      <div class="plan-carrier">${data.newCarrier}</div>
+    </div>
+  </div>
+  <div class="details">
+    ${data.futureEffectiveDate ? `<div class="detail-row"><span class="detail-label">Effective Date</span><span class="detail-value">${data.futureEffectiveDate}</span></div>` : ''}
+    <div class="detail-row"><span class="detail-label">Detected Via</span><span class="detail-value">${data.detectedVia}</span></div>
+  </div>
+  <a href="${data.alertUrl}" class="cta">View Alert &amp; Take Action</a>
+  <p class="footer">AegisSage Medicare Retention Platform &middot; You are receiving this because a client plan change was detected.</p>
+</div></div></body></html>`
 
-Client: ${data.memberName}
-Current: ${data.previousPlanCode}
-Incoming: ${data.futurePlanName ?? data.planCode}
-Effective Date: ${data.futureEffectiveDate}
-Carrier: ${data.carrier}
-Detected via: ${data.detectedVia}
+  } else if (data.switchType === 'termed' || data.switchType === 'no_ma_plan') {
+    subject = `🚨 CRITICAL: ${data.memberName} — No Active Medicare Advantage Plan`
+    html = `<!DOCTYPE html><html><head><style>${styles}</style></head><body>
+<div class="wrapper"><div class="card">
+  <div class="logo">AegisSage</div>
+  <span class="badge badge-red">🚨 Critical — No Active Plan</span>
+  <h2>${data.memberName} no longer has an active plan</h2>
+  <p class="subtitle">This client does not appear on Medicare Advantage as of today's MARx check. Immediate outreach is recommended.</p>
+  <div class="plan-row">
+    <div class="plan-box">
+      <div class="plan-label">Was Enrolled In</div>
+      <div class="plan-name">${data.previousPlanName || 'Previously enrolled'}</div>
+      <div class="plan-carrier">${data.previousCarrier}</div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="plan-box" style="border-color:#7f1d1d;">
+      <div class="plan-label" style="color:#ef4444;">Current Status</div>
+      <div class="plan-name" style="color:#f87171;">No Active MA Plan</div>
+      <div class="plan-carrier">May have moved to Original Medicare, lost coverage, or disenrolled</div>
+    </div>
+  </div>
+  <div class="details">
+    <div class="detail-row"><span class="detail-label">Detected Via</span><span class="detail-value">${data.detectedVia}</span></div>
+  </div>
+  <a href="${data.alertUrl}" class="cta">View Alert &amp; Take Action</a>
+  <p class="footer">AegisSage Medicare Retention Platform &middot; You are receiving this because a coverage gap was detected.</p>
+</div></div></body></html>`
 
-${data.memberName} has an upcoming plan change effective ${data.futureEffectiveDate}. You still have time to reach out.
+  } else if (data.switchType === 'carrier_switch') {
+    subject = `🔴 ALERT: ${data.memberName} — Carrier Switch Detected`
+    html = `<!DOCTYPE html><html><head><style>${styles}</style></head><body>
+<div class="wrapper"><div class="card">
+  <div class="logo">AegisSage</div>
+  <span class="badge badge-red">Carrier Switch Detected</span>
+  <h2>${data.memberName} moved to a different carrier</h2>
+  <p class="subtitle">This client is no longer on ${data.previousCarrier}. They have switched to a different insurance carrier.</p>
+  <div class="plan-row">
+    <div class="plan-box">
+      <div class="plan-label">Previous Carrier</div>
+      <div class="plan-name">${data.previousPlanName || 'Previous plan'}</div>
+      <div class="plan-carrier">${data.previousCarrier}</div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="plan-box" style="border-color:#7f1d1d;">
+      <div class="plan-label" style="color:#ef4444;">New Carrier</div>
+      <div class="plan-name">${data.newPlanName || 'New plan'}</div>
+      <div class="plan-carrier">${data.newCarrier}</div>
+    </div>
+  </div>
+  <div class="details">
+    <div class="detail-row"><span class="detail-label">Detected Via</span><span class="detail-value">${data.detectedVia}</span></div>
+  </div>
+  <a href="${data.alertUrl}" class="cta">View Alert &amp; Take Action</a>
+  <p class="footer">AegisSage Medicare Retention Platform &middot; You are receiving this because a carrier change was detected in MARx.</p>
+</div></div></body></html>`
 
-View alert and take action:
-${data.alertUrl}`
-  } else if (data.switchType === 'termed') {
-    subject = `ALERT: ${data.memberName} has left Medicare Advantage`
-    body = `AegisSage detected that a client no longer has an active Medicare Advantage plan.
-
-Client: ${data.memberName}
-Previous Plan: ${data.previousPlanCode}
-Carrier: ${data.carrier}
-Detected via: ${data.detectedVia}
-
-${data.memberName} no longer has an active Medicare Advantage plan as of today. They may have disenrolled, switched to Original Medicare, or passed away.
-
-View alert and take action:
-${data.alertUrl}`
   } else {
-    subject = `WARNING: ${data.memberName} -- Plan Change Detected`
-    body = `AegisSage detected a plan change for one of your clients.
-
-Client: ${data.memberName}
-Previous: ${data.previousPlanCode}
-New: ${data.planCode}
-Carrier: ${data.carrier}
-Detected via: ${data.detectedVia}
-
-${data.memberName} has switched plans. They are still on Medicare Advantage.
-
-View alert and take action:
-${data.alertUrl}`
+    // Generic plan switch (same carrier, different plan)
+    subject = `⚠ WARNING: ${data.memberName} — Plan Change Detected`
+    html = `<!DOCTYPE html><html><head><style>${styles}</style></head><body>
+<div class="wrapper"><div class="card">
+  <div class="logo">AegisSage</div>
+  <span class="badge badge-orange">Plan Change Detected</span>
+  <h2>${data.memberName} has a new plan</h2>
+  <p class="subtitle">This client's Medicare Advantage plan has changed. They are still on Medicare Advantage.</p>
+  <div class="plan-row">
+    <div class="plan-box">
+      <div class="plan-label">Previous Plan</div>
+      <div class="plan-name">${data.previousPlanName || 'Previous plan on file'}</div>
+      <div class="plan-carrier">${data.previousCarrier}</div>
+    </div>
+    <div class="arrow">→</div>
+    <div class="plan-box" style="border-color:#7c2d12;">
+      <div class="plan-label" style="color:#fb923c;">New Plan</div>
+      <div class="plan-name">${data.newPlanName || 'New plan detected'}</div>
+      <div class="plan-carrier">${data.newCarrier}</div>
+    </div>
+  </div>
+  <div class="details">
+    <div class="detail-row"><span class="detail-label">Detected Via</span><span class="detail-value">${data.detectedVia}</span></div>
+  </div>
+  <a href="${data.alertUrl}" class="cta">View Alert &amp; Take Action</a>
+  <p class="footer">AegisSage Medicare Retention Platform &middot; You are receiving this because a plan change was detected in MARx.</p>
+</div></div></body></html>`
   }
 
   try {
     await getResend().emails.send({
       from: FROM_EMAIL,
-      to: toEmail,
+      to:   toEmail,
       subject,
-      text: body,
+      html,
     })
   } catch (err) {
     console.error('[sendSwitchAlertEmail]', err)

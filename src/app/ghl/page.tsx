@@ -11,7 +11,8 @@ import {
   ChevronRight, Briefcase, ListFilter, Users, Zap, ExternalLink, AlertCircle, Download
 } from "lucide-react"
 import { Switch } from "@/components/ui/switch"
-import { useState, useEffect, useTransition } from "react"
+import { useState, useEffect, useTransition, useCallback, useRef } from "react"
+import { useSearchParams } from "next/navigation"
 import { toast } from "@/hooks/use-toast"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -41,6 +42,16 @@ export default function GHLIntegrationPage() {
   const [credLoading, setCredLoading] = useState(true)
   const [lastSync, setLastSync] = useState<string | null>(null)
   const [syncPending, startSyncTransition] = useTransition()
+  const [incrementalSyncing, setIncrementalSyncing] = useState(false)
+
+  // Live sync progress
+  const [syncStatus, setSyncStatus]   = useState<string | null>(null)
+  const [syncTotal, setSyncTotal]     = useState<number | null>(null)
+  const [syncHasMore, setSyncHasMore] = useState(false)
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null)
+
+  const searchParams = useSearchParams()
+  const autoSyncParam = searchParams?.get('autoSync')
 
   // Check connection status from Supabase
   useEffect(() => {
@@ -103,6 +114,102 @@ export default function GHLIntegrationPage() {
         if (agencyId) getLastSyncTime(agencyId).then(setLastSync)
       }
     })
+  }
+
+  // Poll sync-status every 2 s while a sync is running
+  const startPolling = useCallback(() => {
+    if (pollRef.current) return
+    pollRef.current = setInterval(async () => {
+      try {
+        const res = await fetch('/api/ghl/sync-status')
+        if (!res.ok) return
+        const json = await res.json() as {
+          sync_status: string | null; sync_total: number | null; has_more: boolean
+        }
+        setSyncStatus(json.sync_status)
+        setSyncTotal(json.sync_total)
+        setSyncHasMore(json.has_more)
+        // Stop polling once sync is no longer running
+        if (json.sync_status !== 'running') {
+          clearInterval(pollRef.current!)
+          pollRef.current = null
+        }
+      } catch { /* ignore */ }
+    }, 2000)
+  }, [])
+
+  // Auto-continue for large accounts: if has_more, automatically call sync again
+  const runSync = useCallback(async (force: boolean, resume = false) => {
+    setIncrementalSyncing(true)
+    setSyncStatus('running')
+    startPolling()
+
+    let totalSynced = 0
+    let hasMore     = true
+    let isResume    = resume
+
+    try {
+      while (hasMore) {
+        const res  = await fetch('/api/ghl/sync', {
+          method:  'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ force: !isResume && force, resume: isResume, maxPages: 20 }),
+        })
+        const json = await res.json() as {
+          synced: number; has_more: boolean; error?: string; message?: string
+        }
+
+        if (!res.ok) {
+          toast({ variant: 'destructive', title: 'Sync failed', description: json.error ?? 'Unknown error' })
+          break
+        }
+
+        totalSynced += json.synced ?? 0
+        hasMore      = json.has_more ?? false
+        isResume     = true  // subsequent calls always resume from cursor
+
+        setSyncTotal(totalSynced)
+
+        if (!hasMore) {
+          setSyncStatus('complete')
+          toast({
+            title:       force ? 'Import Complete' : 'Sync Complete',
+            description: `${totalSynced} contacts imported from GoHighLevel.`,
+            className:   'bg-emerald-50 border-emerald-200',
+          })
+        }
+        // Small breathing room between chunks
+        if (hasMore) await new Promise(r => setTimeout(r, 500))
+      }
+    } catch {
+      setSyncStatus('error')
+      toast({ variant: 'destructive', title: 'Sync failed', description: 'Network error — please try again.' })
+    } finally {
+      setIncrementalSyncing(false)
+      if (pollRef.current) { clearInterval(pollRef.current); pollRef.current = null }
+    }
+  }, [startPolling])
+
+  // Auto-sync on first connect
+  useEffect(() => {
+    if (autoSyncParam === '1' && isConnected && !incrementalSyncing) {
+      runSync(true)
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoSyncParam, isConnected])
+
+  // Load initial sync status
+  useEffect(() => {
+    fetch('/api/ghl/sync-status').then(r => r.json()).then((json: Record<string, unknown>) => {
+      setSyncStatus(json.sync_status as string | null)
+      setSyncTotal(json.sync_total as number | null)
+      setSyncHasMore(!!(json.has_more))
+      if (json.sync_status === 'running') startPolling()
+    }).catch(() => {})
+  }, [startPolling])
+
+  async function handleIncrementalSync(force = false) {
+    await runSync(force, false)
   }
 
   const copyToClipboard = (text: string) => {
@@ -245,14 +352,69 @@ export default function GHLIntegrationPage() {
                           </p>
                         </div>
                       </div>
+
+                      {/* Live progress bar */}
+                      {(incrementalSyncing || syncStatus === 'running') && (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between text-[9px] font-black uppercase">
+                            <span className="text-primary animate-pulse">Importing contacts…</span>
+                            {syncTotal != null && <span className="text-slate-500">{syncTotal.toLocaleString()} imported</span>}
+                          </div>
+                          <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
+                            <div className="h-full bg-primary rounded-full animate-pulse" style={{ width: '60%' }} />
+                          </div>
+                          <p className="text-[8px] text-slate-400 font-bold uppercase">
+                            {syncHasMore ? 'Processing large account — auto-continuing…' : 'Almost done…'}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Complete status */}
+                      {syncStatus === 'complete' && !incrementalSyncing && (
+                        <div className="flex items-center gap-2 p-3 rounded-xl bg-emerald-50 border border-emerald-100">
+                          <CircleCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                          <div>
+                            <p className="text-[10px] font-black uppercase text-emerald-700">Import Complete</p>
+                            {syncTotal != null && (
+                              <p className="text-[9px] text-emerald-600">{syncTotal.toLocaleString()} contacts in AegisSage</p>
+                            )}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Add new contacts (incremental) */}
+                      <Button
+                        onClick={() => handleIncrementalSync(false)}
+                        disabled={incrementalSyncing}
+                        className="w-full rounded-xl h-12 font-black uppercase tracking-widest bg-primary hover:bg-primary/90 text-white text-[10px] shadow-lg shadow-primary/20"
+                      >
+                        {incrementalSyncing
+                          ? <><RefreshCw className="w-4 h-4 mr-2 animate-spin" />Syncing…</>
+                          : <><Download className="w-4 h-4 mr-2" />Sync New Contacts</>
+                        }
+                      </Button>
+                      <p className="text-[9px] font-bold text-muted-foreground uppercase text-center -mt-2">
+                        Only pulls contacts added or updated since last import
+                      </p>
+
+                      {/* Full re-import */}
+                      <Button
+                        onClick={() => handleIncrementalSync(true)}
+                        disabled={incrementalSyncing}
+                        variant="outline"
+                        className="w-full rounded-xl h-10 font-black uppercase tracking-widest text-[9px] border-slate-300 text-slate-600 hover:bg-slate-50"
+                      >
+                        <RefreshCw className="w-3 h-3 mr-1.5" />Re-Import All {syncTotal ? `(${syncTotal.toLocaleString()} contacts)` : 'Contacts'}
+                      </Button>
+
                       <Button
                         asChild
-                        variant="outline"
-                        className="w-full rounded-xl h-12 font-black uppercase tracking-widest text-[10px] border-primary/30 text-primary hover:bg-primary/5"
+                        variant="ghost"
+                        className="w-full rounded-xl h-10 font-black uppercase tracking-widest text-[9px] text-primary/60 hover:text-primary hover:bg-primary/5"
                       >
                         <Link href="/api/ghl/connect">
-                          <RefreshCw className="w-4 h-4 mr-2" />
-                          Reconnect GHL Account
+                          <RefreshCw className="w-3 h-3 mr-1.5" />
+                          Reconnect OAuth
                         </Link>
                       </Button>
                     </div>

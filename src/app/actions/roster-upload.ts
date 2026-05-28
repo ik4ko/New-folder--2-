@@ -26,21 +26,36 @@ async function upsertToBookOfBusiness(
   if (!brokerId) return
   const supabaseAdmin = createServiceClient()
   const now = new Date().toISOString()
-  const upserts = rows.map(r => ({
-    agency_id: agencyId,
-    broker_id: brokerId,
-    synced_by: userId,
-    carrier,
-    carrier_display_name: CARRIER_DISPLAY[carrier] ?? carrier,
-    member_id: r.member_id ?? generateMemberId(r.full_name, carrier),
-    full_name: r.full_name || null,
-    plan_name: r.plan_name ?? null,
-    plan_id: r.plan_id ?? null,
-    effective_date: r.effective_date ? parseDate(r.effective_date) : null,
-    status: 'active',
-    verification_status: 'verified',
-    last_verified_at: now,
-  }))
+  const upserts = rows.map(r => {
+    // Normalize MBI: strip non-alphanumeric, uppercase, take first 11 chars
+    const rawMbi = r.member_id ?? null
+    const cleanMbi = rawMbi
+      ? rawMbi.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 11) || null
+      : null
+    // Only treat as MBI if it's exactly 11 chars (CMS MBI format)
+    const mbiValue = cleanMbi?.length === 11 ? cleanMbi : null
+
+    return {
+      agency_id: agencyId,
+      broker_id: brokerId,
+      synced_by: userId,
+      carrier,
+      carrier_display_name: CARRIER_DISPLAY[carrier] ?? carrier,
+      // original_carrier_name is the immutable roster carrier — preserved across MARx scan updates.
+      // On first insert it equals carrier; on subsequent upserts the DB value is kept via the
+      // backfill migration (this field is only set here for NEW rows).
+      original_carrier_name: carrier,
+      member_id: r.member_id ?? generateMemberId(r.full_name, carrier),
+      mbi: mbiValue,
+      full_name: r.full_name || null,
+      plan_name: r.plan_name ?? null,
+      plan_id: r.plan_id ?? null,
+      effective_date: r.effective_date ? parseDate(r.effective_date) : null,
+      status: 'active',
+      verification_status: 'verified',
+      last_verified_at: now,
+    }
+  })
   for (let i = 0; i < upserts.length; i += 500) {
     const { error } = await supabaseAdmin
       .from('book_of_business')

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { sendSwitchAlertEmail } from '@/lib/email/send-notifications'
-import { withRetry, withRetrySafe } from '@/lib/utils/retry'
+import { withRetrySafe } from '@/lib/utils/retry'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -24,13 +24,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
 
-  console.log('[verify] START', JSON.stringify({
+  console.log('[MARx] START', JSON.stringify({
     marxResult: body.marxResult,
     mbi: body.mbi ? String(body.mbi).slice(0, 4) + '...' : null,
     memberId: body.memberId,
     detectedPlanCode: body.detectedPlanCode,
   }))
 
+  // ── Auth ────────────────────────────────────────────────────────────────────
   const authHeader = req.headers.get('authorization') || req.headers.get('Authorization') || ''
   const token = authHeader.replace('Bearer ', '').trim()
   if (!token || token.length < 32) {
@@ -46,30 +47,39 @@ export async function POST(req: NextRequest) {
     .single()
 
   if (!broker) {
-    console.error('[verify] broker lookup failed:', JSON.stringify(brokerErr))
+    console.error('[MARx] broker lookup failed:', JSON.stringify(brokerErr))
     return NextResponse.json({ error: 'Invalid token' }, { status: 401 })
   }
 
-  let notificationEmail: string | null = broker.email
+  // Resolve notification email: broker.email first, then auth user email
+  let notificationEmail: string | null = broker.email ?? null
   if (!notificationEmail && broker.user_id) {
     try {
       const { data: { user: authUser } } = await db.auth.admin.getUserById(broker.user_id)
       notificationEmail = authUser?.email ?? null
-      if (notificationEmail) console.log('[verify] using auth email fallback for broker:', broker.id)
+      if (notificationEmail) console.log('[MARx] using auth email fallback for broker:', broker.id)
     } catch {}
   }
+  console.log('[MARx] broker:', broker.id, '| notif email:', notificationEmail ? 'set' : 'MISSING')
 
-  console.log('[verify] broker:', broker.id, '| agency:', broker.agency_id)
+  // ── Member lookup ────────────────────────────────────────────────────────────
+  const BOB_SELECT = [
+    'id', 'agency_id', 'full_name', 'mbi',
+    'plan_id', 'plan_name', 'plan_contract', 'plan_pbp', 'plan_type',
+    'carrier', 'last_known_plan_code', 'verification_status',
+    'original_carrier_name', 'original_contract_id', 'original_pbp',
+    'detected_plan_name', 'detected_carrier_name',
+  ].join(', ')
 
   let member: any = null
 
   if (body.memberId && String(body.memberId).length === 36) {
     const { data, error } = await db
       .from('book_of_business')
-      .select('id, agency_id, full_name, mbi, plan_id, plan_name, plan_contract, plan_pbp, carrier, last_known_plan_code, verification_status')
+      .select(BOB_SELECT)
       .eq('id', body.memberId)
       .single()
-    if (error) console.log('[verify] memberId lookup miss:', error.message)
+    if (error) console.log('[MARx] memberId lookup miss:', error.message)
     member = data ?? null
   }
 
@@ -77,48 +87,57 @@ export async function POST(req: NextRequest) {
     const cleanMbi = String(body.mbi).toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 11)
     const { data, error } = await db
       .from('book_of_business')
-      .select('id, agency_id, full_name, mbi, plan_id, plan_name, plan_contract, plan_pbp, carrier, last_known_plan_code, verification_status')
+      .select(BOB_SELECT)
       .eq('mbi', cleanMbi)
       .eq('agency_id', broker.agency_id)
       .single()
-    if (error) console.log('[verify] mbi lookup miss:', error.message)
+    if (error) console.log('[MARx] mbi lookup miss:', error.message)
     member = data ?? null
   }
 
   if (!member) {
-    console.error('[verify] member not found | memberId:', body.memberId, '| mbi prefix:', body.mbi ? String(body.mbi).slice(0, 4) : 'none')
+    console.error('[MARx] member not found | memberId:', body.memberId)
     return NextResponse.json({ error: 'Member not found' }, { status: 404 })
   }
 
-  console.log('[verify] member found:', member.full_name, '| agency:', member.agency_id, '| id:', member.id)
+  console.log('[MARx] member found:', member.full_name, '| id:', member.id)
 
-  const isValidPlanCode = (code: string | null): boolean =>
-    code !== null && /^[HSE]\d{4}-\d{3}/.test(code)
+  // ── Plan code helpers ────────────────────────────────────────────────────────
+  const isValidPlanCode = (code: string | null | undefined): boolean =>
+    !!code && /^[HSE]\d{4}-\d{3}/i.test(code)
+
+  const extractHNumber = (s: string | null | undefined): string | null => {
+    if (!s) return null
+    const m = s.match(/([HSE]\d{4}-\d{3})/i)
+    return m ? m[1].toUpperCase() : null
+  }
 
   const marxResult          = String(body.marxResult ?? '')
   const detectedPlanCode    = (body.detectedPlanCode    as string | null) ?? null
-  const detectedCarrier     = (body.detectedCarrier     as string | null) ?? null
   const detectedFuturePlan  = (body.detectedFuturePlan  as string | null) ?? null
   const detectedFutureStart = (body.detectedFutureStart as string | null) ?? null
 
-  const storedCode     = member.last_known_plan_code || member.plan_id || null
-  const storedContract = (
-    member.plan_contract?.toUpperCase() ||
-    storedCode?.match(/^([HRS]\d{4})/)?.[1]?.toUpperCase() ||
-    member.plan_name?.match(/[HRS]\d{4}/)?.[0]?.toUpperCase() ||
-    null
-  )
-  const storedPbp = (
-    member.plan_pbp ||
-    storedCode?.split('-')[1] ||
-    member.plan_name?.match(/[-\s]\s*0*(\d{3})/)?.[1] ||
-    null
-  )
-  const detectedContract = detectedPlanCode?.match(/^([HRS]\d{4})/)?.[1]?.toUpperCase() ?? null
+  // ── Stored plan code resolution ──────────────────────────────────────────────
+  // Priority: last_known_plan_code → original_contract+pbp → plan_id → plan_name
+  const storedHCodeDirect   = isValidPlanCode(member.last_known_plan_code) ? member.last_known_plan_code as string : null
+  const storedHCodeOriginal = (member.original_contract_id && member.original_pbp)
+    ? `${String(member.original_contract_id).toUpperCase()}-${String(member.original_pbp).padStart(3, '0')}`
+    : null
+  const storedHCodePlanId   = extractHNumber(member.plan_id)
+  const storedHCodePlanName = extractHNumber(member.plan_name)
+
+  const storedCode = storedHCodeDirect ?? storedHCodeOriginal ?? storedHCodePlanId ?? storedHCodePlanName ?? null
+
+  const storedContract = storedCode?.match(/^([HRS]\d{4})/i)?.[1]?.toUpperCase()
+    || member.plan_contract?.toUpperCase() || null
+  const storedPbp = storedCode?.split('-')[1] || member.plan_pbp || null
+
+  const detectedContract = detectedPlanCode?.match(/^([HRS]\d{4})/i)?.[1]?.toUpperCase() ?? null
   const detectedPbp      = detectedPlanCode?.split('-')[1] ?? null
 
+  // ── Plan directory lookup ────────────────────────────────────────────────────
   let realPlanName: string | null = null
-  let realCarrierName: string | null = detectedCarrier
+  let realCarrierName: string | null = null
   let detectedPlanType: string | null = null
 
   if (detectedContract && detectedPbp) {
@@ -132,18 +151,40 @@ export async function POST(req: NextRequest) {
       realPlanName     = planInfo.plan_name
       realCarrierName  = planInfo.carrier_name
       detectedPlanType = planInfo.plan_type
-      console.log('[verify] plan lookup:', detectedContract + '-' + detectedPbp, '->', realPlanName)
+      console.log('[MARx] plan directory hit:', detectedContract + '-' + detectedPbp, '->', realCarrierName)
     } else {
-      console.log('[verify] plan lookup: no match for', detectedContract + '-' + detectedPbp)
+      console.log('[MARx] plan directory miss for:', detectedContract + '-' + detectedPbp)
     }
   }
 
-  console.log('[verify] comparison:', JSON.stringify({
-    storedCode, storedContract, storedPbp,
-    detectedPlanCode, detectedContract, detectedPbp,
-    marxResult, realPlanName, realCarrierName,
-  }))
+  console.log('[MARx] storedCode:', storedCode, '| detectedPlanCode:', detectedPlanCode)
 
+  // ── Carrier normalization ─────────────────────────────────────────────────────
+  function canonicalCarrier(name: string): string {
+    const s = name.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim()
+    if (s.includes('cigna') || s.includes('healthspring') || s.includes('health spring')) return 'cigna'
+    if (s.includes('aetna') || s.includes('cvs aetna'))                                   return 'aetna'
+    if (s.includes('humana'))                                                              return 'humana'
+    if (s.includes('anthem') || s.includes('elevance') || s.includes('wellpoint') ||
+        s.includes('blue cross') || s.includes('bcbs') || s.includes('healthkeepers'))    return 'anthem'
+    if (s.includes('united') || s.includes('uhc') || s.includes('optum') ||
+        s === 'unitedhealthcare')                                                          return 'uhc'
+    if (s.includes('wellcare'))                                                            return 'wellcare'
+    if (s.includes('centene') || s.includes('health net'))                                return 'centene'
+    if (s.includes('molina'))                                                              return 'molina'
+    if (s.includes('devoted'))                                                             return 'devoted'
+    if (s.includes('clover'))                                                              return 'clover'
+    if (s.includes('kaiser') || s.includes('permanente'))                                 return 'kaiser'
+    if (s.includes('alignment'))                                                           return 'alignment'
+    return s
+  }
+
+  const carriersMatch = (a: string | null, b: string | null): boolean => {
+    if (a == null || b == null) return true
+    return canonicalCarrier(a) === canonicalCarrier(b)
+  }
+
+  // ── State machine ────────────────────────────────────────────────────────────
   let finalStatus  = 'verified'
   let alertType: string | null = null
   let alertPriority = 'high'
@@ -153,244 +194,237 @@ export async function POST(req: NextRequest) {
     finalStatus   = 'termed'
     alertType     = 'termed'
     alertPriority = 'critical'
+
   } else if (marxResult === 'pending_switch') {
     finalStatus   = 'pending_switch'
     alertType     = 'pending_switch'
     alertPriority = 'critical'
+
   } else if (marxResult === 'different_broker') {
     finalStatus   = 'aor_lost'
     alertType     = 'aor_change'
     alertPriority = 'critical'
+
   } else if (marxResult === 'not_found') {
     finalStatus = 'unverified'
     alertType   = null
+
   } else if (marxResult === 'active_same' || marxResult === 'active_changed') {
+
+    // ── Case A: First scan — no stored H-number ──────────────────────────────
     if (!storedCode && !storedContract && isValidPlanCode(detectedPlanCode)) {
-      console.log('[verify] setting baseline:', detectedPlanCode)
-      const baselinePayload: Record<string, any> = {
-        last_known_plan_code: detectedPlanCode,
-        plan_id:              detectedPlanCode,
-        carrier:              realCarrierName || detectedCarrier || member.carrier || null,
-        verification_status:  'verified',
-        last_verified_at:     new Date().toISOString(),
-        last_marx_check:      new Date().toISOString(),
-      }
-      if (realPlanName)     baselinePayload.plan_name = realPlanName
-      if (detectedPlanType) baselinePayload.plan_type = detectedPlanType
+      const rosterCarrier = (member.original_carrier_name || member.carrier) ?? null
+      const detectedCarrierResolved = realCarrierName ?? null
 
-      const baselineResult = await withRetrySafe<void>(
-        async () => {
-          const res = await db.from('book_of_business').update(baselinePayload).eq('id', member.id)
-          if (res.error) throw res.error
-        },
-        { maxAttempts: 3, baseDelayMs: 300, label: 'marx/verify baseline UPDATE' }
-      )
-      if (baselineResult.error) {
-        console.error('[verify] baseline UPDATE failed after retries:', JSON.stringify(baselineResult.error))
+      if (
+        detectedCarrierResolved && rosterCarrier &&
+        rosterCarrier.toLowerCase() !== 'unknown' &&
+        !carriersMatch(detectedCarrierResolved, rosterCarrier)
+      ) {
+        // Pre-scan switch detected — member changed carrier before we first scanned
+        console.log('[MARx] pre-scan carrier switch:', rosterCarrier, '->', detectedCarrierResolved)
+        effectiveMarxResult = 'active_changed'
+        finalStatus         = 'changed'
+        alertType           = 'carrier_switch'
+        alertPriority       = 'high'
+        // Fall through to update + alert below
+
       } else {
-        console.log('[verify] baseline UPDATE OK')
+        // Carrier matches — set baseline, done
+        console.log('[MARx] setting baseline:', detectedPlanCode)
+        const baselinePayload: Record<string, any> = {
+          last_known_plan_code: detectedPlanCode,
+          plan_id:              detectedPlanCode,
+          carrier:              realCarrierName || member.carrier || null,
+          verification_status:  'verified',
+          last_verified_at:     new Date().toISOString(),
+          last_marx_check:      new Date().toISOString(),
+          // Clear any stale detected fields from a prior switch
+          detected_plan_name:    null,
+          detected_carrier_name: null,
+        }
+        if (realPlanName)     baselinePayload.plan_name     = realPlanName
+        if (detectedPlanType) baselinePayload.plan_type     = detectedPlanType
+        if (detectedContract) baselinePayload.plan_contract = detectedContract
+        if (detectedPbp)      baselinePayload.plan_pbp      = detectedPbp
+
+        const baselineResult = await withRetrySafe<void>(
+          async () => {
+            const res = await db.from('book_of_business').update(baselinePayload).eq('id', member.id)
+            if (res.error) throw res.error
+          },
+          { maxAttempts: 3, baseDelayMs: 300, label: 'marx/verify baseline UPDATE' }
+        )
+        if (baselineResult.error) {
+          console.error('[MARx] baseline UPDATE failed:', JSON.stringify(baselineResult.error))
+        } else {
+          console.log('[MARx] baseline set OK')
+        }
+        return NextResponse.json({ changed: false, status: 'baseline_set', marxResult })
       }
-      return NextResponse.json({ changed: false, status: 'baseline_set' })
-    }
 
-    const contractChanged = !!(storedContract && detectedContract && storedContract !== detectedContract)
-    const pbpChanged = !!(
-      storedPbp && detectedPbp &&
-      storedPbp.padStart(3, '0') !== detectedPbp.padStart(3, '0')
-    )
-    const carrierChanged = !!(
-      detectedCarrier && member.carrier && member.carrier !== 'unknown' &&
-      !detectedCarrier.toLowerCase().includes(member.carrier.toLowerCase()) &&
-      !member.carrier.toLowerCase().includes(detectedCarrier.toLowerCase())
-    )
+    } else {
+      // ── Case B: Has stored H-number — compare against detected ───────────────
+      const contractChanged = !!(storedContract && detectedContract && storedContract !== detectedContract)
+      const pbpChanged = !!(
+        storedPbp && detectedPbp &&
+        storedPbp.padStart(3, '0') !== detectedPbp.padStart(3, '0')
+      )
+      const baseCarrier = member.original_carrier_name || member.carrier || null
+      const carrierChanged = !!(
+        realCarrierName && baseCarrier &&
+        baseCarrier.toLowerCase() !== 'unknown' &&
+        !carriersMatch(realCarrierName, baseCarrier)
+      )
 
-    if (contractChanged || pbpChanged || carrierChanged) {
-      effectiveMarxResult = 'active_changed'
-      finalStatus   = 'changed'
-      alertType     = carrierChanged ? 'carrier_switch' : 'plan_switch'
-      alertPriority = 'high'
+      console.log('[MARx] change flags:', JSON.stringify({ contractChanged, pbpChanged, carrierChanged }))
+
+      if (contractChanged || pbpChanged || carrierChanged) {
+        effectiveMarxResult = 'active_changed'
+        finalStatus   = 'changed'
+        alertType     = carrierChanged && !contractChanged ? 'carrier_switch' : 'plan_switch'
+        alertPriority = 'high'
+      }
     }
   }
 
-  // STEP 1: Update member status (with retry)
+  // ── Build update payload ─────────────────────────────────────────────────────
+  // IMPORTANT: When a switch is detected, we do NOT overwrite plan_name or carrier.
+  // Those columns always show the ORIGINAL enrolled plan for the broker.
+  // The new plan goes into detected_plan_name / detected_carrier_name for the badge.
+
   const updatePayload: Record<string, any> = {
     verification_status: finalStatus,
     last_verified_at:    new Date().toISOString(),
     last_marx_check:     new Date().toISOString(),
   }
-  if (isValidPlanCode(detectedPlanCode)) updatePayload.last_known_plan_code = detectedPlanCode
-  if (realPlanName)     updatePayload.plan_name = realPlanName
-  if (realCarrierName)  updatePayload.carrier   = realCarrierName
+
+  // Always update the technical plan code columns (used for comparison)
+  if (isValidPlanCode(detectedPlanCode)) {
+    updatePayload.last_known_plan_code = detectedPlanCode
+    if (detectedContract) updatePayload.plan_contract = detectedContract
+    if (detectedPbp)      updatePayload.plan_pbp      = detectedPbp
+  }
   if (detectedPlanType) updatePayload.plan_type = detectedPlanType
-  if (finalStatus === 'termed')                              updatePayload.enrollment_status = 'disenrolled'
+
+  if (alertType !== null) {
+    // Switch detected — store new plan in detected_* fields, preserve originals
+    updatePayload.detected_plan_name    = realPlanName    ?? detectedPlanCode ?? null
+    updatePayload.detected_carrier_name = realCarrierName ?? null
+  } else {
+    // Verified (no switch) — update display columns normally, clear any stale detected fields
+    if (realPlanName)    updatePayload.plan_name    = realPlanName
+    if (realCarrierName) updatePayload.carrier      = realCarrierName
+    updatePayload.detected_plan_name    = null
+    updatePayload.detected_carrier_name = null
+  }
+
+  if (finalStatus === 'termed')                               updatePayload.enrollment_status = 'disenrolled'
   if (finalStatus === 'verified' || finalStatus === 'changed') updatePayload.enrollment_status = 'active'
 
+  // Improve full_name if the stored value looks like a partial/missing name
   const capturedName = typeof body.capturedName === 'string' ? body.capturedName.trim() : null
   if (capturedName && capturedName.length > 2) {
-    const currentName = member.full_name || ''
+    const currentName  = member.full_name || ''
     const looksPartial = !currentName || currentName === member.mbi || currentName.split(' ').length < 2
     if (looksPartial) {
       updatePayload.full_name = capturedName
-      console.log('[verify] backfilling full_name from MARx capture:', capturedName)
     }
   }
 
-  console.log('[verify] updating to:', finalStatus, '| member.id:', member.id)
-  const memberUpdateResult = await withRetrySafe<void>(
+  // ── Persist update ───────────────────────────────────────────────────────────
+  const updateResult = await withRetrySafe<void>(
     async () => {
       const res = await db.from('book_of_business').update(updatePayload).eq('id', member.id)
       if (res.error) throw res.error
     },
-    { maxAttempts: 3, baseDelayMs: 300, label: 'marx/verify UPDATE member' }
+    { maxAttempts: 3, baseDelayMs: 300, label: 'marx/verify status UPDATE' }
   )
-
-  if (memberUpdateResult.error) {
-    console.error('[verify] UPDATE FAILED after retries:', JSON.stringify(memberUpdateResult.error))
-    await withRetrySafe<void>(
-      async () => {
-        const res = await db.from('book_of_business')
-          .update({ needs_reverification: true })
-          .eq('id', member.id)
-        if (res.error) throw res.error
-      },
-      { maxAttempts: 2, baseDelayMs: 200, label: 'marx/verify flag needs_reverification' }
-    )
+  if (updateResult.error) {
+    console.error('[MARx] status UPDATE failed:', JSON.stringify(updateResult.error))
   } else {
-    console.log('[verify] UPDATE OK | member:', member.full_name)
+    console.log('[MARx] status UPDATE ok — status:', finalStatus, '| alertType:', alertType)
   }
 
-  // STEP 2: Insert alert if needed (with retry)
+  // ── Alert + email dispatch ───────────────────────────────────────────────────
   if (alertType) {
-    const existingResult = await withRetrySafe<{ id: string } | null>(
-      async () => {
-        const res = await db.from('switch_alerts')
-          .select('id')
-          .eq('bob_member_id', member.id)
-          .eq('alert_type', alertType)
-          .eq('status', 'open')
-          .maybeSingle()
-        if (res.error) throw res.error
-        return res.data as { id: string } | null
-      },
-      { maxAttempts: 3, baseDelayMs: 200, label: 'marx/verify check existing alert' }
-    )
-    const existing = existingResult.data
+    // Deduplication: skip if we already fired this alert type for this member within 24h
+    const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+    const { data: existingAlert } = await db
+      .from('switch_alerts')
+      .select('id')
+      .eq('member_id', member.id)
+      .eq('alert_type', alertType)
+      .gte('created_at', yesterday)
+      .maybeSingle()
 
-    if (!existing) {
-      let effectiveDate: string | null = null
-      if (detectedFutureStart) {
-        try { effectiveDate = new Date(detectedFutureStart).toISOString().split('T')[0] } catch {}
-      }
-
-      const alertPayload = {
-        agency_id:        member.agency_id,
-        bob_member_id:    member.id,
-        alert_type:       alertType,
-        switch_type:      alertType,
-        previous_value:   member.plan_name || storedCode || 'unknown',
-        new_value:        marxResult === 'no_ma_plan'
-                          ? 'no_active_ma_plan'
-                          : marxResult === 'pending_switch'
-                            ? (detectedFuturePlan || 'pending')
-                            : realPlanName || detectedPlanCode || 'unknown',
-        priority:         alertPriority,
-        status:           'open',
-        detection_source: 'marx_extension',
-        carrier:          member.carrier || null,
-        effective_date:   effectiveDate,
-        detected_at:      new Date().toISOString(),
-      }
-
-      console.log('[verify] inserting alert:', JSON.stringify(alertPayload))
-      const insertResult = await withRetrySafe<{ id: string }>(
-        async () => {
-          const res = await db.from('switch_alerts').insert(alertPayload).select('id').single()
-          if (res.error) throw res.error
-          return res.data as { id: string }
-        },
-        { maxAttempts: 3, baseDelayMs: 300, label: 'marx/verify INSERT alert' }
-      )
-      const inserted  = insertResult.data
-      const insertErr = insertResult.error
-
-      if (insertErr) {
-        console.error('[verify] INSERT FAILED after retries:', JSON.stringify(insertErr))
-      } else {
-        console.log('[verify] INSERT OK | alert id:', inserted?.id)
-
-        // STEP 3: Email AFTER successful DB write
-        if (notificationEmail) {
-          try {
-            await withRetry(
-              () => sendSwitchAlertEmail(notificationEmail!, {
-                memberName:          member.full_name ?? 'Unknown Member',
-                carrier:             member.carrier   ?? 'Unknown Carrier',
-                switchType:          marxResult === 'no_ma_plan'
-                                     ? 'termed'
-                                     : marxResult === 'pending_switch'
-                                       ? 'future_plan_change'
-                                       : alertType === 'carrier_switch'
-                                         ? 'carrier_switch'
-                                         : 'plan_change',
-                planCode:            detectedPlanCode ?? detectedFuturePlan ?? 'none',
-                previousPlanCode:    storedCode ?? '',
-                planName:            member.plan_name ?? '',
-                futurePlanName:      detectedFuturePlan ?? undefined,
-                futureEffectiveDate: detectedFutureStart ?? undefined,
-                detectedVia:         'MARx (CMS Portal)',
-                alertUrl:            `${APP_URL}/dashboard/alerts`,
-              }),
-              { maxAttempts: 2, baseDelayMs: 500, label: 'marx/verify send alert email' }
-            )
-            console.log('[verify] email sent to:', notificationEmail)
-
-            if (inserted?.id) {
-              const alertId = inserted.id
-              await withRetrySafe<void>(
-                async () => {
-                  const res = await db.from('alert_delivery_log').insert({
-                    alert_id:         alertId,
-                    delivery_status:  'sent',
-                    delivery_channel: 'email',
-                    recipient_email:  notificationEmail,
-                    attempted_at:     new Date().toISOString(),
-                  })
-                  if (res.error) throw res.error
-                },
-                { maxAttempts: 2, baseDelayMs: 200, label: 'marx/verify log delivery sent' }
-              )
-            }
-          } catch (emailErr: any) {
-            console.error('[verify] email error (non-fatal):', emailErr?.message)
-            if (inserted?.id) {
-              const alertId = inserted.id
-              await withRetrySafe<void>(
-                async () => {
-                  const res = await db.from('alert_delivery_log').insert({
-                    alert_id:         alertId,
-                    delivery_status:  'failed',
-                    delivery_channel: 'email',
-                    recipient_email:  notificationEmail,
-                    error_message:    emailErr?.message ?? 'Unknown email error',
-                    attempted_at:     new Date().toISOString(),
-                  })
-                  if (res.error) throw res.error
-                },
-                { maxAttempts: 2, baseDelayMs: 200, label: 'marx/verify log delivery failed' }
-              )
-            }
-          }
-        }
-      }
+    if (existingAlert) {
+      console.log('[MARx] alert dedup — already alerted within 24h, skipping')
     } else {
-      console.log('[verify] alert already open:', existing.id, '| skipping insert')
+      // Record alert in switch_alerts
+      const { error: alertInsertErr } = await db.from('switch_alerts').insert({
+        member_id:    member.id,
+        agency_id:    member.agency_id,
+        broker_id:    broker.id,
+        alert_type:   alertType,
+        priority:     alertPriority,
+        previous_plan: storedCode,
+        detected_plan: detectedPlanCode,
+        details: JSON.stringify({
+          storedCode,
+          detectedPlanCode,
+          realPlanName,
+          realCarrierName,
+          marxResult: effectiveMarxResult,
+        }),
+      })
+      if (alertInsertErr) console.error('[MARx] alert insert error:', JSON.stringify(alertInsertErr))
+      else console.log('[MARx] alert inserted — type:', alertType)
+
+      // Send email notification
+      if (notificationEmail) {
+        try {
+          // Use original enrollment data for "previous" fields
+          const previousCarrier  = member.original_carrier_name || member.carrier || 'Previous carrier'
+          const previousPlanName = member.plan_name || storedCode || 'Plan on file'
+          const newCarrier       = realCarrierName || 'New carrier detected'
+          const newPlanName      = realPlanName || detectedPlanCode || 'New plan detected'
+
+          const switchType = alertType === 'termed'         ? 'termed'
+                           : alertType === 'pending_switch' ? 'future_plan_change'
+                           : alertType === 'carrier_switch' ? 'carrier_switch'
+                           : 'plan_switch'
+
+          await sendSwitchAlertEmail(notificationEmail, {
+            memberName:          member.full_name ?? 'Unknown Member',
+            previousPlanName,
+            previousCarrier,
+            newPlanName,
+            newCarrier,
+            switchType,
+            futurePlanName:      detectedFuturePlan   ?? undefined,
+            futureEffectiveDate: detectedFutureStart  ?? undefined,
+            detectedVia:         'MARx Extension',
+            alertUrl:            `${APP_URL}/book`,
+          })
+          console.log('[MARx] email sent to', notificationEmail, '— switchType:', switchType)
+        } catch (emailErr: any) {
+          console.error('[MARx] email send failed:', emailErr?.message ?? String(emailErr))
+        }
+      } else {
+        console.warn('[MARx] no notification email configured for broker:', broker.id)
+      }
     }
   }
 
-  console.log('[verify] DONE | member:', member.full_name, '| status:', finalStatus, '| alert:', alertType ?? 'none')
   return NextResponse.json({
-    changed:    alertType !== null,
-    marxResult: effectiveMarxResult,
-    status:     finalStatus,
+    changed:         alertType !== null,
+    status:          finalStatus,
+    marxResult:      effectiveMarxResult,
+    alertType:       alertType ?? null,
+    storedCode,
+    detectedPlanCode,
+    realPlanName,
+    realCarrierName,
   })
 }

@@ -1,46 +1,55 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { createClient } from '@/lib/supabase/server';
+/**
+ * GET /api/ghl/callback
+ *
+ * GHL OAuth 2.0 callback handler.
+ *
+ * Responsibility: ONLY exchange the authorization code for tokens and persist
+ * them. Contact sync is intentionally NOT performed here — doing so would
+ * risk a 60-second Vercel timeout for accounts with 500+ contacts.
+ *
+ * After storing tokens, we redirect to /ghl?autoSync=1 so the GHL page can
+ * trigger a proper incremental/full sync with a real progress bar.
+ */
 
-const GHL_CLIENT_ID     = process.env.GHL_CLIENT_ID!;
-const GHL_CLIENT_SECRET = process.env.GHL_CLIENT_SECRET!;
-const GHL_REDIRECT_URI  = process.env.GHL_REDIRECT_URI!;
-const GHL_API_BASE      = 'https://services.leadconnectorhq.com';
+import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
+import { createHmac } from 'crypto'
 
-// ── MBI sanitization (identical master copy) ─────────────────────────────────
-function sanitizeMbi(raw: string): string {
-  return raw.toUpperCase().replace(/[^A-Z0-9]/g, '').trim().slice(0, 11);
-}
+const GHL_CLIENT_ID     = process.env.GHL_CLIENT_ID!
+const GHL_CLIENT_SECRET = process.env.GHL_CLIENT_SECRET!
+const GHL_REDIRECT_URI  = process.env.GHL_REDIRECT_URI!
+const GHL_API_BASE      = 'https://services.leadconnectorhq.com'
 
-// ── GHL custom field key aliases → our field names ───────────────────────────
-const GHL_FIELD_MAP: Record<string, string> = {
-  mbi:                    'mbi',
-  medicare_id:            'mbi',
-  medicare_number:        'mbi',
-  plan_name:              'plan_name',
-  plan:                   'plan_name',
-  carrier:                'carrier',
-  insurance_carrier:      'carrier',
-};
+const STATE_SECRET = process.env.GHL_STATE_SECRET
+  ?? process.env.NEXTAUTH_SECRET
+  ?? 'ghl-state-aegissage-v1'
 
-function extractGhlFields(contact: Record<string, unknown>) {
-  const customFields = (contact.customFields ?? contact.custom_fields ?? []) as
-    Array<{ key?: string; id?: string; value?: unknown }>;
-
-  const extracted: Record<string, string> = {};
-  for (const field of customFields) {
-    const key = (field.key ?? field.id ?? '').toLowerCase().replace(/\s+/g, '_');
-    const mapped = GHL_FIELD_MAP[key];
-    if (mapped && field.value) {
-      extracted[mapped] = String(field.value).trim();
+// ── State verification ────────────────────────────────────────────────────────
+function extractUserIdFromState(state: string | null): string | null {
+  if (!state) return null
+  try {
+    const decoded = Buffer.from(state, 'base64url').toString()
+    const lastDot = decoded.lastIndexOf('.')
+    if (lastDot < 0) return null
+    const payload  = decoded.slice(0, lastDot)
+    const sig      = decoded.slice(lastDot + 1)
+    const expected = createHmac('sha256', STATE_SECRET).update(payload).digest('hex').slice(0, 16)
+    if (sig !== expected) {
+      console.warn('[ghl/callback] state HMAC mismatch')
+      return null
     }
+    const userId = payload.split('.')[0]
+    return userId && userId.length > 30 ? userId : null
+  } catch {
+    return null
   }
-  return extracted;
 }
 
 // ── Token exchange ────────────────────────────────────────────────────────────
 async function exchangeCodeForTokens(code: string) {
   const res = await fetch(`${GHL_API_BASE}/oauth/token`, {
-    method: 'POST',
+    method:  'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
       client_id:     GHL_CLIENT_ID,
@@ -49,150 +58,105 @@ async function exchangeCodeForTokens(code: string) {
       code,
       redirect_uri:  GHL_REDIRECT_URI,
     }),
-  });
+  })
   if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`GHL token exchange failed: ${text}`);
+    const text = await res.text()
+    throw new Error(`GHL token exchange failed (${res.status}): ${text}`)
   }
   return res.json() as Promise<{
-    access_token: string;
-    refresh_token: string;
-    expires_in: number;
-    locationId: string;
-  }>;
-}
-
-// ── Fetch all contacts from a GHL location ───────────────────────────────────
-async function fetchGhlContacts(accessToken: string, locationId: string) {
-  const contacts: Record<string, unknown>[] = [];
-  let after: string | null = null;
-
-  do {
-    const url = new URL(`${GHL_API_BASE}/contacts/`);
-    url.searchParams.set('locationId', locationId);
-    url.searchParams.set('limit', '100');
-    if (after) url.searchParams.set('startAfter', after);
-
-    const res = await fetch(url.toString(), {
-      headers: { Authorization: `Bearer ${accessToken}`, Version: '2021-07-28' },
-    });
-    if (!res.ok) break;
-
-    const json = await res.json() as {
-      contacts?: Record<string, unknown>[];
-      meta?: { nextPageUrl?: string; startAfter?: string };
-    };
-
-    const batch = json.contacts ?? [];
-    contacts.push(...batch);
-    after = batch.length === 100 ? (json.meta?.startAfter ?? null) : null;
-  } while (after);
-
-  return contacts;
+    access_token:  string
+    refresh_token: string
+    expires_in:    number
+    locationId:    string
+  }>
 }
 
 // ── Route handler ─────────────────────────────────────────────────────────────
 export async function GET(req: NextRequest) {
-  const supabase = await createClient();
+  const url   = req.nextUrl
+  const code  = req.nextUrl.searchParams.get('code')
+  const state = url.searchParams.get('state')
 
-  const { data: { session } } = await supabase.auth.getSession();
-  if (!session) {
-    return NextResponse.redirect(new URL('/login', req.url));
+  // -- Identify user via state token first (resilient to session loss)
+  let userId: string | null = null
+
+  const cookieState = req.cookies.get('ghl_oauth_state')?.value ?? null
+  if (state && cookieState && state === cookieState) {
+    userId = extractUserIdFromState(state)
   }
 
-  const code = req.nextUrl.searchParams.get('code');
+  if (!userId) {
+    const supabase = await createClient()
+    const { data: { session } } = await supabase.auth.getSession()
+    userId = session?.user?.id ?? null
+  }
+
+  if (!userId) {
+    console.error('[ghl/callback] cannot identify user — state mismatch and no session')
+    return NextResponse.redirect(new URL('/login?reason=ghl_auth_failed', req.url))
+  }
+
   if (!code) {
-    return NextResponse.redirect(new URL('/dashboard?ghl=missing_code', req.url));
+    console.error('[ghl/callback] no code param — redirect_uri mismatch or user cancelled')
+    return NextResponse.redirect(new URL('/ghl?error=no_code', req.url))
   }
 
-  // Resolve broker + agency
-  const { data: broker } = await supabase
+  const serviceClient = createServiceClient()
+
+  const { data: broker } = await serviceClient
     .from('brokers')
     .select('id, agency_id')
-    .eq('user_id', session.user.id)
-    .single();
+    .eq('user_id', userId)
+    .single()
 
   if (!broker) {
-    return NextResponse.redirect(new URL('/dashboard?ghl=no_broker', req.url));
+    console.error('[ghl/callback] no broker row for userId:', userId)
+    return NextResponse.redirect(new URL('/ghl?error=no_broker', req.url))
   }
 
-  let tokens: Awaited<ReturnType<typeof exchangeCodeForTokens>>;
+  let tokens: Awaited<ReturnType<typeof exchangeCodeForTokens>>
   try {
-    tokens = await exchangeCodeForTokens(code);
+    tokens = await exchangeCodeForTokens(code)
   } catch (err) {
-    console.error('[ghl/callback] token exchange error:', err);
-    return NextResponse.redirect(new URL('/dashboard?ghl=auth_error', req.url));
+    console.error('[ghl/callback] token exchange error:', err)
+    return NextResponse.redirect(new URL('/ghl?error=auth_failed', req.url))
   }
 
-  // Persist tokens in agency_credentials
-  const expiresAt = new Date(Date.now() + tokens.expires_in * 1000).toISOString();
-  await supabase.from('agency_credentials').upsert(
+  const now       = new Date().toISOString()
+  const expiresAt = new Date(Date.now() + tokens.expires_in * 1000).toISOString()
+
+  // Persist tokens only — no contact sync here
+  await serviceClient.from('agency_credentials').upsert(
     {
       agency_id:     broker.agency_id,
       access_token:  tokens.access_token,
       refresh_token: tokens.refresh_token,
       expires_at:    expiresAt,
       location_id:   tokens.locationId,
-      updated_at:    new Date().toISOString(),
+      updated_at:    now,
     },
     { onConflict: 'agency_id' }
-  );
+  )
 
-  // Also stamp the broker row
-  await supabase
-    .from('brokers')
-    .update({ ghl_location_id: tokens.locationId, ghl_connected_at: new Date().toISOString() })
-    .eq('id', broker.id);
-
-  // Pull and sync contacts
-  let synced = 0;
+  // Stamp last_synced_at (non-fatal if column not yet present)
   try {
-    const ghlContacts = await fetchGhlContacts(tokens.access_token, tokens.locationId);
-
-    const records = ghlContacts
-      .map((contact) => {
-        const fields = extractGhlFields(contact);
-        const rawMbi = fields.mbi ?? '';
-        const mbi = sanitizeMbi(rawMbi);
-        if (!mbi) return null;
-
-        const fullName = [
-          String(contact.firstName ?? ''),
-          String(contact.lastName ?? ''),
-        ].filter(Boolean).join(' ') || String(contact.name ?? '') || null;
-
-        return {
-          agency_id:           broker.agency_id,
-          broker_id:           broker.id,
-          ghl_contact_id:      String(contact.id),
-          full_name:           fullName,
-          email:               contact.email ? String(contact.email) : null,
-          phone:               contact.phone ? String(contact.phone) : null,
-          plan_name:           fields.plan_name ?? null,
-          carrier:             fields.carrier ?? 'unknown',
-          mbi,
-          status:              'ACTIVE',
-          source:              'ghl_oauth',
-          verification_status: 'unverified',
-          updated_at:          new Date().toISOString(),
-        };
-      })
-      .filter(Boolean);
-
-    if (records.length > 0) {
-      const { error } = await supabase
-        .from('ghl_contacts')
-        .upsert(records, { onConflict: 'ghl_contact_id,agency_id', ignoreDuplicates: false });
-
-      if (error) console.error('[ghl/callback] upsert error:', error);
-      else synced = records.length;
-    }
-  } catch (err) {
-    console.error('[ghl/callback] contact sync error:', err);
-    // Non-fatal — tokens are saved, sync can retry
+    await serviceClient.from('agency_credentials')
+      .update({ last_synced_at: null, sync_status: 'pending' } as Record<string, unknown>)
+      .eq('agency_id', broker.agency_id)
+  } catch {
+    // Migration 20260528000000 adds these columns — safe to ignore until applied
   }
 
-  return NextResponse.redirect(
-    new URL(`/dashboard?ghl=connected&synced=${synced}`, req.url)
-  );
+  // Update broker row
+  await serviceClient
+    .from('brokers')
+    .update({ ghl_location_id: tokens.locationId, ghl_connected_at: now })
+    .eq('id', broker.id)
+
+  console.log(`[ghl/callback] tokens saved for agency ${broker.agency_id} — redirecting to sync UI`)
+
+  // Clear state cookie and redirect to GHL page with autoSync flag
+  const response = NextResponse.redirect(new URL('/ghl?connected=1&autoSync=1', req.url))
+  response.cookies.set('ghl_oauth_state', '', { maxAge: 0, path: '/' })
+  return response
 }

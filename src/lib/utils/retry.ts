@@ -70,4 +70,11 @@ export async function withRetry<T>(
 export async function withRetrySafe<T>(
   fn: () => T | PromiseLike<T>,
   options: RetryOptions = {}
-): Prom
+): Promise<{ data: T | null; error: unknown }> {
+  try {
+    const data = await withRetry(fn, options)
+    return { data, error: null }
+  } catch (error) {
+    return { data: null, error }
+  }
+}

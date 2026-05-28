@@ -1,0 +1,382 @@
+/**
+ * POST /api/ghl/sync
+ *
+ * Production-grade GHL contact bulk import.
+ *
+ * Architecture:
+ *   - Stream-paginates GHL contacts 100 at a time
+ *   - Upserts each page immediately (never accumulates all contacts in memory)
+ *   - Handles 100 – 10,000+ contacts without hitting the 60-second Vercel limit
+ *     by processing in configurable page-count slices per call, storing a cursor
+ *     so the next call can resume exactly where it left off
+ *   - Tracks live progress in agency_credentials.sync_* columns
+ *   - Auto-refreshes GHL access token when < 5 min from expiry
+ *
+ * White-label GHL:
+ *   Standard and white-labeled GHL instances use the identical OAuth/API layer
+ *   (marketplace.gohighlevel.com + services.leadconnectorhq.com).
+ *   White-labeling only affects the broker's dashboard URL, not our API calls.
+ *
+ * Body (all optional):
+ *   {
+ *     force?: boolean    — ignore last_synced_at, pull all contacts from GHL
+ *     maxPages?: number  — cap pages fetched this call (default 20 = 2,000 contacts)
+ *                          Set higher for a full initial import; lower for incremental
+ *   }
+ *
+ * Response:
+ *   {
+ *     synced: number, skipped: number, total_fetched: number,
+ *     has_more: boolean, cursor: string|null,
+ *     mode: 'incremental'|'full',
+ *     message: string
+ *   }
+ */
+
+import { NextRequest, NextResponse } from 'next/server'
+import { createClient } from '@/lib/supabase/server'
+import { createServiceClient } from '@/lib/supabase/service'
+
+export const dynamic = 'force-dynamic'
+export const runtime = 'nodejs'
+// Allow up to 60 s on Pro, use all of it for large imports
+export const maxDuration = 60
+
+const GHL_API_BASE = 'https://services.leadconnectorhq.com'
+const BATCH_SIZE   = 100   // contacts per GHL API page (GHL max)
+const DB_BATCH     = 200   // rows per Supabase upsert call
+
+// ── Field extraction ──────────────────────────────────────────────────────────
+const GHL_FIELD_MAP: Record<string, string> = {
+  mbi:               'mbi',
+  medicare_id:       'mbi',
+  medicare_number:   'mbi',
+  plan_name:         'plan_name',
+  plan:              'plan_name',
+  carrier:           'carrier',
+  insurance_carrier: 'carrier',
+  dob:               'dob',
+  date_of_birth:     'dob',
+  birthday:          'dob',
+}
+
+function extractGhlFields(contact: Record<string, unknown>): Record<string, string> {
+  const customFields = (contact.customFields ?? contact.custom_fields ?? []) as
+    Array<{ key?: string; id?: string; field_key?: string; value?: unknown }>
+  const extracted: Record<string, string> = {}
+  for (const field of customFields) {
+    const rawKey = field.field_key ?? field.key ?? field.id ?? ''
+    const key    = rawKey.toLowerCase().replace(/[^a-z0-9]/g, '_').replace(/_+/g, '_')
+    const mapped = GHL_FIELD_MAP[key]
+    if (mapped && field.value != null && String(field.value).trim()) {
+      extracted[mapped] = String(field.value).trim()
+    }
+  }
+  return extracted
+}
+
+function sanitizeMbi(raw: string): string | null {
+  const clean = raw.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 11)
+  return clean.length === 11 ? clean : null
+}
+
+// ── Token management ──────────────────────────────────────────────────────────
+async function getValidToken(agencyId: string, svc: ReturnType<typeof createServiceClient>) {
+  const { data: cred } = await svc
+    .from('agency_credentials')
+    .select('access_token, refresh_token, expires_at, location_id, last_synced_at, sync_cursor')
+    .eq('agency_id', agencyId)
+    .maybeSingle()
+
+  if (!cred?.access_token) throw new Error('GHL not connected for this agency')
+
+  const expiresAt    = new Date(cred.expires_at ?? 0).getTime()
+  const needsRefresh = expiresAt - Date.now() < 5 * 60 * 1000
+
+  if (!needsRefresh) {
+    return {
+      accessToken:  cred.access_token,
+      locationId:   cred.location_id as string,
+      lastSyncedAt: cred.last_synced_at as string | null,
+      syncCursor:   cred.sync_cursor as string | null,
+    }
+  }
+
+  const res = await fetch(`${GHL_API_BASE}/oauth/token`, {
+    method:  'POST',
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+    body: new URLSearchParams({
+      client_id:     process.env.GHL_CLIENT_ID!,
+      client_secret: process.env.GHL_CLIENT_SECRET!,
+      grant_type:    'refresh_token',
+      refresh_token: cred.refresh_token,
+    }),
+  })
+
+  if (!res.ok) throw new Error(`GHL token refresh failed: ${await res.text()}`)
+
+  const tokens = await res.json() as {
+    access_token: string; refresh_token: string; expires_in: number
+  }
+
+  const newExpiry = new Date(Date.now() + tokens.expires_in * 1000).toISOString()
+  await svc.from('agency_credentials').update({
+    access_token:  tokens.access_token,
+    refresh_token: tokens.refresh_token,
+    expires_at:    newExpiry,
+    updated_at:    new Date().toISOString(),
+  }).eq('agency_id', agencyId)
+
+  return {
+    accessToken:  tokens.access_token,
+    locationId:   cred.location_id as string,
+    lastSyncedAt: cred.last_synced_at as string | null,
+    syncCursor:   cred.sync_cursor as string | null,
+  }
+}
+
+// ── GHL single-page fetch ─────────────────────────────────────────────────────
+async function fetchPage(
+  accessToken: string,
+  locationId: string,
+  cursor: string | null,
+  since: string | null,
+): Promise<{ contacts: Record<string, unknown>[]; nextCursor: string | null }> {
+  const url = new URL(`${GHL_API_BASE}/contacts/`)
+  url.searchParams.set('locationId', locationId)
+  url.searchParams.set('limit', String(BATCH_SIZE))
+  if (cursor)  url.searchParams.set('startAfter', cursor)
+  if (since)   url.searchParams.set('startAfterDate', since)
+
+  const res = await fetch(url.toString(), {
+    headers: { Authorization: `Bearer ${accessToken}`, Version: '2021-07-28' },
+  })
+
+  if (res.status === 429) {
+    // Rate-limited — caller should wait and retry
+    throw Object.assign(new Error('GHL rate limit'), { retryable: true })
+  }
+  if (!res.ok) {
+    throw new Error(`GHL contacts API ${res.status}: ${await res.text().catch(() => '')}`)
+  }
+
+  const json = await res.json() as {
+    contacts?: Record<string, unknown>[]
+    meta?: { startAfter?: string; nextPageUrl?: string }
+  }
+
+  const contacts   = json.contacts ?? []
+  const nextCursor = contacts.length === BATCH_SIZE ? (json.meta?.startAfter ?? null) : null
+  return { contacts, nextCursor }
+}
+
+// ── Map contacts → DB records ─────────────────────────────────────────────────
+function mapContacts(
+  contacts: Record<string, unknown>[],
+  agencyId: string,
+  brokerId: string,
+): Record<string, unknown>[] {
+  return contacts.map((contact) => {
+    const fields   = extractGhlFields(contact)
+    const rawMbi   = fields.mbi ?? ''
+    const mbi      = rawMbi ? sanitizeMbi(rawMbi) : null
+    const fullName = [
+      String(contact.firstName ?? ''),
+      String(contact.lastName ?? ''),
+    ].filter(Boolean).join(' ') || String(contact.name ?? '') || null
+
+    return {
+      agency_id:           agencyId,
+      broker_id:           brokerId,
+      ghl_contact_id:      String(contact.id),
+      full_name:           fullName,
+      email:               contact.email ? String(contact.email) : null,
+      phone:               contact.phone ? String(contact.phone) : null,
+      plan_name:           fields.plan_name ?? null,
+      carrier:             fields.carrier   ?? 'unknown',
+      mbi:                 mbi,
+      dob:                 fields.dob ?? null,
+      status:              'ACTIVE',
+      source:              'ghl_sync',
+      verification_status: 'unverified',
+      updated_at:          new Date().toISOString(),
+    }
+  }).filter(r => r.ghl_contact_id)
+}
+
+// ── DB progress helpers ───────────────────────────────────────────────────────
+async function updateProgress(
+  svc: ReturnType<typeof createServiceClient>,
+  agencyId: string,
+  updates: Record<string, unknown>,
+) {
+  try {
+    await svc.from('agency_credentials')
+      .update(updates)
+      .eq('agency_id', agencyId)
+  } catch {
+    // Non-fatal — sync continues even if progress tracking fails
+  }
+}
+
+// ── Route handler ─────────────────────────────────────────────────────────────
+export async function POST(req: NextRequest) {
+  const supabase = await createClient()
+  const { data: { session } } = await supabase.auth.getSession()
+  if (!session) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
+  const body = await req.json().catch(() => ({})) as {
+    force?:    boolean
+    maxPages?: number
+    resume?:   boolean  // if true, continue from stored sync_cursor
+  }
+
+  const maxPages = Math.min(body.maxPages ?? 20, 100) // safety cap: 100 pages = 10,000 contacts
+
+  const svc = createServiceClient()
+
+  const { data: broker } = await svc
+    .from('brokers')
+    .select('id, agency_id')
+    .eq('user_id', session.user.id)
+    .single()
+
+  if (!broker) {
+    return NextResponse.json({ error: 'Broker not found' }, { status: 404 })
+  }
+
+  let tokenInfo: Awaited<ReturnType<typeof getValidToken>>
+  try {
+    tokenInfo = await getValidToken(broker.agency_id, svc)
+  } catch (err) {
+    return NextResponse.json(
+      { error: 'GHL not connected. Reconnect via the GHL page.', detail: String(err) },
+      { status: 400 }
+    )
+  }
+
+  const { accessToken, locationId, lastSyncedAt, syncCursor: storedCursor } = tokenInfo
+
+  // Determine sync mode
+  const isResume    = body.resume && storedCursor
+  const isFull      = body.force || !lastSyncedAt
+  const since       = isFull || isResume ? null : lastSyncedAt
+  const startCursor = isResume ? storedCursor : null
+  const mode        = isFull ? 'full' : 'incremental'
+
+  console.log(`[ghl/sync] mode=${mode} resume=${isResume} since=${since} cursor=${startCursor} maxPages=${maxPages}`)
+
+  // Mark sync as running
+  await updateProgress(svc, broker.agency_id, { sync_status: 'running', sync_cursor: startCursor })
+
+  let synced       = 0
+  let errored      = 0
+  let totalFetched = 0
+  let cursor       = startCursor
+  let pagesRead    = 0
+  let hasMore      = false
+
+  try {
+    while (pagesRead < maxPages) {
+      // Fetch one page from GHL
+      let page: Awaited<ReturnType<typeof fetchPage>>
+      try {
+        page = await fetchPage(accessToken, locationId, cursor, since)
+      } catch (err: unknown) {
+        const isRetryable = typeof err === 'object' && err !== null && 'retryable' in err
+        if (isRetryable) {
+          // Rate limited — pause 2s and retry once
+          await new Promise(r => setTimeout(r, 2000))
+          page = await fetchPage(accessToken, locationId, cursor, since)
+        } else {
+          throw err
+        }
+      }
+
+      const { contacts, nextCursor } = page
+      totalFetched += contacts.length
+      pagesRead++
+
+      if (contacts.length === 0) break
+
+      // Map and upsert immediately — no memory accumulation
+      const records = mapContacts(contacts, broker.agency_id, broker.id)
+
+      for (let i = 0; i < records.length; i += DB_BATCH) {
+        const batch = records.slice(i, i + DB_BATCH)
+        const { error } = await svc
+          .from('ghl_contacts')
+          .upsert(batch, { onConflict: 'ghl_contact_id,agency_id', ignoreDuplicates: false })
+
+        if (error) {
+          console.error('[ghl/sync] upsert error:', error.message)
+          errored += batch.length
+        } else {
+          synced += batch.length
+        }
+      }
+
+      // Update progress after each page
+      await updateProgress(svc, broker.agency_id, {
+        sync_total:  synced,
+        sync_cursor: nextCursor,
+      })
+
+      cursor = nextCursor
+
+      // If GHL has no more pages, we're done
+      if (!nextCursor) {
+        hasMore = false
+        break
+      }
+
+      // If we hit the page cap, there's more to fetch in the next call
+      if (pagesRead >= maxPages) {
+        hasMore = true
+        break
+      }
+
+      // Brief pause between pages to be a good API citizen (avoid rate limiting)
+      if (pagesRead % 5 === 0) {
+        await new Promise(r => setTimeout(r, 200))
+      }
+    }
+
+    const now = new Date().toISOString()
+    await updateProgress(svc, broker.agency_id, {
+      sync_status:    hasMore ? 'partial' : 'complete',
+      sync_cursor:    hasMore ? cursor : null,
+      last_synced_at: hasMore ? null : now,
+      sync_total:     synced,
+      updated_at:     now,
+    })
+
+    const message = hasMore
+      ? `Imported ${synced} contacts so far — call again with {resume:true} to continue.`
+      : mode === 'incremental'
+        ? `Incremental sync complete — ${synced} new/updated contacts imported.`
+        : `Full import complete — ${synced} contacts from your GHL account.`
+
+    console.log(`[ghl/sync] done: synced=${synced} errored=${errored} pages=${pagesRead} hasMore=${hasMore}`)
+
+    return NextResponse.json({
+      synced,
+      skipped:       errored,
+      total_fetched: totalFetched,
+      has_more:      hasMore,
+      cursor:        hasMore ? cursor : null,
+      mode,
+      message,
+    })
+
+  } catch (err) {
+    console.error('[ghl/sync] fatal error:', err)
+    await updateProgress(svc, broker.agency_id, { sync_status: 'error' })
+    return NextResponse.json(
+      { error: 'Sync failed', detail: String(err), synced },
+      { status: 500 }
+    )
+  }
+}

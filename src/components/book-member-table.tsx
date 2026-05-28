@@ -21,9 +21,16 @@ interface MemberRow {
   mbi: string | null
   carrier: string
   carrier_display_name: string | null
+  /** Set at roster upload, never overwritten — always shows original enrolled carrier */
+  original_carrier_name: string | null
   member_id: string | null
   full_name: string | null
+  /** Original enrolled plan — NOT overwritten when a switch is detected */
   plan_name: string | null
+  /** New plan the member moved to (populated only when a switch is detected) */
+  detected_plan_name: string | null
+  /** New carrier the member moved to (populated only when a switch is detected) */
+  detected_carrier_name: string | null
   status: string | null
   verification_status: string | null
   last_verified_at: string | null
@@ -38,47 +45,98 @@ interface Props {
   members: MemberRow[]
 }
 
+// ── Switch state helpers ──────────────────────────────────────────────────────
+// Priority order:
+//   1. termed / disenrolled           → red  (no active MA plan)
+//   2. verification_status = changed  → red  (already switched carriers/plans)
+//   3. pending_switch OR switching    → orange (switch scheduled, not yet live)
+//   4. active + marx checked          → green (verified, all good)
+//   5. no MBI / unverified            → grey
+
 function getEnrollmentBadge(member: MemberRow) {
   const es = member.enrollment_status
-  if (es === 'switching') {
-    return {
-      label: '⚠ Switching',
-      cls: 'bg-orange-500/10 text-orange-400 border-orange-500/20',
-      icon: AlertTriangle,
-      sub: member.future_plan_name
-        ? `New plan: ${member.future_plan_name}${member.future_effective_date ? ' · eff. ' + fmtDate(member.future_effective_date) : ''}`
-        : null,
-    }
-  }
+  const vs = member.verification_status
+
+  // ── Termed / no MA plan ────────────────────────────────────────────────────
   if (es === 'termed' || es === 'disenrolled') {
     return {
       label: es === 'disenrolled' ? '✗ Disenrolled' : '✗ Left Plan',
-      cls: 'bg-red-500/10 text-red-500 border-red-500/20',
+      cls:  'bg-red-500/10 text-red-500 border-red-500/20',
       icon: XCircle,
-      sub: null,
+      sub:  null,
+      rowCls: 'bg-red-950/10 border-l-2 border-l-red-600',
     }
   }
-  if (es === 'active' && member.last_marx_check) {
+  if (vs === 'termed' || vs === 'missing') {
+    return {
+      label: vs === 'missing' ? '✗ Not Found' : '✗ Left Plan',
+      cls:  'bg-red-500/10 text-red-500 border-red-500/20',
+      icon: XCircle,
+      sub:  null,
+      rowCls: 'bg-red-950/10 border-l-2 border-l-red-600',
+    }
+  }
+
+  // ── Already switched ───────────────────────────────────────────────────────
+  if (vs === 'changed') {
+    // Build "Now:" line from detected fields (new plan), never from plan_name (original)
+    const nowCarrier  = member.detected_carrier_name
+    const nowPlan     = member.detected_plan_name
+    const nowLabel    = nowPlan
+      ? (nowCarrier && nowCarrier !== (member.original_carrier_name ?? member.carrier)
+          ? `Now: ${nowCarrier} — ${nowPlan}`
+          : `Now: ${nowPlan}`)
+      : 'Plan changed — re-scan to see new plan'
+    return {
+      label: '🔴 Switched',
+      cls:  'bg-red-500/10 text-red-400 border-red-500/20',
+      icon: AlertTriangle,
+      sub:  nowLabel,
+      rowCls: 'bg-red-950/10 border-l-2 border-l-red-500',
+    }
+  }
+
+  // ── Pending / upcoming switch ──────────────────────────────────────────────
+  if (vs === 'pending_switch' || es === 'switching') {
+    return {
+      label: '⚠ Pending Switch',
+      cls:  'bg-orange-500/10 text-orange-400 border-orange-500/20',
+      icon: AlertTriangle,
+      sub:  member.future_plan_name
+        ? `→ ${member.future_plan_name}${member.future_effective_date ? ' · eff. ' + fmtDate(member.future_effective_date) : ''}`
+        : 'Switch scheduled — reach out now',
+      rowCls: 'bg-orange-950/10 border-l-2 border-l-orange-500',
+    }
+  }
+
+  // ── Verified active ────────────────────────────────────────────────────────
+  if ((es === 'active' || vs === 'verified') && member.last_marx_check) {
     return {
       label: '✓ Verified',
-      cls: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
+      cls:  'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
       icon: CheckCircle2,
-      sub: null,
+      sub:  null,
+      rowCls: '',
     }
   }
+
+  // ── No MBI / unverified ────────────────────────────────────────────────────
   if (!member.has_mbi) {
     return {
       label: 'No MBI',
-      cls: 'bg-slate-500/10 text-slate-400 border-slate-500/20',
+      cls:  'bg-slate-500/10 text-slate-400 border-slate-500/20',
       icon: Clock,
-      sub: null,
+      sub:  null,
+      rowCls: '',
     }
   }
+
   return {
     label: 'Unverified',
-    cls: 'bg-slate-500/10 text-slate-400 border-slate-500/20',
+    cls:  'bg-slate-500/10 text-slate-400 border-slate-500/20',
     icon: Clock,
-    sub: null,
+    sub:  null,
+    rowCls: '',
   }
 }
 
@@ -163,14 +221,16 @@ export function BookMemberTable({ members }: Props) {
 
   const handleExportCsv = () => {
     const rows = filtered.filter(m => selected.has(m.id))
-    const header = ['Name', 'MBI', 'Carrier', 'Plan', 'Enrollment Status', 'Last Verified']
+    const header = ['Name', 'MBI', 'Original Carrier', 'Original Plan', 'Switched To Carrier', 'Switched To Plan', 'Enrollment Status', 'Last Verified']
     const csvRows = [
       header,
       ...rows.map(m => [
         m.full_name ?? '',
         m.mbi ?? '',
-        m.carrier_display_name ?? m.carrier,
+        m.original_carrier_name ?? m.carrier_display_name ?? m.carrier,
         m.plan_name ?? '',
+        m.detected_carrier_name ?? '',
+        m.detected_plan_name ?? '',
         m.enrollment_status ?? '',
         fmtDate(m.last_verified_at),
       ]),
@@ -282,13 +342,19 @@ export function BookMemberTable({ members }: Props) {
                   const isTermed = member.enrollment_status === 'termed' || member.enrollment_status === 'disenrolled' || member.status === 'termed'
                   const badge = getEnrollmentBadge(member)
                   const BadgeIcon = badge.icon
-                  const needsAction = member.enrollment_status === 'switching' || member.enrollment_status === 'termed' || member.enrollment_status === 'disenrolled'
+                  const needsAction = member.enrollment_status === 'switching'
+                    || member.enrollment_status === 'termed'
+                    || member.enrollment_status === 'disenrolled'
+                    || member.verification_status === 'changed'
+                    || member.verification_status === 'pending_switch'
+                    || member.verification_status === 'termed'
+                    || member.verification_status === 'missing'
                   const isChecked = selected.has(member.id)
 
                   return (
                     <TableRow
                       key={member.id}
-                      className={`border-slate-800 hover:bg-slate-800/40 ${isTermed ? 'opacity-60' : ''} ${isChecked ? 'bg-primary/5' : ''}`}
+                      className={`border-slate-800 hover:bg-slate-800/40 ${isTermed ? 'opacity-70' : ''} ${isChecked ? 'bg-primary/5' : ''} ${badge.rowCls ?? ''}`}
                     >
                       <TableCell className="px-4 py-3">
                         <Checkbox
@@ -302,7 +368,7 @@ export function BookMemberTable({ members }: Props) {
                         {member.full_name ?? <span className="text-slate-600 italic">Unknown</span>}
                       </TableCell>
                       <TableCell className="px-4 text-xs font-medium text-slate-400">
-                        {member.carrier_display_name ?? member.carrier}
+                        {member.original_carrier_name ?? member.carrier_display_name ?? member.carrier}
                       </TableCell>
                       <TableCell className="px-4 text-xs font-medium text-slate-400">
                         {member.plan_name ?? '--'}

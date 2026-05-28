@@ -11,9 +11,10 @@
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
     "clean": "rimraf .next out node_modules/.cache",
-    "test": "jest",
+    "test": "jest --config jest.config.js",
     "test:humana": "npx playwright install chromium && tsx scripts/test-humana-scraper.mts",
-    "logs": "vercel logs --environment production --since 5m --level info"
+    "logs": "vercel logs --environment production --since 5m --level info",
+    "test:watch": "jest --config jest.config.js --watch"
   },
   "dependencies": {
     "@genkit-ai/google-genai": "^1.28.0",
