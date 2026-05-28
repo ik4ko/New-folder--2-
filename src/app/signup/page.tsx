@@ -112,7 +112,6 @@ function SignupFormContent() {
 
   const onSubmit = async (data: SignupFormValues) => {
     const supabase = createClient();
-    console.log("Auth Attempt [Signup]:", data.email);
 
     try {
       const { data: authData, error: authError } = await supabase.auth.signUp({

@@ -6,6 +6,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { Checkbox } from '@/components/ui/checkbox'
+import { useToast } from '@/hooks/use-toast'
 import {
   Table, TableBody, TableCell, TableHead,
   TableHeader, TableRow,
@@ -166,6 +167,7 @@ function fmtDate(d: string | null | undefined) {
 type Filter = 'all' | 'active' | 'critical' | 'termed'
 
 export function BookMemberTable({ members }: Props) {
+  const { toast } = useToast()
   const [filter, setFilter]               = useState<Filter>('active')
   const [selected, setSelected]           = useState<Set<string>>(new Set())
   const [deleting, setDeleting]           = useState(false)
@@ -240,8 +242,10 @@ export function BookMemberTable({ members }: Props) {
         window.location.reload()
       } else {
         const body = await res.json().catch(() => ({}))
-        alert(body.error ?? 'Delete failed — please try again')
+        toast({ variant: 'destructive', title: 'Delete failed', description: body.error ?? 'Please try again.' })
       }
+    } catch {
+      toast({ variant: 'destructive', title: 'Network error', description: 'Check your connection and try again.' })
     } finally {
       setDeleting(false)
     }
@@ -285,7 +289,12 @@ export function BookMemberTable({ members }: Props) {
         setMbiEditOverlay(null)
         setMbiInput('')
         window.location.reload()
+      } else {
+        const body = await res.json().catch(() => ({}))
+        toast({ variant: 'destructive', title: 'MBI save failed', description: body.error ?? 'Please try again.' })
       }
+    } catch {
+      toast({ variant: 'destructive', title: 'Network error', description: 'Check your connection and try again.' })
     } finally {
       setSavingMbi(false)
     }
@@ -294,12 +303,20 @@ export function BookMemberTable({ members }: Props) {
   const handleMarxCheck = async () => {
     setChecking(true)
     try {
-      await fetch('/api/marx/bulk-check', {
+      const res = await fetch('/api/marx/bulk-check', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ ids: selectedIds }),
       })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        toast({ variant: 'destructive', title: 'MARx check failed', description: body.error ?? 'Please try again.' })
+        return
+      }
+      toast({ title: 'MARx check queued', description: 'Results will appear shortly. Refreshing…' })
       window.location.reload()
+    } catch {
+      toast({ variant: 'destructive', title: 'Network error', description: 'Check your connection and try again.' })
     } finally {
       setChecking(false)
     }

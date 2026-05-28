@@ -76,32 +76,38 @@ export function OnboardingChecklist() {
     }
 
     const supabase = createClient()
-    supabase.auth.getUser().then(async ({ data: { user } }) => {
-      if (!user) return
+    const loadChecklist = async () => {
+      try {
+        const { data: { user } } = await supabase.auth.getUser()
+        if (!user) return
 
-      const { data: broker } = await supabase
-        .from('brokers')
-        .select('id, agency_id, ghl_api_key')
-        .eq('user_id', user.id)
-        .maybeSingle()
+        const { data: broker } = await supabase
+          .from('brokers')
+          .select('id, agency_id, ghl_api_key')
+          .eq('user_id', user.id)
+          .maybeSingle()
 
-      if (!broker) return
+        if (!broker) return
 
-      const [{ count: contactCount }, { count: rosterCount }, { count: vccCount }, { count: aepCount }] = await Promise.all([
-        supabase.from('ghl_contacts').select('id', { count: 'exact', head: true }).eq('agency_id', broker.agency_id),
-        supabase.from('book_of_business').select('id', { count: 'exact', head: true }).eq('agency_id', broker.agency_id),
-        supabase.from('vcc_submissions').select('id', { count: 'exact', head: true }).eq('broker_id', broker.id),
-        supabase.from('campaign_enrollments').select('id', { count: 'exact', head: true }).eq('agency_id', broker.agency_id),
-      ])
+        const [{ count: contactCount }, { count: rosterCount }, { count: vccCount }, { count: aepCount }] = await Promise.all([
+          supabase.from('ghl_contacts').select('id', { count: 'exact', head: true }).eq('agency_id', broker.agency_id),
+          supabase.from('book_of_business').select('id', { count: 'exact', head: true }).eq('agency_id', broker.agency_id),
+          supabase.from('vcc_submissions').select('id', { count: 'exact', head: true }).eq('broker_id', broker.id),
+          supabase.from('campaign_enrollments').select('id', { count: 'exact', head: true }).eq('agency_id', broker.agency_id),
+        ])
 
-      setCtx({
-        hasGHL: !!(broker as any).ghl_api_key,
-        hasContacts: (contactCount ?? 0) > 0,
-        hasRoster: (rosterCount ?? 0) > 0,
-        hasVCC: (vccCount ?? 0) > 0,
-        hasAEP: (aepCount ?? 0) > 0,
-      })
-    })
+        setCtx({
+          hasGHL: !!(broker as any).ghl_api_key,
+          hasContacts: (contactCount ?? 0) > 0,
+          hasRoster: (rosterCount ?? 0) > 0,
+          hasVCC: (vccCount ?? 0) > 0,
+          hasAEP: (aepCount ?? 0) > 0,
+        })
+      } catch {
+        // Non-fatal — checklist silently fails if data unavailable
+      }
+    }
+    loadChecklist()
   }, [])
 
   function dismiss() {

@@ -140,7 +140,6 @@ export async function syncToCrm(
   const results: string[] = [];
 
   if (config.ghlApiKey) {
-    console.log('Mock GHL Sync triggered for', phone);
     results.push('GHL');
   }
 

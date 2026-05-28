@@ -4,17 +4,19 @@ import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Card } from '@/components/ui/card'
-import { Stethoscope, Pencil, Check, X, Phone, FileCheck } from 'lucide-react'
+import { Stethoscope, Pencil, Check, X, Phone, FileCheck, Loader2 } from 'lucide-react'
 import Link from 'next/link'
+import { useToast } from '@/hooks/use-toast'
 
 interface Props {
   memberId: string
-  bobId:    string     // same as memberId — used to build VCC link
+  bobId:    string
   initialDoctorName: string | null
   initialDoctorFax:  string | null
 }
 
 export function DoctorInfoCard({ memberId, bobId, initialDoctorName, initialDoctorFax }: Props) {
+  const { toast } = useToast()
   const [editing,    setEditing]    = useState(false)
   const [saving,     setSaving]     = useState(false)
   const [doctorName, setDoctorName] = useState(initialDoctorName ?? '')
@@ -33,13 +35,16 @@ export function DoctorInfoCard({ memberId, bobId, initialDoctorName, initialDoct
         body: JSON.stringify({ memberId, doctor_name: doctorName || null, doctor_fax: doctorFax || null }),
       })
       if (!res.ok) {
-        const { error } = await res.json().catch(() => ({}))
-        alert(error ?? 'Save failed')
+        const body = await res.json().catch(() => ({}))
+        toast({ variant: 'destructive', title: 'Save failed', description: body.error ?? 'Please try again.' })
         return
       }
       setSavedName(doctorName)
       setSavedFax(doctorFax)
       setEditing(false)
+      toast({ title: 'Physician info saved' })
+    } catch {
+      toast({ variant: 'destructive', title: 'Network error', description: 'Check your connection and try again.' })
     } finally {
       setSaving(false)
     }
@@ -79,7 +84,8 @@ export function DoctorInfoCard({ memberId, bobId, initialDoctorName, initialDoct
             <div className="flex items-center gap-1">
               <Button size="sm" variant="ghost" onClick={handleSave} disabled={saving}
                 className="h-7 px-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest text-emerald-400 hover:bg-emerald-500/10 gap-1">
-                <Check className="w-3 h-3" /> {saving ? 'Saving…' : 'Save'}
+                {saving ? <Loader2 className="w-3 h-3 animate-spin" /> : <Check className="w-3 h-3" />}
+                {saving ? 'Saving…' : 'Save'}
               </Button>
               <Button size="sm" variant="ghost" onClick={handleCancel} disabled={saving}
                 className="h-7 px-2.5 rounded-xl text-[9px] font-black uppercase tracking-widest text-slate-500 hover:text-white hover:bg-slate-800 gap-1">
@@ -99,6 +105,7 @@ export function DoctorInfoCard({ memberId, bobId, initialDoctorName, initialDoct
               value={doctorName}
               onChange={e => setDoctorName(e.target.value)}
               placeholder="Dr. John Doe"
+              disabled={saving}
               className="h-10 rounded-xl text-sm bg-slate-800 border-slate-700 text-white placeholder:text-slate-600"
             />
           </div>
@@ -110,6 +117,7 @@ export function DoctorInfoCard({ memberId, bobId, initialDoctorName, initialDoct
                 value={doctorFax}
                 onChange={e => setDoctorFax(e.target.value)}
                 placeholder="(555) 000-0000"
+                disabled={saving}
                 className="h-10 rounded-xl text-sm bg-slate-800 border-slate-700 text-white placeholder:text-slate-600 pl-9"
               />
             </div>

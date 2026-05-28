@@ -1,5 +1,37 @@
 # Aegis Sage — Changelog
 
+## [Beta Cleanup: Code Hygiene, Dead Routes, UX Hardening] — 2026-05-28
+
+### Dead Routes Neutered (17 pages → redirect stubs)
+- `/dashboard/upload` → `/dashboard/churn/upload`
+- `/dashboard/members/[id]` → `/dashboard/book`
+- `/dashboard/clients/[contactId]` → `/dashboard/book`
+- `/clients/new`, `/clients/[id]`, `/members`, `/members/new`, `/members/[id]` → `/dashboard`
+- `/accounting`, `/check-ins`, `/ai` → `/dashboard`
+- `/dashboard/settings/crm` → `/settings/profile`
+- `/settings/maya`, `/settings/security`, `/settings/compliance` → `/settings/profile`
+- `/settings/team` → `/dashboard/team`
+- `/careers` → `/`
+- All converted to `redirect()` stubs — testers cannot reach broken legacy UI; Next.js handles gracefully.
+
+### Unhandled Promise / useEffect Fixes
+- `onboarding-checklist.tsx`: Converted `.then()` chain without `.catch()` to async/await wrapped in try/catch. Checklist now silently suppresses failures instead of throwing unhandled rejection noise in the console.
+- `book-member-table.tsx`: `handleDelete`, `handleMarxCheck`, and `saveMbi` — all now check `res.ok` before proceeding, show toast on error, and have outer `catch` blocks for network failures. Previously `handleMarxCheck` always reloaded the page regardless of server response.
+- `doctor-info-card.tsx`: Added outer `catch` block for network errors in `handleSave`.
+
+### Loading State Hardening
+- `doctor-info-card.tsx`: Save button now shows `Loader2` spinner while saving; inputs disabled during in-flight request to prevent double-submit.
+- `book-member-table.tsx`: MARx check button and delete button both disable during pending operations with spinner state.
+- `vcc/new/page.tsx`: Confirmed — submit button on Step 4 uses `disabled={isPending}` + `Loader2` spinner via `useTransition`. All 4 nav buttons properly guard state.
+- All `alert()` calls replaced with `useToast` — no more browser dialogs breaking the tester flow.
+
+### Console.log Cleanup
+- Removed `console.log("Auth Attempt [Signup]:", data.email)` from `signup/page.tsx` — was leaking user email (PII) to the browser console on every signup attempt.
+- Removed misleading `console.log('Mock GHL Sync triggered for', phone)` from `crm_sync.ts` — the "Mock" label was confusing; the code path is real and routes to GHL via API key.
+- All remaining `console.error` / `console.warn` logs are in server-side API routes only — intentional for Vercel runtime log visibility during beta debugging.
+
+---
+
 ## [Deep Audit: Bug Fixes — Invite API, Agency Scoping, Manager Data Leak] — 2026-05-28
 
 ### Bulk Invite Fix (`/api/team/invite/route.ts`)
