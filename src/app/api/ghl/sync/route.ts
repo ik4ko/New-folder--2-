@@ -58,6 +58,15 @@ const GHL_FIELD_MAP: Record<string, string> = {
   dob:               'dob',
   date_of_birth:     'dob',
   birthday:          'dob',
+  // Doctor / VCC fax fields (common GHL custom field keys)
+  doctor_name:       'doctor_name',
+  physician_name:    'doctor_name',
+  primary_doctor:    'doctor_name',
+  pcp_name:          'doctor_name',
+  doctor_fax:        'doctor_fax',
+  physician_fax:     'doctor_fax',
+  pcp_fax:           'doctor_fax',
+  fax_number:        'doctor_fax',
 }
 
 function extractGhlFields(contact: Record<string, unknown>): Record<string, string> {

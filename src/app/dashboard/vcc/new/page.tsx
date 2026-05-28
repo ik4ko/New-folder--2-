@@ -7,31 +7,35 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { Checkbox } from '@/components/ui/checkbox'
 import {
   Select, SelectContent, SelectItem,
   SelectTrigger, SelectValue,
 } from '@/components/ui/select'
-import { Loader2, ArrowLeft, ArrowRight, FileText, CheckCircle2, AlertCircle } from 'lucide-react'
+import {
+  Loader2, ArrowLeft, ArrowRight, FileText, CheckCircle2,
+  AlertCircle, Phone, User2, Stethoscope, Info,
+} from 'lucide-react'
 import Link from 'next/link'
 import { useToast } from '@/hooks/use-toast'
-import { getVCCCarriers, submitVCC } from '@/app/actions/vcc-submit'
+import { getVCCCarriers, submitVCC, getMemberForVCC } from '@/app/actions/vcc-submit'
 
 interface Carrier { id: string; carrier: string; carrier_display_name: string; year: number }
 
 interface FormState {
-  carrier_id: string
-  client_name: string
-  client_dob: string
-  medicare_id: string
-  doctor_name: string
-  doctor_fax: string
-  broker_npn: string
-  ghl_contact_id: string
-  send_fax: boolean
+  carrier_id:     string
+  client_name:    string
+  client_dob:     string
+  medicare_id:    string
+  doctor_name:    string
+  doctor_fax:     string
+  broker_npn:     string
+  bob_member_id:  string   // book_of_business.id (preferred when coming from Book page)
+  ghl_contact_id: string   // GHL contact id (fallback)
+  send_fax:       boolean
+  is_chronic:     boolean
 }
 
-const STEPS = ['Carrier', 'Client Info', 'Review', 'Dispatch']
+const STEPS = ['Carrier', 'Client Info', 'Physician', 'Review & Send']
 
 function FieldError({ msg }: { msg?: string }) {
   if (!msg) return null
@@ -49,24 +53,51 @@ export default function VCCNewPage() {
   const { toast } = useToast()
   const [isPending, startTransition] = useTransition()
 
-  const [step, setStep] = useState(1)
+  const [step, setStep]         = useState(1)
   const [carriers, setCarriers] = useState<Carrier[]>([])
-  const [errors, setErrors] = useState<Partial<Record<keyof FormState, string>>>({})
+  const [prefilling, setPrefilling] = useState(false)
+  const [prefilled, setPrefilled]   = useState(false)
+  const [errors, setErrors]     = useState<Partial<Record<keyof FormState, string>>>({})
+
+  const bobId     = searchParams?.get('bob')     ?? ''
+  const contactId = searchParams?.get('contact_id') ?? ''
+
   const [form, setForm] = useState<FormState>({
-    carrier_id: '',
-    client_name: '',
-    client_dob: '',
-    medicare_id: '',
-    doctor_name: '',
-    doctor_fax: '',
-    broker_npn: '',
-    ghl_contact_id: searchParams?.get('contact_id') ?? '',
-    send_fax: true,
+    carrier_id:     '',
+    client_name:    '',
+    client_dob:     '',
+    medicare_id:    '',
+    doctor_name:    '',
+    doctor_fax:     '',
+    broker_npn:     '',
+    bob_member_id:  bobId,
+    ghl_contact_id: contactId,
+    send_fax:       true,
+    is_chronic:     false,
   })
 
+  // ── Load carriers ────────────────────────────────────────────────────────────
   useEffect(() => {
     getVCCCarriers().then(setCarriers)
   }, [])
+
+  // ── Pre-fill from Book of Business member ────────────────────────────────────
+  useEffect(() => {
+    if (!bobId) return
+    setPrefilling(true)
+    getMemberForVCC(bobId).then(member => {
+      if (!member) return
+      setForm(f => ({
+        ...f,
+        client_name:   member.full_name ?? f.client_name,
+        medicare_id:   member.mbi       ?? f.medicare_id,
+        doctor_name:   member.doctor_name ?? f.doctor_name,
+        doctor_fax:    member.doctor_fax  ?? f.doctor_fax,
+        bob_member_id: member.id,
+      }))
+      setPrefilled(true)
+    }).finally(() => setPrefilling(false))
+  }, [bobId])
 
   const set = (key: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement>) => {
     setForm(f => ({ ...f, [key]: e.target.value }))
@@ -77,10 +108,10 @@ export default function VCCNewPage() {
 
   const validateStep = () => {
     const errs: typeof errors = {}
-    if (step === 1 && !form.carrier_id) errs.carrier_id = 'Select a carrier'
-    if (step === 2) {
-      if (!form.client_name.trim()) errs.client_name = 'Client name is required'
-      if (!form.ghl_contact_id.trim()) errs.ghl_contact_id = 'Contact ID is required'
+    if (step === 1 && !form.carrier_id)      errs.carrier_id  = 'Select a carrier'
+    if (step === 2 && !form.client_name.trim()) errs.client_name = 'Client name is required'
+    if (step === 3 && form.send_fax && !form.doctor_fax.trim()) {
+      errs.doctor_fax = 'Fax number required to auto-send (or choose manual dispatch below)'
     }
     setErrors(errs)
     return Object.keys(errs).length === 0
@@ -94,40 +125,46 @@ export default function VCCNewPage() {
     startTransition(async () => {
       try {
         const result = await submitVCC({
-          ghl_contact_id: form.ghl_contact_id,
-          carrier: selectedCarrier?.carrier ?? form.carrier_id,
+          ghl_contact_id: form.ghl_contact_id || form.bob_member_id || 'n/a',
+          carrier:        selectedCarrier?.carrier ?? form.carrier_id,
           form_template_id: form.carrier_id,
-          client_name: form.client_name,
-          client_dob: form.client_dob || undefined,
-          medicare_id: form.medicare_id || undefined,
-          doctor_name: form.doctor_name || undefined,
-          doctor_fax: form.doctor_fax || undefined,
-          broker_npn: form.broker_npn || undefined,
-          send_fax: form.send_fax,
+          client_name:    form.client_name,
+          client_dob:     form.client_dob    || undefined,
+          medicare_id:    form.medicare_id   || undefined,
+          doctor_name:    form.doctor_name   || undefined,
+          doctor_fax:     form.doctor_fax    || undefined,
+          broker_npn:     form.broker_npn    || undefined,
+          send_fax:       form.send_fax,
         })
         toast({
-          title: 'VCC Form submitted successfully',
+          title: 'VCC Form submitted',
           description: form.send_fax && form.doctor_fax
-            ? `Fax ${result.faxStatus === 'sent' ? 'sent' : 'queued'} to ${form.doctor_fax}`
-            : 'PDF generated and ready for download',
+            ? `Fax ${result.faxStatus === 'sent' ? 'sent ✓' : 'queued'} to ${form.doctor_fax}`
+            : 'PDF generated and stored securely',
         })
         router.push('/dashboard/vcc')
-      } catch (err: any) {
-        toast({ variant: 'destructive', title: 'Submission failed', description: err.message })
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : 'Unknown error'
+        toast({ variant: 'destructive', title: 'Submission failed', description: msg })
       }
     })
   }
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
-      <header className="h-16 border-b border-border px-8 flex items-center gap-4">
+      <header className="h-16 border-b border-border px-8 flex items-center gap-4 bg-slate-950/80 backdrop-blur sticky top-0 z-10">
         <Button variant="ghost" size="sm" asChild className="rounded-xl font-black uppercase text-[10px] tracking-widest">
           <Link href="/dashboard/vcc"><ArrowLeft className="w-4 h-4 mr-1" /> Back</Link>
         </Button>
         <div className="flex items-center gap-2 text-muted-foreground">
           <FileText className="w-4 h-4" />
-          <span className="text-[11px] font-black uppercase tracking-widest">New VCC submission</span>
+          <span className="text-[11px] font-black uppercase tracking-widest">New VCC Submission</span>
         </div>
+        {prefilled && (
+          <Badge className="ml-auto text-[8px] font-black bg-emerald-500/10 text-emerald-400 border-emerald-500/20 border">
+            <CheckCircle2 className="w-3 h-3 mr-1" /> Pre-filled from Book of Business
+          </Badge>
+        )}
       </header>
 
       {/* Step indicator */}
@@ -136,7 +173,7 @@ export default function VCCNewPage() {
           {STEPS.map((label, i) => {
             const n = i + 1
             const active = n === step
-            const done = n < step
+            const done   = n < step
             return (
               <div key={label} className="flex items-center gap-2 flex-1">
                 <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[9px] font-black shrink-0 transition-colors ${
@@ -157,7 +194,14 @@ export default function VCCNewPage() {
       <main className="flex-1 flex items-start justify-center p-8">
         <Card className="w-full max-w-2xl rounded-3xl border border-border shadow-sm p-8 space-y-6">
 
-          {/* Step 1 -- Carrier */}
+          {prefilling && (
+            <div className="flex items-center gap-2 text-[11px] text-slate-400 font-medium">
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              Loading member details…
+            </div>
+          )}
+
+          {/* ── Step 1: Carrier ─────────────────────────────────────────────── */}
           {step === 1 && (
             <div className="space-y-4">
               <div>
@@ -172,8 +216,11 @@ export default function VCCNewPage() {
                     No carrier templates configured yet
                   </p>
                   <p className="text-[10px] text-muted-foreground mt-2">
-                    Upload PDF templates to the vcc-templates storage bucket to enable form filling.
+                    Upload PDF templates in VCC Templates to enable form filling.
                   </p>
+                  <Button asChild variant="outline" size="sm" className="mt-4 rounded-xl font-black uppercase text-[9px] tracking-widest">
+                    <Link href="/dashboard/vcc/templates/upload">Upload Template</Link>
+                  </Button>
                 </div>
               ) : (
                 <div className="grid grid-cols-2 gap-3">
@@ -196,15 +243,37 @@ export default function VCCNewPage() {
             </div>
           )}
 
-          {/* Step 2 -- Client Info */}
+          {/* ── Step 2: Client Info ──────────────────────────────────────────── */}
           {step === 2 && (
-            <div className="space-y-4">
+            <div className="space-y-5">
               <div>
-                <h2 className="text-lg font-black uppercase tracking-tight">Client Information</h2>
+                <h2 className="text-lg font-black uppercase tracking-tight flex items-center gap-2">
+                  <User2 className="w-5 h-5 text-primary" /> Client Information
+                </h2>
                 <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mt-0.5">
-                  Enter the beneficiary and physician details
+                  Beneficiary details for the VCC form
                 </p>
               </div>
+
+              {/* Chronic plan flag */}
+              <div className={`p-3 rounded-xl border cursor-pointer transition-all ${
+                form.is_chronic ? 'border-amber-500/40 bg-amber-500/10' : 'border-border hover:border-amber-500/30'
+              }`}
+                onClick={() => setForm(f => ({ ...f, is_chronic: !f.is_chronic }))}
+              >
+                <div className="flex items-center gap-3">
+                  <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
+                    form.is_chronic ? 'border-amber-500 bg-amber-500' : 'border-slate-600'
+                  }`}>
+                    {form.is_chronic && <CheckCircle2 className="w-3 h-3 text-white" />}
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-black uppercase tracking-widest text-amber-400">Chronic Condition Plan (C-SNP)</p>
+                    <p className="text-[9px] text-muted-foreground mt-0.5">Check if this is a Chronic Special Needs Plan — requires additional forms</p>
+                  </div>
+                </div>
+              </div>
+
               <div className="space-y-3">
                 <div className="space-y-1.5">
                   <Label className="text-[10px] font-black uppercase tracking-widest">Client Full Name *</Label>
@@ -214,95 +283,131 @@ export default function VCCNewPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <div className="space-y-1.5">
                     <Label className="text-[10px] font-black uppercase tracking-widest">Date of Birth</Label>
-                    <Input value={form.client_dob} onChange={set('client_dob')} placeholder="MM/DD/YYYY" className="h-12 rounded-2xl" />
+                    <Input type="date" value={form.client_dob} onChange={set('client_dob')} className="h-12 rounded-2xl" />
                   </div>
                   <div className="space-y-1.5">
-                    <Label className="text-[10px] font-black uppercase tracking-widest">Medicare ID (optional)</Label>
-                    <Input value={form.medicare_id} onChange={set('medicare_id')} placeholder="1EG4-TE5-MK72" className="h-12 rounded-2xl" />
+                    <Label className="text-[10px] font-black uppercase tracking-widest">Medicare ID (MBI)</Label>
+                    <Input value={form.medicare_id} onChange={set('medicare_id')} placeholder="1EG4-TE5-MK72" className="h-12 rounded-2xl font-mono" />
                   </div>
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-[10px] font-black uppercase tracking-widest">Primary Doctor Name</Label>
-                  <Input value={form.doctor_name} onChange={set('doctor_name')} placeholder="Dr. John Doe" className="h-12 rounded-2xl" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-[10px] font-black uppercase tracking-widest">Doctor Fax Number</Label>
-                  <Input value={form.doctor_fax} onChange={set('doctor_fax')} placeholder="(555) 000-0000" className="h-12 rounded-2xl" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-[10px] font-black uppercase tracking-widest">GHL Contact ID *</Label>
-                  <Input value={form.ghl_contact_id} onChange={set('ghl_contact_id')} placeholder="GHL contact identifier" className="h-12 rounded-2xl" />
-                  <FieldError msg={errors.ghl_contact_id} />
                 </div>
               </div>
             </div>
           )}
 
-          {/* Step 3 -- Review */}
+          {/* ── Step 3: Physician ────────────────────────────────────────────── */}
           {step === 3 && (
+            <div className="space-y-5">
+              <div>
+                <h2 className="text-lg font-black uppercase tracking-tight flex items-center gap-2">
+                  <Stethoscope className="w-5 h-5 text-primary" /> Physician Details
+                </h2>
+                <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mt-0.5">
+                  Primary care doctor for VCC fax dispatch
+                </p>
+              </div>
+
+              {prefilled && (form.doctor_name || form.doctor_fax) && (
+                <div className="p-3 rounded-xl bg-emerald-500/5 border border-emerald-500/20 flex items-center gap-2">
+                  <Info className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <p className="text-[10px] text-emerald-400 font-bold">
+                    Doctor info pre-filled from your client's GHL record. Edit below if needed.
+                  </p>
+                </div>
+              )}
+
+              <div className="space-y-3">
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] font-black uppercase tracking-widest">Primary Doctor Name</Label>
+                  <Input
+                    value={form.doctor_name}
+                    onChange={set('doctor_name')}
+                    placeholder="Dr. John Doe"
+                    className="h-12 rounded-2xl"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] font-black uppercase tracking-widest flex items-center gap-2">
+                    Doctor Fax Number
+                    <Badge className="text-[7px] font-black bg-amber-500/10 text-amber-400 border-amber-500/20 border">
+                      Required for auto-fax
+                    </Badge>
+                  </Label>
+                  <div className="relative">
+                    <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+                    <Input
+                      value={form.doctor_fax}
+                      onChange={set('doctor_fax')}
+                      placeholder="(555) 000-0000"
+                      className="h-12 rounded-2xl pl-10"
+                    />
+                  </div>
+                  <FieldError msg={errors.doctor_fax} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label className="text-[10px] font-black uppercase tracking-widest">Broker NPN (optional)</Label>
+                  <Input value={form.broker_npn} onChange={set('broker_npn')} placeholder="12345678" className="h-12 rounded-2xl font-mono" />
+                </div>
+              </div>
+
+              {/* Dispatch choice embedded in physician step */}
+              <div className="space-y-2 pt-2">
+                <Label className="text-[10px] font-black uppercase tracking-widest">Delivery Method</Label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button type="button"
+                    onClick={() => setForm(f => ({ ...f, send_fax: true }))}
+                    className={`p-3.5 rounded-2xl border text-left transition-all ${
+                      form.send_fax ? 'border-primary bg-primary/10' : 'border-border hover:border-primary/40'
+                    }`}
+                  >
+                    <p className="font-black text-xs">Auto-Fax Doctor</p>
+                    <p className="text-[9px] text-muted-foreground mt-0.5">
+                      {form.doctor_fax ? `Send to ${form.doctor_fax}` : 'Add fax number above'}
+                    </p>
+                  </button>
+                  <button type="button"
+                    onClick={() => setForm(f => ({ ...f, send_fax: false }))}
+                    className={`p-3.5 rounded-2xl border text-left transition-all ${
+                      !form.send_fax ? 'border-primary bg-primary/10' : 'border-border hover:border-primary/40'
+                    }`}
+                  >
+                    <p className="font-black text-xs">Manual (Download PDF)</p>
+                    <p className="text-[9px] text-muted-foreground mt-0.5">Save PDF to your secure storage</p>
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* ── Step 4: Review & Send ────────────────────────────────────────── */}
+          {step === 4 && (
             <div className="space-y-4">
               <div>
-                <h2 className="text-lg font-black uppercase tracking-tight">Review</h2>
+                <h2 className="text-lg font-black uppercase tracking-tight">Review & Submit</h2>
                 <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mt-0.5">
-                  Confirm submission details before generating the PDF
+                  Confirm details before generating the VCC PDF
                 </p>
               </div>
               <div className="rounded-2xl bg-muted/40 border border-border p-5 space-y-3">
                 {[
-                  ['Carrier',      selectedCarrier?.carrier_display_name ?? form.carrier_id],
-                  ['Client Name',  form.client_name],
-                  ['Date of Birth', form.client_dob || '--'],
-                  ['Doctor Name',  form.doctor_name || '--'],
-                  ['Doctor Fax',   form.doctor_fax || '--'],
-                  ['Medicare ID',  form.medicare_id ? '*** provided' : '--'],
-                  ['Contact ID',   form.ghl_contact_id],
+                  ['Carrier',        selectedCarrier?.carrier_display_name ?? form.carrier_id],
+                  ['Client Name',    form.client_name],
+                  ['Date of Birth',  form.client_dob || '--'],
+                  ['Medicare ID',    form.medicare_id ? '●●●● provided' : '--'],
+                  ['Doctor',         form.doctor_name || '--'],
+                  ['Doctor Fax',     form.doctor_fax || '--'],
+                  ['C-SNP / Chronic', form.is_chronic ? 'Yes' : 'No'],
+                  ['Delivery',       form.send_fax && form.doctor_fax ? `Fax → ${form.doctor_fax}` : 'Manual PDF download'],
                 ].map(([label, value]) => (
                   <div key={label} className="flex items-start justify-between gap-4">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground shrink-0">{label}</span>
-                    <span className="text-[11px] font-bold text-right">{value}</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground shrink-0 w-32">{label}</span>
+                    <span className={`text-[11px] font-bold text-right ${value === 'Yes' ? 'text-amber-400' : ''}`}>{value}</span>
                   </div>
                 ))}
               </div>
               <div className="rounded-2xl bg-amber-500/5 border border-amber-500/20 p-4">
-                <p className="text-[10px] font-bold text-amber-700">
-                  This submission creates a 60-day deadline. The filled PDF will be generated and stored securely.
+                <p className="text-[10px] font-bold text-amber-700 dark:text-amber-400">
+                  This submission creates a 60-day compliance deadline. The filled PDF will be generated and stored securely in your agency vault.
                 </p>
-              </div>
-            </div>
-          )}
-
-          {/* Step 4 -- Dispatch */}
-          {step === 4 && (
-            <div className="space-y-4">
-              <div>
-                <h2 className="text-lg font-black uppercase tracking-tight">Choose Dispatch</h2>
-                <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mt-0.5">
-                  How should the completed form be delivered to the physician?
-                </p>
-              </div>
-              <div className="space-y-3">
-                <button
-                  type="button"
-                  onClick={() => setForm(f => ({ ...f, send_fax: true }))}
-                  className={`w-full p-4 rounded-2xl border text-left transition-all ${
-                    form.send_fax ? 'border-primary bg-primary/10' : 'border-border hover:border-primary/40'
-                  }`}
-                >
-                  <p className="font-black text-sm">Send fax to doctor automatically</p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">
-                    {form.doctor_fax ? `Fax to ${form.doctor_fax}` : 'Add a doctor fax number in Step 2'}
-                  </p>
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setForm(f => ({ ...f, send_fax: false }))}
-                  className={`w-full p-4 rounded-2xl border text-left transition-all ${
-                    !form.send_fax ? 'border-primary bg-primary/10' : 'border-border hover:border-primary/40'
-                  }`}
-                >
-                  <p className="font-black text-sm">I will send manually (download PDF)</p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">PDF saved to your secure storage for download</p>
-                </button>
               </div>
             </div>
           )}
@@ -323,9 +428,9 @@ export default function VCCNewPage() {
               </Button>
             ) : (
               <Button onClick={handleSubmit} disabled={isPending}
-                className="rounded-2xl font-black uppercase text-[10px] tracking-widest h-11 px-6">
-                {isPending ? <Loader2 className="animate-spin w-4 h-4 mr-2" /> : null}
-                {isPending ? 'Submitting...' : 'Submit VCC Form'}
+                className="rounded-2xl font-black uppercase text-[10px] tracking-widest h-11 px-6 bg-emerald-600 hover:bg-emerald-700">
+                {isPending ? <Loader2 className="animate-spin w-4 h-4 mr-2" /> : <CheckCircle2 className="w-4 h-4 mr-2" />}
+                {isPending ? 'Submitting…' : 'Submit VCC Form'}
               </Button>
             )}
           </div>

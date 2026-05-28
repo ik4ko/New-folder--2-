@@ -10,6 +10,7 @@ import {
   AlertTriangle, Clock, KeyRound, Database,
 } from 'lucide-react'
 import { MbiForm } from '@/components/mbi-form'
+import { DoctorInfoCard } from '@/components/doctor-info-card'
 
 function fmt(d: string | null | undefined) {
   if (!d) return '--'
@@ -47,7 +48,7 @@ export default async function MemberDetailPage({
       has_mbi, last_marx_check, last_known_plan_code, marx_verified_at,
       member_id, enrollment_status, plan_effective_date, plan_end_date,
       future_plan_code, future_plan_name, future_effective_date,
-      marx_raw_snapshot
+      marx_raw_snapshot, doctor_name, doctor_fax, is_chronic
     `)
     .eq('id', memberId)
     .eq('agency_id', agencyId)
@@ -136,6 +137,14 @@ export default async function MemberDetailPage({
           </div>
           <MbiForm memberId={memberId} hasMbi={member.has_mbi ?? false} />
         </Card>
+
+        {/* Physician / VCC */}
+        <DoctorInfoCard
+          memberId={memberId}
+          bobId={memberId}
+          initialDoctorName={(member as Record<string, unknown>).doctor_name as string | null ?? null}
+          initialDoctorFax={(member as Record<string, unknown>).doctor_fax as string | null ?? null}
+        />
 
         {/* MARx verification status */}
         <Card className="rounded-2xl border border-slate-800 bg-slate-900/60 p-5 space-y-3">

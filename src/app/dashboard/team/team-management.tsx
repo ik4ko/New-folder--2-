@@ -303,7 +303,10 @@ export function TeamManagement({ brokers: initial, agencyId, isOwner, pendingInv
         {/* Seat counter */}
         {(() => {
           const INCLUDED = 5
-          const used = brokers.length + 1 // +1 for owner
+          // Owner has a broker row with role='agency_owner' — already counted in brokers array.
+          // Only add +1 if owner is NOT represented in the brokers list (legacy accounts).
+          const ownerInList = brokers.some(b => b.role === 'agency_owner')
+          const used = ownerInList ? brokers.length : brokers.length + 1
           const additional = Math.max(0, used - INCLUDED)
           return (
             <Card className="rounded-2xl border-slate-800 bg-slate-900/60">
@@ -331,8 +334,9 @@ export function TeamManagement({ brokers: initial, agencyId, isOwner, pendingInv
         })()}
 
         {/* Role stats */}
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-4 gap-4">
           {[
+            { icon: ShieldCheck, label: 'Owners',   value: brokers.filter(b => b.role === 'agency_owner').length, color: 'text-yellow-400 bg-yellow-500/10' },
             { icon: ShieldCheck, label: 'Managers', value: brokers.filter(b => b.role === 'agency_admin').length, color: 'text-blue-400 bg-blue-500/10' },
             { icon: Users, label: 'CS Staff', value: brokers.filter(b => b.role === 'customer_service').length, color: 'text-violet-400 bg-violet-500/10' },
             { icon: Users, label: 'Brokers', value: brokers.filter(b => b.role === 'broker' || b.role === 'solo_broker').length, color: 'text-slate-400 bg-slate-800' },
@@ -398,11 +402,14 @@ export function TeamManagement({ brokers: initial, agencyId, isOwner, pendingInv
                       </TableCell>
                       <TableCell className="text-sm text-slate-400">{fmtDate(broker.created_at)}</TableCell>
                       <TableCell>
-                        {isOwner && (
+                        {isOwner && broker.role !== 'agency_owner' && (
                           <Button variant="ghost" size="icon" className="h-8 w-8 rounded-lg hover:bg-red-500/10 hover:text-red-400 text-slate-500"
                             disabled={removing === broker.id} onClick={() => handleRemove(broker)}>
                             {removing === broker.id ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
                           </Button>
+                        )}
+                        {broker.role === 'agency_owner' && (
+                          <span className="text-[9px] font-black text-yellow-500/60 uppercase tracking-widest px-2">YOU</span>
                         )}
                       </TableCell>
                     </TableRow>

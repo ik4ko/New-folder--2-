@@ -3,7 +3,7 @@
 import * as React from "react"
 import {
   LayoutDashboard, Users, FileCheck, Radar, Megaphone,
-  UserPlus, Shield, Lock, Settings, LifeBuoy, LogOut, Bell,
+  UserPlus, Shield, Settings, LifeBuoy, LogOut, Bell, Link2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
@@ -27,12 +27,12 @@ const CORE_NAV: NavItem[] = [
   { href: '/dashboard/churn/upload',  icon: Radar,    label: 'Upload Roster', desc: 'Upload roster CSV' },
   { href: '/dashboard/vcc',           icon: FileCheck, label: 'VCC Forms',    desc: 'Doctor-signed carrier forms' },
   { href: '/dashboard/campaigns',     icon: Megaphone, label: 'Campaigns',    desc: 'Maya AI outreach campaigns' },
-  { href: '/dashboard/aor',           icon: Lock,      label: 'Aegis Lock',   desc: 'AOR fulfillment CMS-1696' },
 ]
 
 const STAFF_MGMT_NAV: NavItem[] = [
-  { href: '/dashboard/team',    icon: UserPlus, label: 'Team',         desc: 'Manage brokers' },
-  { href: '/dashboard/manager', icon: Shield,   label: 'Manager View', desc: 'Agency-wide oversight' },
+  { href: '/dashboard/team',    icon: UserPlus, label: 'Team',         desc: 'Manage brokers & seats' },
+  { href: '/dashboard/manager', icon: Shield,   label: 'Agency View',  desc: 'Agency-wide oversight' },
+  { href: '/ghl',               icon: Link2,    label: 'GHL Sync',     desc: 'GoHighLevel contact import' },
 ]
 
 const FOOTER_NAV: NavItem[] = [
@@ -131,7 +131,7 @@ export function SidebarNav({ isStaff, role, name, email, criticalAlerts = 0 }: S
         "flex flex-col bg-slate-950 border-r border-white/10 h-full shrink-0 z-50 overflow-hidden transition-all duration-300 ease-in-out relative",
         isOpen ? "w-64" : "w-16"
       )}>
-        {/* Brand */}
+        {/* Brand + role chip */}
         <div className={cn("p-4 flex items-center shrink-0 h-16 border-b border-white/10", isOpen ? "justify-between" : "justify-center px-0")}>
           {isOpen ? (
             <a href="/dashboard" className="flex items-center gap-2">
@@ -139,6 +139,18 @@ export function SidebarNav({ isStaff, role, name, email, criticalAlerts = 0 }: S
             </a>
           ) : (
             <Logo iconOnly className="scale-75" />
+          )}
+          {isOpen && (
+            <span className={cn(
+              "text-[7px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border shrink-0",
+              role === 'agency_owner'
+                ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'
+                : role === 'agency_admin'
+                  ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+                  : 'bg-slate-800 text-slate-400 border-slate-700'
+            )}>
+              {roleLabel}
+            </span>
           )}
         </div>
 

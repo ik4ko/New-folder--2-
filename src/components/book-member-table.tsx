@@ -11,7 +11,7 @@ import {
   TableHeader, TableRow,
 } from '@/components/ui/table'
 import {
-  Users, ShieldCheck, FileCheck,
+  Users, FileCheck,
   CheckCircle2, XCircle, Clock, Bell, KeyRound, AlertTriangle,
   Trash2, Download, Activity, X,
 } from 'lucide-react'
@@ -98,6 +98,24 @@ function getEnrollmentBadge(member: MemberRow) {
 
   // ── Pending / upcoming switch ──────────────────────────────────────────────
   if (vs === 'pending_switch' || es === 'switching') {
+    const futureDate = member.future_effective_date
+    // CRITICAL: effective date is still in the future → broker still has time to act
+    const isActionable = futureDate && new Date(futureDate) > new Date()
+
+    if (isActionable) {
+      const planLabel = member.future_plan_name
+        ? `→ ${member.future_plan_name} · eff. ${fmtDate(futureDate)}`
+        : `Effective ${fmtDate(futureDate)}`
+      return {
+        label: '🚨 Switching Soon',
+        cls:  'bg-red-600/20 text-red-300 border-red-500/40',
+        icon: AlertTriangle,
+        sub:  `${planLabel} — CONTACT CLIENT NOW`,
+        rowCls: 'bg-red-950/25 border-l-4 border-l-red-500',
+      }
+    }
+
+    // Past effective date or no date — still flag it but lower urgency
     return {
       label: '⚠ Pending Switch',
       cls:  'bg-orange-500/10 text-orange-400 border-orange-500/20',
@@ -145,7 +163,7 @@ function fmtDate(d: string | null | undefined) {
   return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' })
 }
 
-type Filter = 'all' | 'active' | 'termed'
+type Filter = 'all' | 'active' | 'critical' | 'termed'
 
 export function BookMemberTable({ members }: Props) {
   const [filter, setFilter]               = useState<Filter>('active')
@@ -164,11 +182,21 @@ export function BookMemberTable({ members }: Props) {
   const termedCount = members.filter(m =>
     m.enrollment_status === 'termed' || m.enrollment_status === 'disenrolled' || m.status === 'termed'
   ).length
+  const criticalCount = members.filter(m => {
+    const futureDate = m.future_effective_date
+    const isFutureSwitch = futureDate && new Date(futureDate) > new Date()
+    return isFutureSwitch || m.verification_status === 'pending_switch' || m.enrollment_status === 'switching'
+  }).length
 
   const filtered = members.filter(m => {
     const isTermed = m.enrollment_status === 'termed' || m.enrollment_status === 'disenrolled' || m.status === 'termed'
     if (filter === 'active') return !isTermed
     if (filter === 'termed') return isTermed
+    if (filter === 'critical') {
+      const futureDate = m.future_effective_date
+      const isFutureSwitch = futureDate && new Date(futureDate) > new Date()
+      return isFutureSwitch || m.verification_status === 'pending_switch' || m.enrollment_status === 'switching'
+    }
     return true
   })
 
@@ -290,6 +318,18 @@ export function BookMemberTable({ members }: Props) {
             {members.length}
           </Badge>
           <div className="ml-auto flex items-center gap-1">
+            {criticalCount > 0 && (
+              <button
+                onClick={() => setFilter('critical')}
+                className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-widest transition-colors border ${
+                  filter === 'critical'
+                    ? 'bg-red-500/20 text-red-400 border-red-500/40'
+                    : 'text-red-500 border-red-800/50 hover:bg-red-950/30 animate-pulse'
+                }`}
+              >
+                🚨 Critical ({criticalCount})
+              </button>
+            )}
             {(['all', 'active', 'termed'] as Filter[]).map(f => {
               const label = f === 'all'
                 ? `All (${members.length})`
@@ -380,7 +420,9 @@ export function BookMemberTable({ members }: Props) {
                             {badge.label}
                           </Badge>
                           {badge.sub && (
-                            <p className="text-[8px] text-orange-400/70 font-medium leading-tight max-w-[160px] truncate">{badge.sub}</p>
+                            <p className={`text-[8px] font-medium leading-tight max-w-[180px] truncate ${
+                              badge.label.includes('🚨') ? 'text-red-300 font-black' : 'text-orange-400/70'
+                            }`}>{badge.sub}</p>
                           )}
                         </div>
                       </TableCell>
@@ -398,20 +440,12 @@ export function BookMemberTable({ members }: Props) {
                             </Button>
                           )}
                           {!isTermed && (
-                            <>
-                              <Button asChild variant="ghost" size="sm"
-                                className="h-6 px-2 rounded-lg text-[9px] font-black uppercase tracking-widest text-slate-400 hover:text-white hover:bg-slate-700">
-                                <Link href={`/dashboard/vcc/new?bob=${member.id}`}>
-                                  <FileCheck className="w-3 h-3 mr-1" />VCC
-                                </Link>
-                              </Button>
-                              <Button asChild variant="ghost" size="sm"
-                                className="h-6 px-2 rounded-lg text-[9px] font-black uppercase tracking-widest text-slate-400 hover:text-white hover:bg-slate-700">
-                                <Link href={`/dashboard/aor?bob=${member.id}`}>
-                                  <ShieldCheck className="w-3 h-3 mr-1" />Lock
-                                </Link>
-                              </Button>
-                            </>
+                            <Button asChild variant="ghost" size="sm"
+                              className="h-6 px-2 rounded-lg text-[9px] font-black uppercase tracking-widest text-slate-400 hover:text-white hover:bg-slate-700">
+                              <Link href={`/dashboard/vcc/new?bob=${member.id}`}>
+                                <FileCheck className="w-3 h-3 mr-1" />VCC
+                              </Link>
+                            </Button>
                           )}
                           <button
                             className={`flex items-center gap-1 h-6 px-2 rounded border text-[9px] font-black uppercase tracking-widest transition-colors ${

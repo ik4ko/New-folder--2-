@@ -140,6 +140,32 @@ export async function submitVCC(formData: VCCSubmitInput) {
   return { success: true, submissionId: submission.id, faxStatus }
 }
 
+/** Fetch member data for VCC pre-fill — used when navigating from Book of Business */
+export async function getMemberForVCC(memberId: string) {
+  const supabase = await createClient()
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) return null
+
+  const svc = createServiceClient()
+
+  // Resolve caller's agency
+  const [{ data: agencyRow }, { data: brokerRow }] = await Promise.all([
+    svc.from('agencies').select('id').eq('owner_id', user.id).maybeSingle(),
+    svc.from('brokers').select('agency_id').eq('user_id', user.id).maybeSingle(),
+  ])
+  const agencyId = agencyRow?.id ?? brokerRow?.agency_id
+  if (!agencyId) return null
+
+  const { data } = await svc
+    .from('book_of_business')
+    .select('id, full_name, mbi, doctor_name, doctor_fax, carrier, carrier_display_name, plan_name')
+    .eq('id', memberId)
+    .eq('agency_id', agencyId)
+    .maybeSingle()
+
+  return data ?? null
+}
+
 export async function markVCCSigned(submissionId: string) {
   const supabase = await createClient()
   const supabaseAdmin = createServiceClient()

@@ -1,5 +1,33 @@
 # Aegis Sage — Changelog
 
+## [UX Overhaul: Lock Removal, RBAC, Future-Switch Alerts, Doctor/VCC] — 2026-05-28
+
+### Aegis Lock (AOR) — Removed
+- Removed "Aegis Lock" from sidebar nav (`CORE_NAV`) — no longer a focus area.
+- Removed the "Lock" button from every row in `book-member-table.tsx`.
+- AOR routes/tables preserved in the DB for historical data; just hidden from the UI.
+
+### Future-Switch Notification Priority — CRITICAL
+- `getEnrollmentBadge()` now distinguishes **future** vs **past** effective dates.
+- If `future_effective_date > today`: badge becomes "🚨 Switching Soon" — red, bold, with "CONTACT CLIENT NOW" sub-label and a thick red left border. This is the most urgent state.
+- If date is past or no date: remains "⚠ Pending Switch" (orange) — still actionable but lower urgency.
+- New **Critical filter tab** added to the member table header — pulses red when critical clients exist, jumps directly to that filtered view.
+
+### Doctor Info + VCC Pre-fill
+- **DB migration** `20260528020000`: Added `doctor_name` and `doctor_fax` columns to `book_of_business`.
+- **`DoctorInfoCard`** component: inline edit on the member detail page — add/edit PCP name and fax number with a single click. "Fill VCC" button appears once info is saved.
+- **VCC new page** (`/dashboard/vcc/new?bob=<id>`): Pre-fills client name, MBI, doctor name, and fax number automatically from the Book of Business member record. Added C-SNP/Chronic checkbox. Consolidated dispatch choice into Step 3 (Physician). 4-step flow now: Carrier → Client → Physician → Review & Send.
+- **GHL sync**: Extended `GHL_FIELD_MAP` to import `doctor_name`/`doctor_fax` from GHL custom fields automatically (`doctor_name`, `physician_name`, `pcp_name`, `doctor_fax`, `physician_fax`, `pcp_fax`, `fax_number`).
+- **API**: New `PATCH /api/book/update-doctor` — updates doctor_name/doctor_fax for any BOB member within the caller's agency.
+
+### RBAC / Role Differentiation
+- **Sidebar role chip**: Owner, Manager, CS, or Broker label displayed at top right of sidebar brand area in matching color (yellow/blue/violet/slate).
+- **GHL Sync** moved to Management nav section (only visible to owners/managers).
+- **Team page seat count**: Fixed double-counting — if the agency owner has a broker row with `role='agency_owner'`, they are already in the `brokers.length` count. Removed the incorrect `+1`.
+- **Role stats grid**: Added "Owners" stat card to the team page (4 columns: Owners, Managers, CS, Brokers).
+- **Owner row protection**: "YOU" label on owner's row instead of delete button — owners can't accidentally remove themselves.
+- **Invite flow**: Only owners can invite team members (unchanged); delete button no longer shown for `agency_owner` rows.
+
 ## [Critical Fix: Email Dispatch + Switch Display] — 2026-05-28
 
 ### Root Cause: verify route truncated — emails never sent
