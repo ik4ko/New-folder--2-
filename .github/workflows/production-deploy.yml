@@ -1,0 +1,283 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# AegisSage — Production Deployment Pipeline
+# .github/workflows/production-deploy.yml
+#
+# Triggers on every push to `main`. Runs a two-job pipeline:
+#   1. quality-gate  — TypeScript, lint, unit tests (all must pass)
+#   2. deploy        — Vercel production deployment (blocked until gate passes)
+#
+# ⚠️  CRITICAL — READ BEFORE DEPLOYING:
+#   next.config.ts sets `typescript.ignoreBuildErrors: true`, which means
+#   Vercel's own `next build` silently ignores TypeScript errors. The
+#   `typecheck` step in Job 1 is therefore THE ONLY safety net that catches
+#   type errors before they reach production. Do NOT remove or skip it.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# Required GitHub Repository Secrets (Settings → Secrets → Actions):
+#
+#   VERCEL_TOKEN          Personal access token from vercel.com/account/tokens
+#   VERCEL_ORG_ID         From .vercel/project.json after running `vercel link`
+#   VERCEL_PROJECT_ID     From .vercel/project.json after running `vercel link`
+#   NEXT_PUBLIC_SUPABASE_URL       (used as stub value for test discovery only)
+#   NEXT_PUBLIC_SUPABASE_ANON_KEY  (used as stub value for test discovery only)
+#
+# All other application secrets (PHI_MASTER_SECRET, GHL_*, STRIPE_*, etc.)
+# live in Vercel Dashboard → Project Settings → Environment Variables.
+# They are NOT passed through this workflow — Vercel injects them at build time.
+#
+# ─────────────────────────────────────────────────────────────────────────────
+# Vercel GitHub Integration:
+#   If you previously connected the Vercel GitHub app, DISABLE it before
+#   activating this workflow. The app deploys immediately on push, bypassing
+#   CI entirely. Disable at:
+#     Vercel Dashboard → Project → Settings → Git → disconnect repository
+# ═══════════════════════════════════════════════════════════════════════════════
+
+name: Production Deploy
+
+on:
+  push:
+    branches:
+      - main
+  # Allow manual trigger from the GitHub Actions UI for emergency rollbacks
+  # or forced re-deployments without a code push.
+  workflow_dispatch:
+    inputs:
+      reason:
+        description: 'Reason for manual trigger'
+        required: false
+        default: 'Manual production deployment'
+
+# ── Concurrency guard ─────────────────────────────────────────────────────────
+# If a new push to main arrives while a deployment is in progress, cancel the
+# older run and start fresh. Prevents stale builds racing to production.
+concurrency:
+  group: production-deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+# ── Global environment ────────────────────────────────────────────────────────
+env:
+  # Node 20 LTS — matches the runtime target in tsconfig (ES2017) and
+  # is compatible with Next.js 15+, React 19, and all current dependencies.
+  NODE_VERSION: '20'
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# JOB 1 — QUALITY GATE
+# Runs TypeScript compilation, ESLint, and Jest on every push to main.
+# The deploy job has `needs: quality-gate` and will not start until all
+# steps here pass with exit code 0.
+# ═══════════════════════════════════════════════════════════════════════════════
+jobs:
+  quality-gate:
+    name: "⚙️  Type Check · Lint · Test"
+    runs-on: ubuntu-latest
+
+    # Hard timeout: if tsc or lint hangs (e.g. tsconfig misconfiguration),
+    # fail fast instead of burning runner minutes for 6 hours.
+    timeout-minutes: 15
+
+    steps:
+      # ── Checkout ──────────────────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # Fetch full history so tools that inspect git log work correctly.
+          # Use fetch-depth: 1 if build time is a concern and you don't need history.
+          fetch-depth: 1
+
+      # ── Node.js ───────────────────────────────────────────────────────────────
+      - name: Set up Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          # Built-in npm cache: keyed on the hash of package-lock.json.
+          # If the lockfile hasn't changed, node_modules is restored from cache
+          # and npm ci runs in ~5s instead of ~60s.
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      # ── Install ───────────────────────────────────────────────────────────────
+      # `npm ci` (not `npm install`) — enforces the lockfile exactly.
+      # Fails if package-lock.json is out of sync with package.json, which
+      # catches the case where a developer ran `npm install` locally but forgot
+      # to commit the updated lockfile.
+      - name: Install dependencies
+        run: npm ci
+
+      # ── TypeScript type check ─────────────────────────────────────────────────
+      # Runs `tsc --noEmit` (mapped to `npm run typecheck` in package.json).
+      #
+      # WHY THIS STEP IS NON-NEGOTIABLE:
+      #   next.config.ts contains `typescript: { ignoreBuildErrors: true }`.
+      #   This flag was added to speed up `next build` during development, but
+      #   it means Vercel's production build does NOT validate types. Without
+      #   this step, a TypeScript error in — for example — the new GHL outbound
+      #   sync route (PUT /api/ghl/sync) or the enterprise audit logger would
+      #   silently deploy to production and only fail at runtime.
+      #
+      #   This step runs `tsc` against the full `tsconfig.json` (strict: true),
+      #   so all 76+ completed tasks' code is validated in one pass.
+      - name: TypeScript type check (strict)
+        run: npm run typecheck
+
+      # ── ESLint ───────────────────────────────────────────────────────────────
+      # Runs `next lint` which uses Next.js's curated ESLint config.
+      # Catches: React hooks rules, missing key props, incorrect imports,
+      # exhaustive-deps violations, and any custom rules in .eslintrc.
+      #
+      # If lint is currently producing warnings you haven't addressed yet,
+      # set `--max-warnings 0` to fail on warnings, or omit it to only
+      # fail on errors (current behaviour of `next lint`).
+      - name: Lint
+        run: npm run lint
+
+      # ── Unit tests ────────────────────────────────────────────────────────────
+      # Runs the Jest suite (jest.config.js). The --passWithNoTests flag
+      # prevents this step from failing when the test suite is empty.
+      # Remove --passWithNoTests once coverage targets are established.
+      #
+      # --forceExit: prevents Jest from hanging if a test opens an async
+      # resource (e.g. a Supabase connection) and doesn't close it.
+      #
+      # Env vars: only stub values are provided here. Real secrets never
+      # flow through GitHub Actions — they live in Vercel's env system.
+      # Stub values prevent import-time `process.env.*` reads from throwing
+      # during test module discovery.
+      - name: Unit tests
+        run: npm test -- --passWithNoTests --forceExit --ci
+        env:
+          NODE_ENV:                      test
+          NEXT_PUBLIC_SUPABASE_URL:      ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          # Stub values — never used for real in unit tests (external calls are mocked)
+          SUPABASE_SERVICE_ROLE_KEY:     ci-stub-not-used-in-unit-tests
+          PHI_MASTER_SECRET:             ci-stub-64char-aabbccdd1122334455667788aabbccdd1122334455667788aabbcc
+
+      # ── Summary ───────────────────────────────────────────────────────────────
+      - name: Write quality gate summary
+        if: always()
+        run: |
+          echo "## Quality Gate Results" >> $GITHUB_STEP_SUMMARY
+          echo "| Check | Status |" >> $GITHUB_STEP_SUMMARY
+          echo "|-------|--------|" >> $GITHUB_STEP_SUMMARY
+          echo "| TypeScript (strict) | ${{ job.status == 'success' && '✅ Pass' || '❌ Fail' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| ESLint | ${{ job.status == 'success' && '✅ Pass' || '❌ Fail' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "| Jest | ${{ job.status == 'success' && '✅ Pass' || '❌ Fail' }} |" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "Commit: \`${{ github.sha }}\` by **${{ github.actor }}**" >> $GITHUB_STEP_SUMMARY
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# JOB 2 — VERCEL PRODUCTION DEPLOYMENT
+# Only runs after quality-gate succeeds. Uses Vercel CLI so deployment is
+# gated behind our CI checks rather than triggering on every git push.
+#
+# Architecture: build locally in CI, then upload the pre-built artifact.
+# This makes the deployment step faster and ensures the binary deployed
+# to Vercel was built in the same controlled environment as the type check.
+# ═══════════════════════════════════════════════════════════════════════════════
+  deploy:
+    name: "🚀  Deploy → Vercel Production"
+    needs: quality-gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    # Links this job to the GitHub "production" environment.
+    # Enables deployment protection rules and tracks deployment history
+    # in the GitHub Deployments tab.
+    environment:
+      name: production
+      url: ${{ steps.vercel-deploy.outputs.deployment-url }}
+
+    steps:
+      # ── Checkout ──────────────────────────────────────────────────────────────
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      # ── Node.js (re-establish on fresh runner) ────────────────────────────────
+      - name: Set up Node.js ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      # ── Install (deploy runner is a fresh machine) ────────────────────────────
+      - name: Install dependencies
+        run: npm ci
+
+      # ── Vercel CLI ────────────────────────────────────────────────────────────
+      # Install globally so `vercel` is available as a PATH command.
+      # Pin to `latest` here; consider pinning to a specific version (e.g.
+      # vercel@34.x.x) in production for reproducibility.
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      # ── Pull Vercel project configuration ────────────────────────────────────
+      # Writes .vercel/project.json with org and project IDs.
+      # Also pulls environment variable metadata (not values) so the build
+      # step knows which env vars to expect from Vercel's vault.
+      - name: Pull Vercel project config
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID:     ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      # ── Build production artifact ─────────────────────────────────────────────
+      # Runs `vercel build --prod` which executes `next build` with all
+      # environment variables injected from Vercel's encrypted secrets store.
+      # Output lands in .vercel/output/ — the standard Build Output API format.
+      #
+      # This step uses YOUR VERCEL SECRETS (PHI_MASTER_SECRET, GHL_*, etc.)
+      # NOT the GitHub secrets. Vercel injects them automatically based on
+      # the project's environment variable configuration.
+      - name: Build production artifact
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID:     ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      # ── Deploy pre-built artifact ─────────────────────────────────────────────
+      # `--prebuilt` tells Vercel to skip rebuilding — it uploads the
+      # .vercel/output/ directory produced in the previous step.
+      # Captures the deployment URL for the environment badge and step summary.
+      - name: Deploy to Vercel production
+        id: vercel-deploy
+        run: |
+          DEPLOYMENT_URL=$(vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }})
+          echo "deployment-url=${DEPLOYMENT_URL}" >> $GITHUB_OUTPUT
+          echo "Deployed to: ${DEPLOYMENT_URL}"
+        env:
+          VERCEL_ORG_ID:     ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      # ── Smoke test ────────────────────────────────────────────────────────────
+      # Hits the root URL to confirm the deployment is serving.
+      # A non-2xx/3xx response fails the job and triggers an alert.
+      # Expand this to hit /api/extension/verify or /api/ghl/sync-status
+      # once you have a test token available in GitHub secrets.
+      - name: Smoke test — verify deployment is live
+        run: |
+          URL="${{ steps.vercel-deploy.outputs.deployment-url }}"
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" "${URL}")
+          echo "HTTP status for ${URL}: ${HTTP_STATUS}"
+          if [[ "$HTTP_STATUS" != "2"* && "$HTTP_STATUS" != "3"* ]]; then
+            echo "❌ Smoke test failed — HTTP ${HTTP_STATUS}"
+            exit 1
+          fi
+          echo "✅ Smoke test passed — HTTP ${HTTP_STATUS}"
+
+      # ── Deployment summary ────────────────────────────────────────────────────
+      - name: Write deployment summary
+        if: always()
+        run: |
+          echo "## 🚀 Deployment Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**URL:** ${{ steps.vercel-deploy.outputs.deployment-url }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit:** \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Actor:** ${{ github.actor }}" >> $GITHUB_STEP_SUMMARY
+          echo "**Triggered by:** ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY
+          if [[ "${{ inputs.reason }}" != "" ]]; then
+            echo "**Manual trigger reason:** ${{ inputs.reason }}" >> $GITHUB_STEP_SUMMARY
+          fi

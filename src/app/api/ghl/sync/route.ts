@@ -36,6 +36,14 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import {
+  logCrmImportStarted,
+  logCrmImportCompleted,
+  logCrmExportStarted,
+  logCrmExportCompleted,
+  logCrmExportFailed,
+  extractIp,
+} from '@/utils/auditLogger'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -292,6 +300,15 @@ export async function POST(req: NextRequest) {
 
   console.log(`[ghl/sync] mode=${mode} resume=${isResume} since=${since} cursor=${startCursor} maxPages=${maxPages}`)
 
+  // ── Compliance log: inbound sync started ─────────────────────────────────
+  // Non-blocking: void so audit latency doesn't add to the sync start-up time.
+  void logCrmImportStarted(
+    broker.agency_id,
+    user.id,
+    isFull ? 'full' : 'incremental',
+    extractIp(req),
+  )
+
   // Mark sync as running
   await updateProgress(svc, broker.agency_id, { sync_status: 'running', sync_cursor: startCursor })
 
@@ -384,6 +401,19 @@ export async function POST(req: NextRequest) {
         : `Full import complete — ${synced} contacts from your GHL account.`
 
     console.log(`[ghl/sync] done: synced=${synced} errored=${errored} pages=${pagesRead} hasMore=${hasMore}`)
+
+    // ── Compliance log: inbound sync completed ──────────────────────────────
+    // PHI-SAFE: only counts and mode — no member names or MBIs.
+    void logCrmImportCompleted(
+      broker.agency_id,
+      user.id,
+      synced,
+      errored,
+      hasMore,
+      mode,
+      extractIp(req),
+    )
+
 
     return NextResponse.json({
       synced,
@@ -810,56 +840,6 @@ function chunkArray<T>(arr: T[], size: number): T[][] {
   return result
 }
 
-// ── Route handler: PUT /api/ghl/sync ─────────────────────────────────────────
-
-export async function PUT(req: NextRequest) {
-  // ── Auth: validate JWT server-side (same pattern as POST handler) ──────────
-  const supabase = await createClient()
-  const { data: { user }, error: authError } = await supabase.auth.getUser()
-  if (authError || !user) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  // ── Parse body ─────────────────────────────────────────────────────────────
-  const body = await req.json().catch(() => ({})) as {
-    /** 0-based index to start from — use nextIndex from prior response to resume */
-    startIndex?: number
-    /** Override the default PUSH_BATCH_SIZE (max 50 enforced server-side) */
-    batchSize?:  number
-  }
-
-  const startIndex = Math.max(0, body.startIndex ?? 0)
-  const batchSize  = Math.min(body.batchSize ?? PUSH_BATCH_SIZE, PUSH_BATCH_SIZE)
-
-  const svc = createServiceClient()
-
-  // ── Resolve broker & agency ────────────────────────────────────────────────
-  const { data: broker } = await svc
-    .from('brokers')
-    .select('id, agency_id')
-    .eq('user_id', user.id)
-    .single()
-
-  if (!broker) {
-    // Check if user is agency owner (owner row is in agencies, not brokers)
-    const { data: agency } = await svc
-      .from('agencies')
-      .select('id')
-      .eq('owner_id', user.id)
-      .maybeSingle()
-
-    if (!agency) {
-      return NextResponse.json({ error: 'Broker profile not found' }, { status: 404 })
-    }
-
-    // Owner has no broker row — use agency.id directly
-    // Re-enter with the agency context by creating a synthetic broker object
-    return pushFromAgency(user.id, agency.id, svc, startIndex, batchSize)
-  }
-
-  return pushFromAgency(user.id, broker.agency_id, svc, startIndex, batchSize)
-}
-
 /**
  * Core orchestration function — separated so both owner and broker paths
  * can share it without code duplication.
@@ -870,6 +850,7 @@ async function pushFromAgency(
   svc:        ReturnType<typeof createServiceClient>,
   startIndex: number,
   batchSize:  number,
+  ipAddress?: string,
 ): Promise<Response> {
   // ── Validate GHL connection ────────────────────────────────────────────────
   let tokenInfo: Awaited<ReturnType<typeof getValidToken>>
@@ -928,7 +909,7 @@ async function pushFromAgency(
     ? startIndex + slice.length
     : null  // null signals the client that the push is complete
 
-  if (slice.length === 0) {
+  if (slice.length === 0)
     return NextResponse.json({
       success:   true,
       total:     totalMembers,
@@ -945,9 +926,16 @@ async function pushFromAgency(
   const sliceMbis = slice.map(m => m.mbi).filter((mbi): mbi is string => !!mbi)
   const ghlIdMap  = await fetchGhlContactIdMap(agencyId, sliceMbis, svc)
 
-  console.log(
-    `[ghl/push] starting | agency=${agencyId} | slice=${startIndex}–${startIndex + slice.length - 1}` +
-    ` of ${totalMembers} | known_ghl_ids=${ghlIdMap.size}`
+  // ── Compliance log: export started ────────────────────────────────────────
+  // Fires before any GHL API calls — records the intent to push.
+  // PHI-SAFE: only counts and cursor position — no names or MBIs.
+  void logCrmExportStarted(
+    agencyId,
+    userId,
+    totalMembers,
+    slice.length,
+    startIndex,
+    ipAddress,
   )
 
   // ── Push to GHL ────────────────────────────────────────────────────────────
@@ -961,7 +949,6 @@ async function pushFromAgency(
     errors:    [],
   }
 
-  // Sub-divide the slice into pages so we can log granular progress
   const pages = chunkArray(slice, 10)
 
   for (let pageIdx = 0; pageIdx < pages.length; pageIdx++) {
@@ -985,14 +972,30 @@ async function pushFromAgency(
       ` | created=${pageResult.created} updated=${pageResult.updated} failed=${pageResult.failed}`
     )
 
-    // Brief inter-page cooldown so we don't starve other concurrent API users
     if (pageIdx < pages.length - 1) {
       await new Promise(r => setTimeout(r, PUSH_PAGE_DELAY_MS))
     }
   }
 
-  // ── Audit log ──────────────────────────────────────────────────────────────
-  // Non-blocking — audit failure must never cause the push response to fail
+  // ── Compliance log: export completed ──────────────────────────────────────
+  // Fires after all GHL API calls are done for this invocation.
+  // PHI-SAFE: only aggregate counts and cursor metadata.
+  void logCrmExportCompleted(
+    agencyId,
+    userId,
+    result.created,
+    result.updated,
+    result.failed,
+    startIndex,
+    slice.length,
+    totalMembers,
+    nextIndex === null,  // isComplete
+    ipAddress,
+  )
+
+  // ── Machine-readable audit log (enterprise_audit_logs) ────────────────────
+  // Complements the compliance log above with structured JSON metadata
+  // for security engineering and breach investigation tooling.
   svc.from('enterprise_audit_logs').insert({
     agency_id:     agencyId,
     user_id:       userId,
@@ -1009,523 +1012,11 @@ async function pushFromAgency(
       updated:        result.updated,
       failed:         result.failed,
     },
-  }).catch(e => console.error('[ghl/push] audit log failed:', e))
+  }).catch(e => console.error('[ghl/push] enterprise audit log failed:', e))
 
   // ── Response ───────────────────────────────────────────────────────────────
   const isComplete = nextIndex === null
 
-  const message = isComplete
-    ? result.failed === 0
-      ? `All ${result.pushed} members synced to GHL successfully.`
-      : `${result.pushed} members synced. ${result.failed} failed — see errors array.`
-    : `Pushed members ${startIndex + 1}–${startIndex + slice.length} of ${totalMembers}. ` +
-      `Call again with { startIndex: ${nextIndex} } to continue.`
-
-  console.log(
-    `[ghl/push] complete | pushed=${result.pushed} created=${result.created}` +
-    ` updated=${result.updated} failed=${result.failed} nextIndex=${nextIndex ?? 'done'}`
-  )
-
-  return NextResponse.json({
-    success:   result.failed === 0,
-    message,
-    total:     result.total,
-    pushed:    result.pushed,
-    created:   result.created,
-    updated:   result.updated,
-    failed:    result.failed,
-    nextIndex: result.nextIndex,
-    // Return errors capped at 20 — full list is in the audit log
-    ...(result.errors.length > 0 && { errors: result.errors.slice(0, 20) }),
-  })
-}
-
-    const message = hasMore
-      ? `Imported ${synced} contacts so far — call again with {resume:true} to continue.`
-      : mode === 'incremental'
-        ? `Incremental sync complete — ${synced} new/updated contacts imported.`
-        : `Full import complete — ${synced} contacts from your GHL account.`
-
-    console.log(`[ghl/sync] done: synced=${synced} errored=${errored} pages=${pagesRead} hasMore=${hasMore}`)
-
-    return NextResponse.json({
-      synced,
-      skipped:       errored,
-      total_fetched: totalFetched,
-      has_more:      hasMore,
-      cursor:        hasMore ? cursor : null,
-      mode,
-      message,
-    })
-
-  } catch (err) {
-    console.error('[ghl/sync] fatal error:', err)
-    await updateProgress(svc, broker.agency_id, { sync_status: 'error' })
-    return NextResponse.json(
-      { error: 'Sync failed', detail: String(err), synced },
-      { status: 500 }
-    )
-  }
-}
-
-// =============================================================================
-// PUT /api/ghl/sync  —  Push Book of Business → GoHighLevel contacts
-//
-// Outbound direction: the inverse of the POST handler which pulls FROM GHL.
-//
-// For each BOB member:
-//   1. Cross-references mbi against ghl_contacts to find an existing GHL ID
-//   2. Found  → PUT  /contacts/{id}  — updates custom fields + retention tags only
-//      Absent → POST /contacts/      — creates a new contact with name + fields
-//   3. Applies retention tags based on open switch_alerts
-//
-// Rate-limit architecture:
-//   GHL rate limit ≈ 100 req/min → 650ms per contact ≈ 92/min (safe).
-//   For books > 50 members, the frontend calls in slices:
-//     call 1 → { startIndex: 0  } → returns nextIndex: 50
-//     call 2 → { startIndex: 50 } → returns nextIndex: 100  (etc.)
-//     last   → nextIndex: null   (push complete)
-//
-// Custom field keys brokers must create in their GHL sub-account
-// (Settings → Custom Fields → use exact key strings):
-//   aegissage_mbi                Medicare Beneficiary ID
-//   aegissage_carrier            Current Insurance Carrier
-//   aegissage_plan_name          Enrolled Plan Name
-//   aegissage_enrollment_status  Enrollment Status (active/termed/pending)
-//   aegissage_churn_risk         Risk Level (HIGH / MEDIUM / LOW)
-//   aegissage_future_plan        Upcoming Plan Name (if switch detected)
-//   aegissage_future_eff_date    Future Plan Effective Date
-//   aegissage_doctor_name        Primary Care Physician
-//
-// Retention tags applied to every pushed contact:
-//   AegisSage-Monitored      always (all AegisSage-managed contacts)
-//   AegisSage-Churn-Risk     open non-termed switch alert exists
-//   AegisSage-Termed         termed/disenrolled status OR open termed alert
-//   AegisSage-DSNP           is_chronic = true (dual-eligible)
-//   AegisSage-Switch-Pending future_plan_name is populated
-// =============================================================================
-
-// ── Push constants ────────────────────────────────────────────────────────────
-
-/** Max contacts pushed per invocation — keeps execution inside Vercel's 60s window. */
-const PUSH_BATCH_SIZE = 50
-
-/**
- * Delay between individual GHL API calls.
- * GHL rate limit ≈ 100 req/min → minimum 600ms/req.
- * 650ms gives ≈ 92/min with headroom for retries.
- */
-const PUSH_CONTACT_DELAY_MS = 650
-
-/** Extra pause between page chunks during a single invocation. */
-const PUSH_PAGE_DELAY_MS = 1_000
-
-// ── Types ─────────────────────────────────────────────────────────────────────
-
-interface BobMember {
-  id:                    string
-  full_name:             string | null
-  mbi:                   string | null
-  carrier:               string | null
-  plan_name:             string | null
-  enrollment_status:     string | null
-  verification_status:   string | null
-  is_chronic:            boolean | null
-  doctor_name:           string | null
-  future_plan_name:      string | null
-  future_effective_date: string | null
-}
-
-interface PushResult {
-  total:      number
-  pushed:     number
-  created:    number
-  updated:    number
-  failed:     number
-  nextIndex:  number | null
-  errors:     Array<{ memberId: string; error: string }>
-}
-
-// ── Data fetchers ─────────────────────────────────────────────────────────────
-
-/** Fetch all BOB members for the agency with stable ordering for cursor slicing. */
-async function fetchBobMembers(
-  agencyId: string,
-  svc:      ReturnType<typeof createServiceClient>,
-): Promise<BobMember[]> {
-  const { data, error } = await svc
-    .from('book_of_business')
-    .select([
-      'id', 'full_name', 'mbi', 'carrier', 'plan_name',
-      'enrollment_status', 'verification_status', 'is_chronic',
-      'doctor_name', 'future_plan_name', 'future_effective_date',
-    ].join(', '))
-    .eq('agency_id', agencyId)
-    .order('id', { ascending: true })
-
-  if (error) throw new Error(`BOB fetch failed: ${error.message}`)
-  return (data ?? []) as BobMember[]
-}
-
-/**
- * Return open switch_alerts partitioned into two risk buckets:
- *   churnRisk → active member with a non-terminated switch alert
- *   termed    → member has a termed/fully_disenrolled alert
- */
-async function fetchAtRiskMemberIds(
-  agencyId: string,
-  svc:      ReturnType<typeof createServiceClient>,
-): Promise<{ churnRisk: Set<string>; termed: Set<string> }> {
-  const { data } = await svc
-    .from('switch_alerts')
-    .select('bob_member_id, switch_type')
-    .eq('agency_id', agencyId)
-    .in('status', ['open', 'contacted'])
-    .not('bob_member_id', 'is', null)
-
-  const churnRisk = new Set<string>()
-  const termed    = new Set<string>()
-
-  for (const row of (data ?? [])) {
-    if (!row.bob_member_id) continue
-    if (['termed', 'fully_disenrolled'].includes(row.switch_type ?? '')) {
-      termed.add(row.bob_member_id)
-    } else {
-      churnRisk.add(row.bob_member_id)
-    }
-  }
-
-  return { churnRisk, termed }
-}
-
-/**
- * Build an mbi → ghl_contact_id map from ghl_contacts rows we imported earlier.
- * Used to choose PUT (update) vs POST (create) for each member.
- * Chunks the IN query to avoid URL length limits on large books.
- */
-async function fetchGhlContactIdMap(
-  agencyId:   string,
-  memberMbis: string[],
-  svc:        ReturnType<typeof createServiceClient>,
-): Promise<Map<string, string>> {
-  const map = new Map<string, string>()
-  if (memberMbis.length === 0) return map
-
-  const MBI_CHUNK = 200
-  for (let i = 0; i < memberMbis.length; i += MBI_CHUNK) {
-    const { data } = await svc
-      .from('ghl_contacts')
-      .select('ghl_contact_id, mbi')
-      .eq('agency_id', agencyId)
-      .in('mbi', memberMbis.slice(i, i + MBI_CHUNK))
-      .not('mbi', 'is', null)
-      .not('ghl_contact_id', 'is', null)
-
-    for (const row of (data ?? [])) {
-      if (row.mbi && row.ghl_contact_id) map.set(row.mbi, row.ghl_contact_id)
-    }
-  }
-
-  return map
-}
-
-// ── Payload helpers ───────────────────────────────────────────────────────────
-
-/**
- * Split "LAST, FIRST" or "FIRST LAST" (any casing) into separate parts.
- * Handles the all-caps carrier export format common to Humana / Aetna.
- */
-function splitMemberName(fullName: string | null): { firstName: string; lastName: string } {
-  if (!fullName) return { firstName: '', lastName: '' }
-
-  const toTitle = (s: string) =>
-    s.toLowerCase().replace(/\b\w/g, c => c.toUpperCase())
-
-  const commaIdx = fullName.indexOf(',')
-  if (commaIdx > -1) {
-    return {
-      firstName: toTitle(fullName.slice(commaIdx + 1).trim()),
-      lastName:  toTitle(fullName.slice(0, commaIdx).trim()),
-    }
-  }
-
-  const parts = fullName.trim().split(/\s+/)
-  if (parts.length === 1) return { firstName: toTitle(parts[0]), lastName: '' }
-  return {
-    firstName: toTitle(parts.slice(0, -1).join(' ')),
-    lastName:  toTitle(parts[parts.length - 1]),
-  }
-}
-
-/**
- * Build the GHL contacts API payload for one BOB member.
- *
- * isUpdate = true  → PUT to existing contact: only custom fields + tags.
- *                     Never overwrite GHL-native firstName/lastName/phone/email.
- * isUpdate = false → POST new contact: include name + locationId + fields + tags.
- */
-function buildGhlPayload(
-  member:      BobMember,
-  locationId:  string,
-  isUpdate:    boolean,
-  isChurnRisk: boolean,
-  isTermed:    boolean,
-): Record<string, unknown> {
-  // ── Retention tags ────────────────────────────────────────────────────────
-  // AegisSage-prefixed tags are the contract point for GHL workflow triggers.
-  // The full tag list replaces prior AegisSage tags on each push — intentional,
-  // so stale risk labels are cleared when a member's status improves.
-  const tags: string[] = ['AegisSage-Monitored']
-  if (isTermed)                tags.push('AegisSage-Termed')
-  if (isChurnRisk)             tags.push('AegisSage-Churn-Risk')
-  if (member.is_chronic)       tags.push('AegisSage-DSNP')
-  if (member.future_plan_name) tags.push('AegisSage-Switch-Pending')
-
-  // ── Custom fields ─────────────────────────────────────────────────────────
-  // GHL V2 customFields array format. Field keys must exist in the broker's
-  // GHL sub-account — if a key doesn't exist GHL silently ignores it.
-  const churnLabel = isTermed ? 'HIGH' : isChurnRisk ? 'MEDIUM' : 'LOW'
-
-  const customFields: Array<{ key: string; field_value: string }> = [
-    { key: 'aegissage_churn_risk', field_value: churnLabel },
-  ]
-
-  if (member.mbi)                   customFields.push({ key: 'aegissage_mbi',                field_value: member.mbi })
-  if (member.carrier)               customFields.push({ key: 'aegissage_carrier',             field_value: member.carrier })
-  if (member.plan_name)             customFields.push({ key: 'aegissage_plan_name',           field_value: member.plan_name })
-  if (member.enrollment_status)     customFields.push({ key: 'aegissage_enrollment_status',   field_value: member.enrollment_status })
-  if (member.future_plan_name)      customFields.push({ key: 'aegissage_future_plan',         field_value: member.future_plan_name })
-  if (member.future_effective_date) customFields.push({ key: 'aegissage_future_eff_date',     field_value: member.future_effective_date })
-  if (member.doctor_name)           customFields.push({ key: 'aegissage_doctor_name',         field_value: member.doctor_name })
-
-  if (isUpdate) {
-    // Update only AegisSage-managed fields — leave GHL-native data untouched
-    return { tags, customFields }
-  }
-
-  const { firstName, lastName } = splitMemberName(member.full_name)
-  return { firstName, lastName, locationId, tags, customFields, source: 'AegisSage' }
-}
-
-// ── GHL API call ──────────────────────────────────────────────────────────────
-
-/**
- * Upsert one contact to GHL. Never throws — per-contact errors accumulate
- * in the errors array without aborting the batch.
- */
-async function upsertGhlContact(
-  ghlContactId: string | null,
-  payload:      Record<string, unknown>,
-  accessToken:  string,
-): Promise<{ action: 'created' | 'updated' | 'failed'; error?: string }> {
-  const isUpdate = ghlContactId !== null
-  const url      = isUpdate
-    ? `${GHL_API_BASE}/contacts/${ghlContactId}`
-    : `${GHL_API_BASE}/contacts/`
-
-  try {
-    const res = await fetch(url, {
-      method:  isUpdate ? 'PUT' : 'POST',
-      headers: {
-        Authorization:  `Bearer ${accessToken}`,
-        'Content-Type': 'application/json',
-        Version:        '2021-07-28',
-      },
-      body: JSON.stringify(payload),
-    })
-
-    if (res.status === 429) return { action: 'failed', error: 'RATE_LIMITED' }
-
-    if (!res.ok) {
-      // PHI-SAFE: truncate raw GHL error body — may contain contact details
-      const body = await res.text().catch(() => '')
-      return { action: 'failed', error: `HTTP ${res.status}: ${body.slice(0, 120)}` }
-    }
-
-    return { action: isUpdate ? 'updated' : 'created' }
-  } catch (err) {
-    return { action: 'failed', error: err instanceof Error ? err.message : String(err) }
-  }
-}
-
-// ── Batch processor ───────────────────────────────────────────────────────────
-
-/**
- * Push a slice of BOB members to GHL one by one with per-contact delay.
- *
- * Per-contact failures are logged and accumulated — they do NOT abort the loop.
- * The full batch runs to completion so a single bad record can't block the rest.
- */
-async function pushMemberBatch(
-  members:      BobMember[],
-  ghlIdMap:     Map<string, string>,
-  churnRiskIds: Set<string>,
-  termedIds:    Set<string>,
-  accessToken:  string,
-  locationId:   string,
-): Promise<{ created: number; updated: number; failed: number; errors: Array<{ memberId: string; error: string }> }> {
-  let created = 0, updated = 0, failed = 0
-  const errors: Array<{ memberId: string; error: string }> = []
-
-  for (const member of members) {
-    const ghlContactId = member.mbi ? (ghlIdMap.get(member.mbi) ?? null) : null
-    const isChurnRisk  = churnRiskIds.has(member.id)
-    const isTermed     = termedIds.has(member.id)
-                      || member.enrollment_status === 'termed'
-                      || member.enrollment_status === 'disenrolled'
-
-    const payload = buildGhlPayload(member, locationId, ghlContactId !== null, isChurnRisk, isTermed)
-
-    // First attempt
-    let result = await upsertGhlContact(ghlContactId, payload, accessToken)
-
-    // Single automatic retry on rate limit with 1s back-off
-    if (result.error === 'RATE_LIMITED') {
-      console.warn('[ghl/push] rate limited — 1s back-off before retry')
-      await new Promise(r => setTimeout(r, 1_000))
-      result = await upsertGhlContact(ghlContactId, payload, accessToken)
-    }
-
-    if      (result.action === 'created') created++
-    else if (result.action === 'updated') updated++
-    else {
-      failed++
-      // PHI-SAFE: log only the member UUID — never log name or MBI
-      console.error('[ghl/push] contact failed | member_id:', member.id, '| err:', result.error)
-      errors.push({ memberId: member.id, error: result.error ?? 'Unknown error' })
-    }
-
-    // Inter-contact throttle: 650ms ≈ 92 req/min (GHL limit 100 req/min)
-    await new Promise(r => setTimeout(r, PUSH_CONTACT_DELAY_MS))
-  }
-
-  return { created, updated, failed, errors }
-}
-
-// ── Utility ───────────────────────────────────────────────────────────────────
-
-function chunkArray<T>(arr: T[], size: number): T[][] {
-  const result: T[][] = []
-  for (let i = 0; i < arr.length; i += size) result.push(arr.slice(i, i + size))
-  return result
-}
-
-// ── Core orchestration ────────────────────────────────────────────────────────
-
-/** Shared logic used by both owner (no broker row) and broker auth paths. */
-async function pushFromAgency(
-  userId:     string,
-  agencyId:   string,
-  svc:        ReturnType<typeof createServiceClient>,
-  startIndex: number,
-  batchSize:  number,
-): Promise<Response> {
-  // Validate GHL connection and token freshness
-  let tokenInfo: Awaited<ReturnType<typeof getValidToken>>
-  try {
-    tokenInfo = await getValidToken(agencyId, svc)
-  } catch (err) {
-    return NextResponse.json(
-      { error: 'GHL not connected. Reconnect via the GHL page.', detail: String(err) },
-      { status: 400 }
-    )
-  }
-
-  const { accessToken, locationId } = tokenInfo
-  if (!locationId) {
-    return NextResponse.json(
-      { error: 'GHL location ID missing — reconnect your GHL account to refresh it.' },
-      { status: 400 }
-    )
-  }
-
-  // Fetch all data in parallel — BOB members + open alert risk buckets
-  let allMembers: BobMember[]
-  let atRisk: { churnRisk: Set<string>; termed: Set<string> }
-  try {
-    ;[allMembers, atRisk] = await Promise.all([
-      fetchBobMembers(agencyId, svc),
-      fetchAtRiskMemberIds(agencyId, svc),
-    ])
-  } catch (err) {
-    console.error('[ghl/push] data fetch error:', err)
-    return NextResponse.json({ error: 'Failed to load Book of Business', detail: String(err) }, { status: 500 })
-  }
-
-  const totalMembers = allMembers.length
-
-  if (totalMembers === 0) {
-    return NextResponse.json({
-      success: true, total: 0, pushed: 0, created: 0, updated: 0,
-      failed: 0, nextIndex: null,
-      message: 'No members in Book of Business to sync.',
-    })
-  }
-
-  // Slice for this invocation (cursor pagination)
-  const slice     = allMembers.slice(startIndex, startIndex + batchSize)
-  const nextIndex = startIndex + slice.length < totalMembers
-    ? startIndex + slice.length
-    : null // null = push complete
-
-  if (slice.length === 0) {
-    return NextResponse.json({
-      success: true, total: totalMembers, pushed: 0, created: 0, updated: 0,
-      failed: 0, nextIndex: null,
-      message: 'startIndex is past the end of the Book of Business.',
-    })
-  }
-
-  // Resolve GHL contact IDs for members in this slice
-  const sliceMbis = slice.map(m => m.mbi).filter((mbi): mbi is string => !!mbi)
-  const ghlIdMap  = await fetchGhlContactIdMap(agencyId, sliceMbis, svc)
-
-  console.log(
-    `[ghl/push] start | agency=${agencyId}` +
-    ` | slice=${startIndex}–${startIndex + slice.length - 1} of ${totalMembers}` +
-    ` | known_ghl_ids=${ghlIdMap.size}`
-  )
-
-  // Process in 10-contact pages for granular progress logging
-  const result: PushResult = { total: totalMembers, pushed: 0, created: 0, updated: 0, failed: 0, nextIndex, errors: [] }
-  const pages = chunkArray(slice, 10)
-
-  for (let pageIdx = 0; pageIdx < pages.length; pageIdx++) {
-    const pageResult = await pushMemberBatch(
-      pages[pageIdx], ghlIdMap, atRisk.churnRisk, atRisk.termed, accessToken, locationId
-    )
-
-    result.created += pageResult.created
-    result.updated += pageResult.updated
-    result.failed  += pageResult.failed
-    result.pushed  += pageResult.created + pageResult.updated
-    result.errors.push(...pageResult.errors)
-
-    console.log(
-      `[ghl/push] page ${pageIdx + 1}/${pages.length}` +
-      ` | created=${pageResult.created} updated=${pageResult.updated} failed=${pageResult.failed}`
-    )
-
-    if (pageIdx < pages.length - 1) {
-      await new Promise(r => setTimeout(r, PUSH_PAGE_DELAY_MS))
-    }
-  }
-
-  // Audit log — non-blocking, never fails the response
-  svc.from('enterprise_audit_logs').insert({
-    agency_id:     agencyId,
-    user_id:       userId,
-    action_type:   'CRM_SYNC',
-    resource_type: 'book_of_business',
-    phi_touched:   false,
-    metadata: {
-      direction: 'bob_to_ghl', start_index: startIndex, slice_size: slice.length,
-      total_members: totalMembers, pushed: result.pushed,
-      created: result.created, updated: result.updated, failed: result.failed,
-    },
-  }).catch(e => console.error('[ghl/push] audit log failed:', e))
-
-  const isComplete = nextIndex === null
   const message = isComplete
     ? result.failed === 0
       ? `All ${result.pushed} members synced to GHL successfully.`
@@ -1551,10 +1042,9 @@ async function pushFromAgency(
   })
 }
 
-// ── Route handler ─────────────────────────────────────────────────────────────
+// ── Route handler: PUT /api/ghl/sync ─────────────────────────────────────────
 
 export async function PUT(req: NextRequest) {
-  // Server-side JWT validation — same pattern as POST handler
   const supabase = await createClient()
   const { data: { user }, error: authError } = await supabase.auth.getUser()
   if (authError || !user) {
@@ -1562,18 +1052,16 @@ export async function PUT(req: NextRequest) {
   }
 
   const body = await req.json().catch(() => ({})) as {
-    /** 0-based member index to start from. Use nextIndex from prior response to resume. */
     startIndex?: number
-    /** Override default batch size. Capped at PUSH_BATCH_SIZE server-side. */
     batchSize?:  number
   }
 
   const startIndex = Math.max(0, body.startIndex ?? 0)
   const batchSize  = Math.min(body.batchSize ?? PUSH_BATCH_SIZE, PUSH_BATCH_SIZE)
+  const ipAddress  = extractIp(req)
 
   const svc = createServiceClient()
 
-  // Resolve agency — check broker row first, fall back to owner row
   const { data: broker } = await svc
     .from('brokers')
     .select('id, agency_id')
@@ -1588,11 +1076,13 @@ export async function PUT(req: NextRequest) {
       .maybeSingle()
 
     if (!agency) {
+      // Log the failure before returning
+      void logCrmExportFailed(null, user.id, 'Broker profile not found', ipAddress)
       return NextResponse.json({ error: 'Broker profile not found' }, { status: 404 })
     }
 
-    return pushFromAgency(user.id, agency.id, svc, startIndex, batchSize)
+    return pushFromAgency(user.id, agency.id, svc, startIndex, batchSize, ipAddress)
   }
 
-  return pushFromAgency(user.id, broker.agency_id, svc, startIndex, batchSize)
+  return pushFromAgency(user.id, broker.agency_id, svc, startIndex, batchSize, ipAddress)
 }
