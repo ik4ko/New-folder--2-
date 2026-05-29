@@ -310,8 +310,12 @@ export async function POST(req: NextRequest) {
 
   const records: object[] = []
   let dropped = 0
+  // Rejected rows are persisted to roster_upload_errors so brokers have a
+  // clear review trail of which rows failed and why — mirrors /api/roster/upload
+  const rejectedRows: Array<{ row_index: number; reason: string; raw_data: Record<string, string> }> = []
 
-  for (const row of dataRows) {
+  for (let rowIdx = 0; rowIdx < dataRows.length; rowIdx++) {
+    const row = dataRows[rowIdx]
     if (row.every(cell => !cell.trim())) continue
 
     const get = (field: string) =>
@@ -319,7 +323,19 @@ export async function POST(req: NextRequest) {
 
     const rawMbi = get('mbi')
     const mbi = sanitizeMbi(rawMbi)
-    if (!mbi) { dropped++; continue }
+    if (!mbi) {
+      dropped++
+      const rawDataSnap: Record<string, string> = {}
+      headers.forEach((h, i) => { rawDataSnap[h] = row[i] ?? '' })
+      rejectedRows.push({
+        row_index: rowIdx + 2, // +2 = 1-based row index + header row
+        reason: rawMbi
+          ? `MBI "${rawMbi}" is invalid (must be 9–11 alphanumeric chars after sanitization)`
+          : 'MBI column is empty or could not be resolved from this row',
+        raw_data: rawDataSnap,
+      })
+      continue
+    }
 
     const firstName = get('first_name')
     const lastName  = get('last_name')
@@ -426,8 +442,34 @@ export async function POST(req: NextRequest) {
     )
   }
 
+  // Persist rejected rows to roster_upload_errors so brokers can review and
+  // correct them without losing track of which members were silently skipped.
+  if (rejectedRows.length > 0) {
+    const errorInserts = rejectedRows.map(r => ({
+      agency_id:     broker.agency_id,
+      upload_source: 'sheets_import',
+      row_index:     r.row_index,
+      reason:        r.reason,
+      raw_data:      r.raw_data,
+    }))
+    const { error: errTableErr } = await supabase
+      .from('roster_upload_errors')
+      .insert(errorInserts)
+    if (errTableErr) {
+      // Non-fatal — the import itself succeeded; log but don't fail the response
+      console.error('[sheets-import] failed to persist rejected rows:', errTableErr.message)
+    }
+  }
+
   return NextResponse.json({
     imported: deduped.length, dropped, mbiCount, planCount, carrierCount,
-    ...(duplicateCount > 0 && { duplicates: duplicateCount, message: `${duplicateCount} duplicate MBI entries were merged` }),
+    ...(duplicateCount > 0 && {
+      duplicates: duplicateCount,
+      message: `${duplicateCount} duplicate MBI entries were merged`,
+    }),
+    ...(rejectedRows.length > 0 && {
+      rejectedCount: rejectedRows.length,
+      message_errors: `${rejectedRows.length} row(s) had invalid or missing MBIs and were logged for review`,
+    }),
   })
 }

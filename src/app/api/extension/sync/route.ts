@@ -65,15 +65,9 @@ export async function POST(req: NextRequest) {
 
   const carrier = (body.carrier as string).toLowerCase().trim()
   const rawRows: Record<string, string>[] = body.rows
+  // PHI-SAFE: only log non-PHI metadata — never log row contents, member names, or MBIs
   if (rawRows.length > 0) {
-    console.log('[sync] carrier:', carrier)
-    console.log('[sync] raw keys:', JSON.stringify(Object.keys(rawRows[0])))
-    console.log('[sync] row0:', JSON.stringify(rawRows[0]).slice(0, 500))
-  }
-  if (carrier === 'healthfirst' && rawRows.length > 0) {
-    console.log('[HF] All keys in row0:', JSON.stringify(Object.keys(rawRows[0])))
-    console.log('[HF] Full row0:', JSON.stringify(rawRows[0]))
-    console.log('[HF] Row count:', rawRows.length)
+    console.log('[sync] carrier:', carrier, '| row_count:', rawRows.length, '| col_count:', Object.keys(rawRows[0]).length)
   }
   if (rawRows.length === 0) return NextResponse.json({ error: 'No rows received' }, { status: 400 })
 
@@ -305,7 +299,8 @@ export async function POST(req: NextRequest) {
       })
       
       if (decayResult.notifyBroker) {
-        console.log(`[sync] Good news: ${m.full_name} is back on ${carrier} roster`)
+        // PHI-SAFE: log member UUID only — never log full_name or MBI
+        console.log(`[sync] member re-appeared on ${carrier} roster — bob_id: ${m.id}`)
       }
     }
   }
@@ -414,8 +409,6 @@ function normalizeRow(raw: Record<string, string>, _carrier: string, dynamicMapp
     ? [firstName, lastName].filter(Boolean).join(' ')
     : undefined
   const full_name = combinedName || assembledName || ''
-
-  console.log('[sync] normalizeRow name debug — combined:', combinedName, '| first:', firstName, '| last:', lastName, '| result:', full_name)
 
   return {
     full_name,

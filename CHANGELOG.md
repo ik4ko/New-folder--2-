@@ -1,5 +1,38 @@
 # Aegis Sage — Changelog
 
+## [Security & Compliance Hardening: PHI Log Purge, Auth Fix, Error Trails, Dedup Migration] — 2026-05-28
+
+### Part 1 — PHI Log Purge (`src/app/api/extension/sync/route.ts`)
+Removed four PHI-leaking `console.log` statements identified in the friction & compliance audit:
+- **Removed** `console.log('[sync] row0:', ...)` — was dumping the first raw member row (name, MBI, plan) to Vercel logs on every extension sync, truncated to 500 chars which still fit a full MBI and name.
+- **Removed** `console.log('[HF] Full row0:', ...)` and `'[HF] All keys in row0:'` — Healthfirst-specific debug block that logged the **complete** first portal row with zero truncation.
+- **Removed** `console.log('[sync] normalizeRow name debug...')` — fired **per row** inside the processing loop, printing member first name, last name, and assembled full name on every iteration. A 200-member sync produced 200 name lines in Vercel logs.
+- **Removed** `console.log('[sync] Good news: ${m.full_name}...')` — logged member full name on every re-enrollment detection event.
+- **Retained** the PHI-safe metadata line: `console.log('[sync] carrier:', carrier, '| row_count:', n, '| col_count:', n)` — operational context only, zero member data.
+- **Replaced** re-appearance log with: `console.log('[sync] member re-appeared on ${carrier} roster — bob_id: ${m.id}')` — UUID only.
+
+### Part 2 — GHL Sync Auth Hardening (`src/app/api/ghl/sync/route.ts`)
+- **Replaced `supabase.auth.getSession()` with `supabase.auth.getUser()`** in the POST handler. `getSession()` reads the JWT from the cookie without server-side validation — vulnerable to replayed or tampered tokens. `getUser()` performs a live validation request against the Supabase Auth server, guaranteeing the session is current and untampered. Threaded `user.id` (from `getUser`) through the broker lookup replacing the previous `session.user.id` reference.
+
+### Part 3 — GHL Token null guard + error sanitization (`src/app/api/ghl/sync/route.ts`)
+- **`expires_at` null guard added:** `getValidToken()` previously computed `new Date(cred.expires_at ?? 0).getTime()`, falling back to the Unix epoch (0) when `expires_at` was null. This made `needsRefresh` always `true` for any agency row with a null expiry, forcing a GHL token refresh network call on **every sync invocation**. Now throws a clean `'GHL token missing expiry — please reconnect'` error, sending the user through the OAuth flow once to obtain a properly-stamped token.
+- **Token refresh error sanitized:** `throw new Error('GHL token refresh failed: ' + await res.text())` was interpolating the raw GHL API error response body (which may contain OAuth debugging details) directly into the thrown message, which propagates to Vercel logs and potentially to the client JSON response. Now: reads the body once, logs only the first 200 chars to `console.error` (server-only), and throws a clean user-facing message: `'GHL token refresh failed (HTTP ${status}) — please reconnect via the GHL page'`.
+
+### Part 4 — Google Sheets import error trail (`src/app/api/roster/sheets-import/route.ts`)
+- **Row loop refactored from `for...of` to indexed `for` loop** so each dropped row's 1-based spreadsheet row number can be captured accurately (`rowIdx + 2` = 1-based + header row).
+- **`rejectedRows` array added** — mirrors the exact same structure as `/api/roster/upload`: captures `row_index`, `reason` (with the raw MBI value if present, or a clear "empty/unresolvable" message), and `raw_data` (full column snapshot keyed by header name).
+- **`roster_upload_errors` write added** — after a successful upsert, all rejected rows are persisted with `upload_source: 'sheets_import'` so they appear in the broker's error review trail alongside file-upload rejections. Write is non-fatal (errors logged, not surfaced to the user).
+- **Response enriched** — now includes `rejectedCount` and `message_errors` alongside the existing `imported`, `dropped`, `mbiCount`, `planCount`, `carrierCount` fields, consistent with the upload route's response shape.
+
+### Part 5 — Deduplication migration (`supabase/migrations/20260528060000_bob_mbi_agency_unique.sql`)
+- **`UNIQUE(mbi, agency_id)` constraint added to `book_of_business`** — named `bob_mbi_agency_unique`. Without this, both import routes' `.upsert(records, { onConflict: 'mbi,agency_id' })` calls had no conflict target to match against, causing every re-import of the same roster or Google Sheet to INSERT duplicate rows instead of updating the existing member record.
+- **Pre-constraint deduplication:** The migration's `BEGIN` block runs a `DELETE ... WHERE rn > 1` window function first — for any live database that already has duplicate `(mbi, agency_id)` rows from pre-fix imports, this removes the older copies (keeping the most recently `updated_at` row) before adding the constraint. Safe no-op on a clean database.
+- **Existing `UNIQUE(broker_id, carrier, member_id)` constraint preserved** — untouched. Both constraints coexist.
+- **Partial index added:** `idx_bob_mbi_agency_lookup WHERE mbi IS NOT NULL` — accelerates the verify route and MARx check pattern `WHERE mbi = $1 AND agency_id = $2` without indexing null-MBI rows.
+- Entire migration is wrapped in `BEGIN / COMMIT` — rolls back atomically if any step fails.
+
+---
+
 ## [Operational Sovereignty: Edge-Mapping Engine, Compliance Audit Trail, Revenue Calculator] — 2026-05-28
 
 ### Migration: `20260528040000_carrier_edge_maps.sql` — Autonomous Carrier Edge-Mapping Engine

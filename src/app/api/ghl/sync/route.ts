@@ -99,7 +99,14 @@ async function getValidToken(agencyId: string, svc: ReturnType<typeof createServ
 
   if (!cred?.access_token) throw new Error('GHL not connected for this agency')
 
-  const expiresAt    = new Date(cred.expires_at ?? 0).getTime()
+  // Null guard: a missing expires_at means the stored token has no known expiry —
+  // rather than silently falling back to the Unix epoch (which forces a token refresh
+  // on every single sync call), we require reconnection to obtain a fresh token set.
+  if (!cred.expires_at) {
+    throw new Error('GHL token missing expiry — please reconnect via the GHL page to refresh your credentials')
+  }
+
+  const expiresAt    = new Date(cred.expires_at).getTime()
   const needsRefresh = expiresAt - Date.now() < 5 * 60 * 1000
 
   if (!needsRefresh) {
@@ -122,7 +129,12 @@ async function getValidToken(agencyId: string, svc: ReturnType<typeof createServ
     }),
   })
 
-  if (!res.ok) throw new Error(`GHL token refresh failed: ${await res.text()}`)
+  if (!res.ok) {
+    // Read the response body once — log it safely (server-only), never expose in thrown message
+    const rawBody = await res.text().catch(() => '<unreadable>')
+    console.error('[ghl/sync] token refresh failed:', res.status, rawBody.slice(0, 200))
+    throw new Error(`GHL token refresh failed (HTTP ${res.status}) — please reconnect via the GHL page`)
+  }
 
   const tokens = await res.json() as {
     access_token: string; refresh_token: string; expires_in: number
@@ -231,8 +243,11 @@ async function updateProgress(
 // ── Route handler ─────────────────────────────────────────────────────────────
 export async function POST(req: NextRequest) {
   const supabase = await createClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) {
+  // Use getUser() — validates the JWT server-side with Supabase Auth.
+  // getSession() only reads the cookie without server verification and is
+  // vulnerable to replayed or tampered tokens.
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
+  if (authError || !user) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -249,7 +264,7 @@ export async function POST(req: NextRequest) {
   const { data: broker } = await svc
     .from('brokers')
     .select('id, agency_id')
-    .eq('user_id', session.user.id)
+    .eq('user_id', user.id)
     .single()
 
   if (!broker) {
