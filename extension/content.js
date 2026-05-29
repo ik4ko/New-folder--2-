@@ -13,6 +13,123 @@ const CARRIER_DOMAINS = {
   'myhfgroup.org': 'healthfirst',
 }
 
+// ── Sync telemetry error codes ────────────────────────────────────────────────
+// Written to chrome.storage.local under 'aegis_sync_status'.
+// popup.js polls this key every 750ms during an active sync.
+
+const SYNC_ERROR_CODES = {
+  // Active states (shown as live status messages in the popup)
+  IDLE:                'IDLE',
+  CONNECTING:          'CONNECTING',
+  RETRYING:            'RETRYING',
+  EXTRACTING:          'EXTRACTING',
+  UPLOADING:           'UPLOADING',
+  // Terminal success
+  SUCCESS:             'SUCCESS',
+  // Terminal error codes — each maps to a broker-facing message below
+  PORTAL_TIMEOUT:      'PORTAL_TIMEOUT',
+  SELECTOR_MISMATCH:   'SELECTOR_MISMATCH',
+  NOT_CONNECTED:       'NOT_CONNECTED',
+  NO_ROSTER_PAGE:      'NO_ROSTER_PAGE',
+  NETWORK_ERROR:       'NETWORK_ERROR',
+  CARRIER_UNSUPPORTED: 'CARRIER_UNSUPPORTED',
+}
+
+// Human-readable messages for each terminal error code.
+// These are shown directly in the popup UI — keep them actionable.
+const SYNC_ERROR_MESSAGES = {
+  PORTAL_TIMEOUT:      'Portal timed out. Please refresh the carrier page and try again.',
+  SELECTOR_MISMATCH:   'No member rows detected. Navigate to Active Policies or Member Roster first.',
+  NOT_CONNECTED:       'Not connected to AegisSage. Open the extension and click Connect Account.',
+  NO_ROSTER_PAGE:      'No roster data found. Navigate to the member list page and try again.',
+  NETWORK_ERROR:       'Upload failed. Check your internet connection and try again.',
+  CARRIER_UNSUPPORTED: 'This portal is not yet supported. Contact support@aegissage.com.',
+}
+
+/**
+ * emitSyncStatus — write telemetry to chrome.storage.local.
+ * Content scripts have direct storage access — no background routing needed.
+ *
+ * @param {string} code       - One of SYNC_ERROR_CODES
+ * @param {string} message    - Human-readable status text for the popup
+ * @param {number|null} attempt  - Current retry attempt (1-based), or null
+ * @param {number|null} total    - Total retry attempts, or null
+ */
+function emitSyncStatus(code, message, attempt = null, total = null) {
+  const isTerminal = ['SUCCESS', 'ERROR',
+    'PORTAL_TIMEOUT', 'SELECTOR_MISMATCH', 'NOT_CONNECTED',
+    'NO_ROSTER_PAGE', 'NETWORK_ERROR', 'CARRIER_UNSUPPORTED'].includes(code)
+  try {
+    chrome.storage.local.set({
+      aegis_sync_status: {
+        code,
+        message,
+        attempt,
+        total,
+        active:    !isTerminal,
+        timestamp: Date.now(),
+      }
+    })
+  } catch (e) {
+    // Storage write failures must never crash the sync loop
+  }
+}
+
+/**
+ * waitForElementWithRetry — DOM selector with retry and live popup telemetry.
+ *
+ * Wraps waitForElement() with up to `maxAttempts` tries. Before each retry
+ * it emits a RETRYING status so the popup UI updates from a frozen spinner
+ * to an informative "Attempt N/3" message.
+ *
+ * @param {string} selector           - CSS selector to wait for
+ * @param {object} opts
+ * @param {number} opts.maxAttempts   - Total attempts before throwing (default 3)
+ * @param {number} opts.delayBetween  - ms to wait between attempts (default 1500)
+ * @param {number} opts.timeout       - ms per attempt before giving up (default 8000)
+ * @param {string} opts.context       - Human-readable label for error messages
+ * @returns {Promise<Element>}
+ * @throws Error with .code = 'PORTAL_TIMEOUT' after all retries exhausted
+ */
+async function waitForElementWithRetry(selector, {
+  maxAttempts  = 3,
+  delayBetween = 1500,
+  timeout      = 8000,
+  context      = 'member data',
+} = {}) {
+  for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+    // Emit status before each attempt so the popup is never frozen
+    if (attempt === 1) {
+      emitSyncStatus(SYNC_ERROR_CODES.CONNECTING, 'Connecting to portal...')
+    } else {
+      emitSyncStatus(
+        SYNC_ERROR_CODES.RETRYING,
+        `Carrier responding slowly… Retrying connection (Attempt ${attempt}/${maxAttempts})`,
+        attempt,
+        maxAttempts
+      )
+    }
+
+    try {
+      const el = await waitForElement(selector, timeout)
+      // Element found — emit EXTRACTING and return
+      emitSyncStatus(SYNC_ERROR_CODES.EXTRACTING, 'Extracting member row data…')
+      return el
+    } catch (_timeoutErr) {
+      if (attempt === maxAttempts) {
+        // All retries exhausted — throw a typed error
+        const err = new Error(
+          `${SYNC_ERROR_MESSAGES.PORTAL_TIMEOUT} (selector: "${context}", ${maxAttempts} attempts)`
+        )
+        err.code = SYNC_ERROR_CODES.PORTAL_TIMEOUT
+        throw err
+      }
+      // Wait before the next attempt
+      await new Promise(r => setTimeout(r, delayBetween))
+    }
+  }
+}
+
 // ── Service worker messaging with retry ───────────────────────────────────────
 // Chrome suspends the service worker after ~30s of inactivity.
 // Sending a message to a suspended worker throws "Receiving end does not exist".
@@ -54,44 +171,72 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 })
 
 async function handleSync() {
+  // Clear stale sync status from any prior run
+  emitSyncStatus(SYNC_ERROR_CODES.CONNECTING, 'Initializing sync…')
+
   // Nuke all sessionStorage so no stale batch state can bleed into this run
   sessionStorage.clear()
-  console.log('[MARx] sessionStorage cleared on fresh start')
 
-  const carrier = detectCarrier()
-  if (!carrier) {
-    return { success: false, error: 'Not on a supported carrier portal' }
-  }
+  try {
+    const carrier = detectCarrier()
+    if (!carrier) {
+      const msg = SYNC_ERROR_MESSAGES.CARRIER_UNSUPPORTED
+      emitSyncStatus(SYNC_ERROR_CODES.CARRIER_UNSUPPORTED, msg)
+      return { success: false, error: msg, code: SYNC_ERROR_CODES.CARRIER_UNSUPPORTED }
+    }
 
-  const token = await getToken()
-  if (!token) {
-    return { success: false, error: 'Not connected — open the extension and click Connect Account' }
-  }
+    const token = await getToken()
+    if (!token) {
+      const msg = SYNC_ERROR_MESSAGES.NOT_CONNECTED
+      emitSyncStatus(SYNC_ERROR_CODES.NOT_CONNECTED, msg)
+      return { success: false, error: msg, code: SYNC_ERROR_CODES.NOT_CONNECTED }
+    }
 
-  // MARx is different — run batch MBI lookup instead of roster scrape
-  if (carrier === 'marx') {
-    // Always start fresh when user explicitly clicks Run MARx
-    clearBatchState()
-    await chrome.storage.local.remove(['marx_batch_index', 'marx_pending_member', 'marx_progress', 'marx_batch_stopped'])
-    await runMarxBatchLookup()
-    return { success: true, marxBatchStarted: true }
-  }
+    // MARx is different — run batch MBI lookup instead of roster scrape
+    if (carrier === 'marx') {
+      emitSyncStatus(SYNC_ERROR_CODES.CONNECTING, 'Connecting to CMS MARx Portal…')
+      clearBatchState()
+      await chrome.storage.local.remove(['marx_batch_index', 'marx_pending_member', 'marx_progress', 'marx_batch_stopped'])
+      await runMarxBatchLookup()
+      return { success: true, marxBatchStarted: true }
+    }
 
-  const rows = await scrapeWithAIFallback(carrier)
+    emitSyncStatus(SYNC_ERROR_CODES.CONNECTING, 'Connecting to portal…')
+    const rows = await scrapeWithAIFallback(carrier)
 
-  if (rows.length === 0) {
+    if (rows.length === 0) {
+      const msg = SYNC_ERROR_MESSAGES.NO_ROSTER_PAGE
+      emitSyncStatus(SYNC_ERROR_CODES.NO_ROSTER_PAGE, msg)
+      return { success: false, error: msg, code: SYNC_ERROR_CODES.NO_ROSTER_PAGE }
+    }
+
+    emitSyncStatus(SYNC_ERROR_CODES.UPLOADING, `Uploading ${rows.length} member records to AegisSage…`)
+
+    // Route through background service worker — content scripts run on carrier
+    // domains and hit CORS; background scripts bypass it entirely.
+    const result = await sendMessageWithRetry({ action: 'SYNC_TO_SERVER', carrier, rows })
+
+    if (result?.success) {
+      emitSyncStatus(SYNC_ERROR_CODES.SUCCESS, `Synced ${result.rows ?? rows.length} members successfully`)
+    } else {
+      const msg = result?.error ?? SYNC_ERROR_MESSAGES.NETWORK_ERROR
+      emitSyncStatus(SYNC_ERROR_CODES.NETWORK_ERROR, msg)
+    }
+
+    return result
+
+  } catch (err) {
+    // Intercept typed errors from waitForElementWithRetry and map to clean error codes
+    const code    = err.code ?? SYNC_ERROR_CODES.PORTAL_TIMEOUT
+    const message = SYNC_ERROR_MESSAGES[code] ?? err.message ?? 'An unexpected error occurred. Please try again.'
+
+    emitSyncStatus(code, message)
+
     return {
       success: false,
-      error: 'No roster data found. Navigate to Active Policies / Member Roster first.',
+      error:   message,
+      code,
     }
-  }
-
-  // Route through background service worker — content scripts run on carrier
-  // domains and hit CORS; background scripts bypass it entirely.
-  try {
-    return await sendMessageWithRetry({ action: 'SYNC_TO_SERVER', carrier: carrier, rows: rows })
-  } catch (err) {
-    return { success: false, error: err.message }
   }
 }
 
@@ -164,7 +309,9 @@ async function scrapeAllPages(carrier) {
 
 async function scrapeHumanaRoster() {
   // Humana Vantage uses Kendo UI grid (.k-grid-*)
-  await waitForElement('.k-grid-content tr, table tbody tr', 15000)
+  await waitForElementWithRetry('.k-grid-content tr, table tbody tr', {
+    timeout: 12000, context: 'Humana roster table',
+  })
 
   const headers = []
   document.querySelectorAll(
@@ -210,7 +357,9 @@ async function scrapeHumanaRoster() {
 
 async function scrapeCloverRoster() {
   // Clover / EvolveNXT portal — member_search.htm uses a standard HTML table
-  await waitForElement('table tbody tr, .member-results tbody tr, [id*="searchResults"] tr', 15000)
+  await waitForElementWithRetry('table tbody tr, .member-results tbody tr, [id*="searchResults"] tr', {
+    timeout: 12000, context: 'Clover member search results',
+  })
 
   // Prefer the search-results table; fall back to the largest table on the page
   let table = document.querySelector(
@@ -269,7 +418,11 @@ async function scrapeCloverRoster() {
 }
 
 async function scrapeGenericRoster() {
-  await waitForElement('table tbody tr, [role="row"]', 10000).catch(() => {})
+  // Best-effort wait — generic scraper has no guaranteed selector so we don't
+  // throw on timeout, we just proceed with whatever the DOM has at that point.
+  await waitForElementWithRetry('table tbody tr, [role="row"]', {
+    timeout: 8000, context: 'generic portal table',
+  }).catch(() => {})
 
   const tables = Array.from(document.querySelectorAll('table, [role="grid"], [role="table"]'))
   if (!tables.length) return { rows: [], totalCount: 0, pageCount: 0, hasMorePages: false }
@@ -309,18 +462,15 @@ async function scrapeGenericRoster() {
 // ── Devoted Health scraper (React SPA) ────────────────────────────────────────
 
 async function scrapeDevotedRoster() {
-  console.log('[Devoted] Starting...')
-  await new Promise(r => setTimeout(r, 4000))
-
-  console.log('[Devoted] URL:', window.location.href)
-
-  const allElements = {
-    tables: document.querySelectorAll('table').length,
-    tbodyRows: document.querySelectorAll('tbody tr').length,
-    roleRows: document.querySelectorAll('[role="row"]').length,
-    grids: document.querySelectorAll('[role="grid"], [role="table"]').length,
-  }
-  console.log('[Devoted] Page elements:', JSON.stringify(allElements))
+  // Devoted Health is a React SPA — content renders asynchronously after load.
+  // Wait for any recognizable member data container before scraping.
+  await waitForElementWithRetry(
+    'table tbody tr, [role="row"], [data-testid="member-row"], [class*="contact-row"]',
+    { maxAttempts: 3, timeout: 7000, delayBetween: 2000, context: 'Devoted Health member list' }
+  ).catch(() => {
+    // If still not found after retries, proceed — scrapeGenericTable/scrapeDivLayout
+    // do their own presence checks and return null gracefully.
+  })
 
   let result = scrapeGenericTable('devoted')
   if (result && result.length > 0) return result
@@ -328,38 +478,26 @@ async function scrapeDevotedRoster() {
   result = scrapeDivLayout('devoted')
   if (result && result.length > 0) return result
 
-  const mainContent = document.querySelector(
-    'main, [class*="content"], [class*="main"], [id="root"], [id="app"]'
-  )
-  if (mainContent) {
-    console.log('[Devoted] HTML sample:', mainContent.innerHTML.slice(0, 800))
-  }
-
   return null
 }
 
 // ── Health First scraper (React SPA) ──────────────────────────────────────────
 
 async function scrapeHealthFirstRoster() {
-  console.log('[HealthFirst] Starting...')
-  await new Promise(r => setTimeout(r, 4000))
-  await waitForElement(
+  // HealthFirst is a React SPA on myhfgroup.org — typically needs 4–8s to render.
+  // Use waitForElementWithRetry so slow portal responses show "Retrying" in the popup
+  // instead of a frozen spinner.
+  await waitForElementWithRetry(
     'table tbody tr, [class*="member"], [class*="row"]:not([class*="header"])',
-    20000
-  ).catch(() => {})
-  await new Promise(r => setTimeout(r, 2000))
-
-  console.log('[HealthFirst] URL:', window.location.href)
-  console.log('[HealthFirst] Tables:', document.querySelectorAll('table').length)
+    { maxAttempts: 3, timeout: 8000, delayBetween: 2500, context: 'HealthFirst member list' }
+  ).catch(() => {
+    // Not found after retries — proceed anyway; scraper functions handle empty DOM gracefully.
+  })
 
   let result = scrapeGenericTable('healthfirst')
 
   if (!result || result.length === 0) {
     result = scrapeDivLayout('healthfirst')
-  }
-
-  if (!result || result.length === 0) {
-    console.log('[HealthFirst] Page text sample:', document.body.innerText.slice(0, 500))
   }
 
   return result
@@ -372,8 +510,9 @@ function scrapeGenericTable(carrier) {
   document.querySelectorAll('table thead th, thead td, th').forEach(th => {
     headers.push(th.textContent?.trim() ?? '')
   })
-  console.log('[' + carrier + '] Table headers:', headers)
-  document.querySelectorAll('table tbody tr').forEach((row, idx) => {
+  // PHI-SAFE: log column count only — never log header names or row contents
+  console.log('[' + carrier + '] Table header count:', headers.length)
+  document.querySelectorAll('table tbody tr').forEach((row) => {
     const cells = row.querySelectorAll('td')
     if (cells.length < 2) return
     const rowData = {}
@@ -381,11 +520,11 @@ function scrapeGenericTable(carrier) {
       const key = headers[i] || 'col_' + i
       rowData[key] = cell.textContent?.trim() ?? ''
     })
-    if (idx === 0) console.log('[' + carrier + '] Table row0:', JSON.stringify(rowData).slice(0, 300))
     if (Object.values(rowData).some(v => String(v).length > 1)) {
       rows.push(rowData)
     }
   })
+  console.log('[' + carrier + '] scrapeGenericTable rows found:', rows.length)
   return rows.length > 0 ? rows : null
 }
 
@@ -406,7 +545,8 @@ function scrapeDivLayout(carrier) {
       if (t && t.length < 60) headers.push(t)
     })
   }
-  console.log('[' + carrier + '] Div headers:', headers)
+  // PHI-SAFE: log column count only
+  console.log('[' + carrier + '] Div header count:', headers.length)
 
   document.querySelectorAll(
     '[role="row"]:not(:first-child), ' +
@@ -423,7 +563,6 @@ function scrapeDivLayout(carrier) {
       const key = headers[i] || 'col_' + i
       rowData[key] = cell.textContent?.trim() ?? ''
     })
-    if (idx === 0) console.log('[' + carrier + '] Div row0:', JSON.stringify(rowData).slice(0, 300))
     if (Object.values(rowData).some(v => String(v).length > 2)) {
       rows.push(rowData)
     }
@@ -619,8 +758,8 @@ async function runMarxBatchLookup() {
     console.log('[MARx] Agency:', debugInfo.agency_name ?? 'unknown', '| ID:', debugInfo.agency_id ?? 'unknown')
     console.log('[MARx] Broker:', debugInfo.broker_name ?? 'unknown', '| ID:', debugInfo.broker_id ?? 'unknown')
     console.log('[MARx] Token prefix:', debugInfo.token?.slice(0, 8) ?? 'none')
+    // PHI-SAFE: log count only — never log names or MBI values
     console.log('[MARx] Members returned by API:', members.length)
-    console.log('[MARx] member MBIs:', members.map(m => ({ name: m.full_name, mbi: m.mbi?.slice(0, 4) })))
     console.log('[MARx] === END BATCH START ===')
 
     if (members.length === 0) {
@@ -949,30 +1088,10 @@ function parseMarxTable() {
 
   if (!table) return null
 
-  // Full raw dump — needed to find H-number location
-  console.log('[MARx] === RAW TABLE START ===')
-  console.log('[MARx] HTML:', table.outerHTML)
-  console.log('[MARx] TEXT:', table.innerText)
-  console.log('[MARx] === RAW TABLE END ===')
-
-  // Cell-by-cell map with colspan info
-  const debugRows = table.querySelectorAll('tr')
-  debugRows.forEach((row, ri) => {
-    row.querySelectorAll('td, th').forEach((cell, ci) => {
-      console.log('[MARx] r' + ri + 'c' + ci +
-        ' colspan=' + (cell.getAttribute('colspan') || 1) +
-        ' : [' + cell.textContent?.trim() + ']')
-    })
-  })
-
-  // Scan ALL eligTables for H-numbers — contract may live in eligTable5/6
-  document.querySelectorAll('[class*="eligTable"]').forEach(t => {
-    const text = t.innerText ?? ''
-    const hMatches = text.match(/\b[HRS]\d{4}\b/g)
-    if (hMatches) {
-      console.log('[MARx]', t.className, 'contains H-numbers:', hMatches)
-    }
-  })
+  // PHI-SAFE: log structural metadata only — no raw HTML, no beneficiary cell content
+  const eligTableCount = document.querySelectorAll('[class*="eligTable"]').length
+  const rowCount = table.querySelectorAll('tbody tr').length
+  console.log('[MARx] parseMarxTable: eligTables found:', eligTableCount, '| data rows:', rowCount)
 
   const enrollments = []
   const dataRows = table.querySelectorAll('tbody tr')

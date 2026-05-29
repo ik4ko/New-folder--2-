@@ -59,7 +59,11 @@ const ALIAS_MAP: Record<string, string[]> = {
 }
 
 function sanitizeMbi(raw: string): string {
-  return raw.toUpperCase().replace(/[^A-Z0-9]/g, '').trim().slice(0, 11)
+  const clean = raw.toUpperCase().replace(/[^A-Z0-9]/g, '').trim().slice(0, 11)
+  // CMS MBI standard: 11 characters exactly, minimum 9 after stripping formatting.
+  // Reject short garbage values ('NA', 'REF', '123', etc.) that pass a truthiness
+  // check but are not valid Medicare Beneficiary Identifiers.
+  return clean.length >= 9 ? clean : ''
 }
 
 function resolveHeader(rawHeader: string): string | null {

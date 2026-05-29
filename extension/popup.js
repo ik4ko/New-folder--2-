@@ -371,34 +371,161 @@ chrome.runtime.onMessage.addListener((msg) => {
   }
 })
 
+// ── Sync Status Telemetry Poller ──────────────────────────────────────────────
+// Polls chrome.storage.local every 750ms for 'aegis_sync_status' written by
+// content.js emitSyncStatus(). Updates the portal-status element and sync-btn
+// text live during an active sync so the broker never sees a frozen spinner.
+
+let _syncStatusPollerId = null
+
+/** Status codes that should display in amber (warning) vs red (error) */
+const AMBER_CODES = new Set(['RETRYING', 'NO_ROSTER_PAGE'])
+
+/**
+ * Start polling aegis_sync_status from chrome.storage.local.
+ * Automatically stops when the status is terminal (success / error).
+ */
+function startSyncStatusPoller() {
+  stopSyncStatusPoller() // clear any existing poller first
+
+  _syncStatusPollerId = setInterval(() => {
+    chrome.storage.local.get(['aegis_sync_status'], (result) => {
+      const status = result.aegis_sync_status
+      if (!status) return
+
+      // Ignore stale statuses (> 2 minutes old — popup was reopened mid-sync)
+      if (Date.now() - status.timestamp > 2 * 60 * 1000) {
+        stopSyncStatusPoller()
+        return
+      }
+
+      const portalStatus = document.getElementById('portal-status')
+      const syncBtn      = document.getElementById('sync-btn')
+
+      if (!portalStatus) return
+
+      if (status.active) {
+        // Active state — update status text live
+        portalStatus.textContent = status.message
+        portalStatus.style.color = AMBER_CODES.has(status.code) ? '#fbbf24' : '#94a3b8'
+
+        if (syncBtn) {
+          syncBtn.textContent = status.code === 'UPLOADING' ? 'Uploading…' : 'Syncing…'
+          syncBtn.disabled = true
+          syncBtn.className = 'btn btn-primary'
+        }
+
+      } else {
+        // Terminal state — update UI and stop polling
+        const isSuccess = status.code === 'SUCCESS'
+
+        portalStatus.textContent = status.message
+        portalStatus.style.color = isSuccess ? '#4ade80' : '#f87171'
+
+        if (syncBtn) {
+          syncBtn.textContent  = isSuccess ? 'Sync complete ✓' : 'Retry'
+          syncBtn.disabled     = isSuccess
+          syncBtn.className    = isSuccess ? 'btn btn-success' : 'btn btn-error'
+        }
+
+        stopSyncStatusPoller()
+
+        // Reset button to default after 4s so the broker can run another sync
+        if (isSuccess) {
+          setTimeout(() => {
+            if (syncBtn) {
+              syncBtn.textContent = 'Sync Roster'
+              syncBtn.disabled    = false
+              syncBtn.className   = 'btn btn-primary'
+            }
+          }, 4000)
+        }
+      }
+    })
+  }, 750)
+}
+
+/** Stop the telemetry poller and release the interval. */
+function stopSyncStatusPoller() {
+  if (_syncStatusPollerId !== null) {
+    clearInterval(_syncStatusPollerId)
+    _syncStatusPollerId = null
+  }
+}
+
+// Always stop the poller when the popup closes
+window.addEventListener('unload', stopSyncStatusPoller)
+
 async function syncCurrentPortal() {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true })
   if (!tab?.url || !tab?.id) return
 
-  const btn = document.getElementById('sync-btn')
-  btn.textContent = 'Syncing...'
-  btn.disabled = true
+  const btn          = document.getElementById('sync-btn')
+  const portalStatus = document.getElementById('portal-status')
+
+  // Immediately update UI and start the live telemetry poller
+  if (btn) {
+    btn.textContent = 'Connecting…'
+    btn.disabled    = true
+    btn.className   = 'btn btn-primary'
+  }
+  if (portalStatus) {
+    portalStatus.textContent = 'Connecting to portal…'
+    portalStatus.style.color = '#94a3b8'
+  }
+
+  // Clear any stale status from a prior run before we begin
+  chrome.storage.local.remove(['aegis_sync_status'])
+
+  // Start polling storage for live status updates from content.js
+  startSyncStatusPoller()
 
   chrome.tabs.sendMessage(tab.id, { action: 'SYNC_ROSTER' }, response => {
     if (chrome.runtime.lastError) {
-      btn.textContent = 'Error — reload portal page'
-      btn.className = 'btn btn-error'
-      btn.disabled = false
+      // Content script not injected — portal page not loaded or not supported
+      stopSyncStatusPoller()
+      if (portalStatus) {
+        portalStatus.textContent = 'Extension not ready — reload the carrier portal page and try again'
+        portalStatus.style.color = '#f87171'
+      }
+      if (btn) {
+        btn.textContent = 'Reload portal page'
+        btn.className   = 'btn btn-error'
+        btn.disabled    = false
+      }
       return
     }
 
+    // The poller will handle all intermediate states.
+    // Only intercept here for the two special cases the poller can't infer:
+
     if (response?.marxBatchStarted) {
-      btn.textContent = 'MARx verification running...'
-      btn.className = 'btn btn-success'
-      btn.disabled = true
-    } else if (response?.success) {
-      btn.textContent = `Synced ${response.rows} members`
-      btn.className = 'btn btn-success'
-    } else {
-      btn.textContent = response?.error ?? 'Sync failed — try again'
-      btn.className = 'btn btn-error'
-      btn.disabled = false
+      // MARx batch started — stop roster poller (MARx has its own MARX_PROGRESS system)
+      stopSyncStatusPoller()
+      if (btn) {
+        btn.textContent = 'MARx verification running…'
+        btn.className   = 'btn btn-success'
+        btn.disabled    = true
+      }
+      return
     }
+
+    if (!response) {
+      // No response at all (e.g. tab was closed during sync)
+      stopSyncStatusPoller()
+      if (portalStatus) {
+        portalStatus.textContent = 'Sync interrupted. Please try again.'
+        portalStatus.style.color = '#f87171'
+      }
+      if (btn) {
+        btn.textContent = 'Retry'
+        btn.className   = 'btn btn-error'
+        btn.disabled    = false
+      }
+    }
+
+    // All other response states (success, error codes) are handled by the poller
+    // reading aegis_sync_status — no duplicate logic needed here.
   })
 }
 
