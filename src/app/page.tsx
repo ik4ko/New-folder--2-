@@ -118,10 +118,29 @@ function EnterpriseModal({ onClose }: { onClose: () => void }) {
   )
 }
 
+// ── Marketing Pillars ─────────────────────────────────────────────────────────
 const FEATURES = [
-  { title: "48-Hour Roster Monitoring", desc: "AegisSage compares your carrier roster against your book of business every 48 hours and fires an alert the moment a client disappears from your roster — before you lose the commission.", icon: Activity, demo: "Switch alert fired — Margaret Thompson missing from Humana roster.", tier: "both" },
-  { title: "VCC Form Automation", desc: "Submit CMS Vendor-Contractor-Certification chronic illness forms directly to your clients' doctors by fax. VCC approval locks in the plan benefit tier and protects your renewal stream.", icon: Printer, demo: "VCC faxed to Dr. Patricia Smith — Humana Gold Plus H5619.", tier: "both" },
-  { title: "Agency-Wide Override Leak Detection", desc: "For Agency Owners: monitor every broker's book simultaneously. Override leak alerts surface the moment any client across your downline disappears from a carrier roster.", icon: ShieldPlus, demo: "Agency alert — 3 clients flagged across 2 brokers this week.", tier: "agency" },
+  {
+    title: "Automated MBI Carrier Verification Engine",
+    desc: "Our Chrome Extension syncs client Name, current Plan, and MBI in the background — silently checking each member against carrier rosters. Catches plan switches automatically without manual portal lookups or spreadsheet audits.",
+    icon: Activity,
+    demo: "Background sync complete — plan switch detected · Robert Sanchez · Humana → United.",
+    tier: "both",
+  },
+  {
+    title: "VCC Form Automation",
+    desc: "Submit CMS Vendor-Contractor-Certification chronic illness forms directly to physician offices via automated faxing on behalf of your client. VCC approval locks the benefit tier and protects your renewal stream — no manual steps required.",
+    icon: Printer,
+    demo: "VCC faxed to Dr. Patricia Smith — Humana Gold Plus H5619.",
+    tier: "both",
+  },
+  {
+    title: "Automated Retention Campaigns",
+    desc: "The moment a coverage anomaly is detected, AegisSage fires multi-channel outreach — text alerts to the client, email notifications to you, and a templated re-enrollment workflow so no switch slips through uncontested.",
+    icon: ShieldPlus,
+    demo: "Retention campaign fired — 3 text alerts sent · Linda Park · switch risk HIGH.",
+    tier: "both",
+  },
 ]
 
 const BROKER_FEATURES = [
@@ -148,13 +167,41 @@ const AGENCY_FEATURES = [
   "BAA execution on request",
 ]
 
+// ── Per-card billing toggle ───────────────────────────────────────────────────
+function BillingToggle({
+  annual,
+  onToggle,
+}: {
+  annual: boolean
+  onToggle: () => void
+}) {
+  return (
+    <div className="flex items-center gap-3 mb-5 p-3 rounded-2xl bg-slate-50 border border-slate-100">
+      <span className={"text-[10px] font-black uppercase tracking-widest " + (!annual ? "text-slate-900" : "text-slate-400")}>
+        Monthly
+      </span>
+      <button
+        onClick={onToggle}
+        aria-label="Toggle billing period"
+        className={"relative w-12 h-6 rounded-full transition-colors " + (annual ? "bg-primary" : "bg-slate-300")}
+      >
+        <span className={"absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-transform " + (annual ? "translate-x-7" : "translate-x-1")} />
+      </button>
+      <span className={"text-[10px] font-black uppercase tracking-widest " + (annual ? "text-slate-900" : "text-slate-400")}>
+        Annual <span className="text-primary">— Save 20%</span>
+      </span>
+    </div>
+  )
+}
+
 export default function LandingPage() {
   const { t } = useTranslation()
   const [showEnterpriseModal, setShowEnterpriseModal] = useState(false)
-  const [billingAnnual, setBillingAnnual] = useState(false)
+  const [brokerAnnual, setBrokerAnnual] = useState(false)
+  const [agencyAnnual, setAgencyAnnual] = useState(false)
 
-  const brokerPrice = billingAnnual ? 119 : 149
-  const agencyPrice = billingAnnual ? 599 : 749
+  const brokerPrice = brokerAnnual ? 119 : 149
+  const agencyPrice = agencyAnnual ? 599 : 749
 
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground selection:bg-primary/10 scroll-smooth overflow-y-auto">
@@ -190,26 +237,19 @@ export default function LandingPage() {
               Medicare Retention Intelligence
             </Badge>
             <h1 className="text-4xl sm:text-6xl md:text-9xl font-black tracking-tighter leading-[0.9] md:leading-[0.85] text-white">
-              Protect Your Book.<br />Retain Every Client.
+              Stop Guessing Your Retention.<br />Automated MBI &amp; Plan Verification,<br />Driven by Your CRM.
             </h1>
             <p className="text-base sm:text-xl md:text-2xl text-slate-300 font-medium leading-relaxed max-w-3xl mx-auto">
               The only Medicare retention platform built for independent brokers and agency owners who refuse to lose a client to a plan switch they didn't see coming.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Button size="lg" asChild className="w-full sm:w-auto h-14 md:h-20 px-8 md:px-16 rounded-[2rem] md:rounded-[2.5rem] text-base md:text-xl font-black shadow-2xl shadow-primary/30 transition-all hover:scale-105 bg-primary hover:bg-primary/90 text-white">
-                <Link href="/signup">Start Free Trial</Link>
+                <Link href="/signup">Get Started Now</Link>
               </Button>
               <Button size="lg" variant="ghost" onClick={() => setShowEnterpriseModal(true)}
                 className="w-full sm:w-auto h-14 md:h-20 px-8 md:px-16 rounded-[2rem] md:rounded-[2.5rem] text-base md:text-xl font-black text-white/60 hover:text-white hover:bg-white/5 border border-white/10 transition-all">
                 Agency Inquiry <ArrowRight className="w-5 h-5 ml-2" />
               </Button>
-            </div>
-            <div className="flex flex-wrap items-center justify-center gap-6 pt-4">
-              {[{ icon: Shield, label: "HIPAA Compliant" }, { icon: Lock, label: "AES-256 Encrypted" }, { icon: CheckCircle2, label: "BAA Available" }, { icon: Building2, label: "Not Affiliated with CMS" }].map(({ icon: Icon, label }) => (
-                <div key={label} className="flex items-center gap-1.5 text-[10px] font-black uppercase tracking-widest text-slate-500">
-                  <Icon className="w-3 h-3" />{label}
-                </div>
-              ))}
             </div>
           </div>
         </section>
@@ -234,7 +274,7 @@ export default function LandingPage() {
                       <Zap className="w-7 h-7 text-white" />
                     </div>
                     <div>
-                      <p className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-400">Independent Broker</p>
+                      <p className="text-[9px] font-black uppercase tracking-[0.3em]" style={{ color: '#1A1A1A' }}>Independent Broker</p>
                       <p className="text-2xl font-black tracking-tight text-slate-900">Personal Speed &amp; Control</p>
                     </div>
                   </div>
@@ -260,7 +300,7 @@ export default function LandingPage() {
                     ))}
                   </div>
                   <Button asChild className="w-full h-14 rounded-2xl font-black uppercase text-[10px] tracking-widest bg-slate-900 text-white hover:bg-primary transition-all">
-                    <Link href="/signup?plan=broker">Start Free Trial — $149/mo</Link>
+                    <Link href="/signup?plan=broker">Get Started Now</Link>
                   </Button>
                 </div>
               </div>
@@ -274,7 +314,7 @@ export default function LandingPage() {
                       <Building2 className="w-7 h-7 text-primary" />
                     </div>
                     <div>
-                      <p className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/60">Agency Owner</p>
+                      <p className="text-[9px] font-black uppercase tracking-[0.3em] text-primary">Agency Owner</p>
                       <p className="text-2xl font-black tracking-tight text-white">Manager Control Center</p>
                     </div>
                     <Badge className="ml-auto bg-primary/10 text-primary border border-primary/30 font-black uppercase text-[9px] tracking-widest px-3">Enterprise</Badge>
@@ -306,9 +346,9 @@ export default function LandingPage() {
                   </div>
                   <Button onClick={() => setShowEnterpriseModal(true)}
                     className="w-full h-14 rounded-2xl font-black uppercase text-[10px] tracking-widest bg-primary hover:bg-primary/90 shadow-xl shadow-primary/30 gap-2">
-                    <Send className="w-3.5 h-3.5" />Request Enterprise Onboarding &amp; Security Docs
+                    <Send className="w-3.5 h-3.5" />Request Onboarding
                   </Button>
-                  <p className="text-[9px] font-bold uppercase tracking-widest text-white/20 text-center">Starting at $749/mo · Annual contract · BAA included</p>
+                  <p className="text-[9px] font-bold uppercase tracking-widest text-white/20 text-center">Starting at $749/mo · BAA included</p>
                 </div>
               </div>
             </div>
@@ -353,29 +393,25 @@ export default function LandingPage() {
             <div className="text-center space-y-6">
               <Badge className="bg-slate-800 text-white border border-slate-600 px-4 py-1.5 font-black uppercase tracking-widest text-[10px]">Transparent Pricing</Badge>
               <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter" style={{ color: "#111827" }}>Two Tiers. <span className="text-primary">Zero Hidden Fees.</span></h2>
-              <div className="flex items-center justify-center gap-3">
-                <span className={"text-[10px] font-black uppercase tracking-widest " + (!billingAnnual ? "text-slate-900" : "text-slate-400")}>Monthly</span>
-                <button onClick={() => setBillingAnnual(b => !b)} className={"relative w-12 h-6 rounded-full transition-colors " + (billingAnnual ? "bg-primary" : "bg-slate-300")}>
-                  <span className={"absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-transform " + (billingAnnual ? "translate-x-7" : "translate-x-1")} />
-                </button>
-                <span className={"text-[10px] font-black uppercase tracking-widest " + (billingAnnual ? "text-slate-900" : "text-slate-400")}>Annual <span className="text-primary">— Save 20%</span></span>
-              </div>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+
+              {/* Solo Plan */}
               <Card className="rounded-[3.5rem] border border-border p-10 flex flex-col justify-between bg-white shadow-sm hover:border-primary/30 transition-all">
                 <div>
                   <div className="flex items-center gap-3 mb-6">
                     <div className="w-12 h-12 rounded-2xl bg-slate-900 flex items-center justify-center"><Zap className="w-5 h-5 text-white" /></div>
                     <div>
-                      <p className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-400">Independent Broker</p>
+                      <p className="text-[9px] font-black uppercase tracking-[0.3em]" style={{ color: '#1A1A1A' }}>Independent Broker</p>
                       <p className="text-xl font-black text-slate-900">Solo Plan</p>
                     </div>
                   </div>
+                  <BillingToggle annual={brokerAnnual} onToggle={() => setBrokerAnnual(b => !b)} />
                   <div className="flex items-baseline gap-1 mb-1">
                     <span className="text-6xl font-black tracking-tighter text-black">${brokerPrice}</span>
                     <span className="text-sm font-bold text-black uppercase opacity-60">/mo</span>
                   </div>
-                  {billingAnnual && <p className="text-[10px] font-black text-primary uppercase tracking-widest mb-4">Billed annually · Save $360/yr</p>}
+                  {brokerAnnual && <p className="text-[10px] font-black text-primary uppercase tracking-widest mb-4">Billed annually · Save $360/yr</p>}
                   <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-8">One broker seat</p>
                   <div className="space-y-3 mb-10">
                     {BROKER_FEATURES.map((f, i) => (
@@ -386,27 +422,28 @@ export default function LandingPage() {
                   </div>
                 </div>
                 <Button asChild className="w-full h-16 rounded-3xl font-black uppercase text-xs tracking-widest shadow-xl bg-slate-900 text-white hover:bg-primary transition-all">
-                  <Link href="/signup?plan=broker">Start Free Trial</Link>
+                  <Link href="/signup?plan=broker">Get Started Now</Link>
                 </Button>
               </Card>
 
+              {/* Agency Plan */}
               <Card className="rounded-[3.5rem] border-0 ring-2 ring-primary p-10 flex flex-col justify-between bg-white shadow-2xl scale-[1.02] relative overflow-hidden">
                 <div className="absolute top-5 right-5"><Badge className="bg-primary text-white font-black uppercase text-[9px] tracking-widest px-3 py-1">Enterprise</Badge></div>
                 <div>
                   <div className="flex items-center gap-3 mb-6">
                     <div className="w-12 h-12 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center"><Building2 className="w-5 h-5 text-primary" /></div>
                     <div>
-                      <p className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/60">Agency Owner</p>
+                      <p className="text-[9px] font-black uppercase tracking-[0.3em]" style={{ color: '#1A1A1A' }}>Agency Owner</p>
                       <p className="text-xl font-black text-slate-900">Agency Plan</p>
                     </div>
                   </div>
+                  <BillingToggle annual={agencyAnnual} onToggle={() => setAgencyAnnual(b => !b)} />
                   <div className="flex items-baseline gap-1 mb-1">
                     <span className="text-6xl font-black tracking-tighter text-black">${agencyPrice}</span>
                     <span className="text-sm font-bold text-black uppercase opacity-60">/mo base</span>
                   </div>
-                  {billingAnnual && <p className="text-[10px] font-black text-primary uppercase tracking-widest mb-1">Billed annually · Save $1,800/yr</p>}
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">+$49/broker seat/mo</p>
-                  <div className="text-[9px] font-black uppercase tracking-widest text-amber-600 bg-amber-50 border border-amber-100 rounded-xl px-3 py-1.5 inline-block mb-8">Annual contract required · Net-30 invoicing available</div>
+                  {agencyAnnual && <p className="text-[10px] font-black text-primary uppercase tracking-widest mb-1">Billed annually · Save $1,800/yr</p>}
+                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-8">+$49/broker seat/mo</p>
                   <div className="space-y-3 mb-10">
                     {AGENCY_FEATURES.map((f, i) => (
                       <div key={i} className="flex items-center gap-3 text-xs font-black text-black uppercase tracking-tight">
@@ -417,11 +454,12 @@ export default function LandingPage() {
                 </div>
                 <Button onClick={() => setShowEnterpriseModal(true)}
                   className="w-full h-16 rounded-3xl font-black uppercase text-[10px] tracking-widest shadow-xl bg-primary text-white hover:bg-primary/90 transition-all gap-2">
-                  <Send className="w-4 h-4" />Request Enterprise Onboarding &amp; Security Docs
+                  <Send className="w-4 h-4" />Request Onboarding
                 </Button>
               </Card>
             </div>
 
+            {/* Consolidated trust badge row */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4">
               {[{ icon: Shield, title: "HIPAA Compliant", sub: "PHI handled under BAA" }, { icon: Lock, title: "AES-256 Encrypted", sub: "Data at rest + in transit" }, { icon: CheckCircle2, title: "BAA Included", sub: "Required for all agencies" }, { icon: BarChart3, title: "SOC 2 Aligned", sub: "Audit-ready infrastructure" }].map(({ icon: Icon, title, sub }) => (
                 <div key={title} className="flex items-start gap-3 p-4 rounded-2xl bg-white border border-slate-100 shadow-sm">
@@ -442,11 +480,11 @@ export default function LandingPage() {
             <div className="space-y-8">
               <div className="space-y-4">
                 <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter text-black">Ready to <span className="text-primary">protect</span> your book?</h2>
-                <p className="text-muted-foreground font-bold text-sm uppercase tracking-widest">Individual brokers start free. Agencies request an onboarding call.</p>
+                <p className="text-muted-foreground font-bold text-sm uppercase tracking-widest">Individual brokers get started instantly. Agencies request an onboarding call.</p>
               </div>
               <div className="flex flex-col sm:flex-row gap-4">
                 <Button asChild size="lg" className="h-16 px-10 rounded-3xl font-black uppercase text-sm tracking-widest shadow-xl bg-primary text-white hover:bg-primary/90 transition-all hover:scale-105">
-                  <Link href="/signup">Start Free Trial</Link>
+                  <Link href="/signup">Get Started Now</Link>
                 </Button>
                 <Button size="lg" variant="outline" onClick={() => setShowEnterpriseModal(true)}
                   className="h-16 px-10 rounded-3xl font-black uppercase text-[10px] tracking-widest border-slate-300 hover:border-primary hover:text-primary transition-all">
