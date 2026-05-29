@@ -1,3 +1,11 @@
+-- !! CONTAMINATION WARNING (fixed in migration 20260529000001_tenant_isolation_repair) !!
+-- This file originally hard-coded agency_id 'd59ad7d4-...' for ALL records,
+-- causing ika9191@gmail.com (independent broker) and ikan9191@gmail.com (agency owner)
+-- to share the same agency context. The migration above permanently separates them.
+--
+-- DO NOT re-run this seed file against a live database — it will re-contaminate the tenant
+-- data. This file is preserved only for reference. Use migration 20260529000001 instead.
+--
 -- Step 4: Insert test GHL contacts
 INSERT INTO ghl_contacts
   (agency_id, ghl_contact_id, full_name, email, phone, status,
