@@ -909,7 +909,7 @@ async function pushFromAgency(
     ? startIndex + slice.length
     : null  // null signals the client that the push is complete
 
-  if (slice.length === 0)
+  if (slice.length === 0) {
     return NextResponse.json({
       success:   true,
       total:     totalMembers,
