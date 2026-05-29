@@ -498,6 +498,7 @@ export function BookMemberTable({ members }: Props) {
                   )
                 })}
               </TableBody>
+            </Table>
           </div>
         )}
       </Card>

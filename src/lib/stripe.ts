@@ -13,7 +13,7 @@ export function getStripe(): Stripe {
   return _stripe
 }
 
-// ── Pricing constants — single source of truth ────────────────────────────────
+// ── Pricing constants — single source of truth ───────────────────────────────────────────
 // Keep in sync with page.tsx billing constants and pricing strategy doc.
 export const PRICING = {
   broker: {
@@ -33,7 +33,7 @@ export const PRICING = {
   },
 } as const
 
-// ── Plan configuration ────────────────────────────────────────────────────────
+// ── Plan configuration ────────────────────────────────────────────
 export const PLANS = {
   broker: {
     name:            'Solo Broker Plan',
@@ -66,19 +66,59 @@ export const PLANS = {
 
 export type PlanKey = keyof typeof PLANS
 
+// ── Legacy archived price ID mapping ───────────────────────────────────────
+// Maps archived Stripe price IDs to their current tier equivalent so that
+// existing database subscription rows continue to resolve correctly even
+// after prices are updated and old IDs are archived in Stripe.
+//
+// Archived price history:
+//   broker v1: $79/mo  (archived May 2026) → maps to 'broker' tier rules
+//   agency v1: $497/mo (archived May 2026) → maps to 'agency' tier rules
+//
+// RULE: Add new entries here when prices change. Never remove old ones.
+// Use STRIPE_LEGACY_* env vars in Vercel to store old price IDs after archiving.
+const LEGACY_PRICE_ID_TIER_MAP: Record<string, PlanKey> = {
+  // v1 prices archived May 2026 ($79 broker / $497 agency)
+  // Set STRIPE_LEGACY_BROKER_PRICE_ID and STRIPE_LEGACY_AGENCY_PRICE_ID
+  // in Vercel env vars to the old Stripe price IDs.
+  ...(process.env.STRIPE_LEGACY_BROKER_PRICE_ID
+    ? { [process.env.STRIPE_LEGACY_BROKER_PRICE_ID]: 'broker' as PlanKey }
+    : {}),
+  ...(process.env.STRIPE_LEGACY_AGENCY_PRICE_ID
+    ? { [process.env.STRIPE_LEGACY_AGENCY_PRICE_ID]: 'agency' as PlanKey }
+    : {}),
+}
+
 /**
  * Resolve a Stripe Price ID to its tier plan configuration.
- * Returns null when the price ID doesn't match any known plan.
+ *
+ * Lookup order:
+ *   1. Live price IDs from env vars (PLANS.*.priceId) — always checked first
+ *   2. Legacy archived price IDs (LEGACY_PRICE_ID_TIER_MAP)
+ *
+ * Returns null only if completely unrecognised. The webhook falls back to
+ * 'broker' tier rules when null is returned — the safest conservative default.
  */
 export function resolvePlanByPriceId(priceId: string): (typeof PLANS)[PlanKey] | null {
+  if (!priceId) return null
+
+  // 1. Live price IDs first
   for (const plan of Object.values(PLANS)) {
     if (plan.priceId === priceId) return plan
   }
+
+  // 2. Legacy archived price IDs
+  const legacyTier = LEGACY_PRICE_ID_TIER_MAP[priceId]
+  if (legacyTier) {
+    console.log('[stripe] legacy price ID resolved:', priceId.slice(0, 20) + '... → tier:', legacyTier)
+    return PLANS[legacyTier]
+  }
+
   return null
 }
 
 /**
- * Map a subscription tier string to its seat enforcement rules.
+ * Map a subscription tier string to seat enforcement rules.
  * Used by the webhook to update agencies.seat_limit atomically with tier.
  */
 export function getSeatRulesForTier(tier: string): {
@@ -91,6 +131,6 @@ export function getSeatRulesForTier(tier: string): {
     case 'agency':
       return { seatLimit: null, includedSeats: PRICING.agency.includedSeats }
     default:
-      return { seatLimit: 1, includedSeats: 1 }  // trial defaults to Solo rules
+      return { seatLimit: 1, includedSeats: 1 }  // trial/unknown defaults to Solo rules
   }
 }
