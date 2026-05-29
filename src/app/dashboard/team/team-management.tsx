@@ -100,7 +100,7 @@ function isExpired(expires_at: string) {
 
 // ── Seat Utilization Bar ──────────────────────────────────────────────────────
 
-function SeatUtilizationBar({ status, onInvite }: { status: SeatStatus | null; onInvite: () => void }) {
+function SeatUtilizationBar({ status, onInvite, isOwner }: { status: SeatStatus | null; onInvite: () => void; isOwner: boolean }) {
   if (!status) {
     return (
       <div className="h-[68px] rounded-2xl bg-slate-900 border border-slate-800 animate-pulse" />
@@ -108,7 +108,8 @@ function SeatUtilizationBar({ status, onInvite }: { status: SeatStatus | null; o
   }
 
   const { currentSeats, includedSeats, maxSeats, tier, overageSeats, overageBilled, canAddSeat, userMessage } = status
-  const isSolo      = tier === 'broker'
+  // Agency owners always bypass the Solo Plan single-seat restriction banner
+  const isSolo      = tier === 'broker' && !isOwner
   const pct         = maxSeats ? Math.min(100, (currentSeats / maxSeats) * 100) : Math.min(100, (currentSeats / includedSeats) * 100)
   const atLimit     = !canAddSeat
   const nearLimit   = !atLimit && currentSeats >= includedSeats - 1
@@ -437,13 +438,10 @@ function BrokerRow({
   const { Icon } = cfg
   const initials = `${broker.first_name?.charAt(0) ?? ''}${broker.last_name?.charAt(0) ?? ''}`.toUpperCase() || '?'
   const isBeingRemoved = removing === broker.id
+  const isSelf = broker.role === 'agency_owner'
 
-  return (
-    <div className={cn(
-      'group flex items-center gap-4 px-5 py-3.5 border-b border-slate-800/60 last:border-0',
-      'hover:bg-slate-800/30 transition-colors duration-100',
-      isBeingRemoved && 'opacity-50 pointer-events-none'
-    )}>
+  const inner = (
+    <>
       {/* Avatar */}
       <div className={cn(
         'w-9 h-9 rounded-xl flex items-center justify-center text-[11px] font-black shrink-0',
@@ -486,10 +484,10 @@ function BrokerRow({
         <p className="text-[8px] font-bold uppercase tracking-widest text-slate-700">Joined</p>
       </div>
 
-      {/* Remove */}
-      {isOwner && broker.role !== 'agency_owner' && (
+      {/* Remove (owner only, not self) */}
+      {isOwner && !isSelf && (
         <button
-          onClick={() => onRemove(broker)}
+          onClick={e => { e.preventDefault(); e.stopPropagation(); onRemove(broker) }}
           disabled={isBeingRemoved}
           className="opacity-0 group-hover:opacity-100 w-7 h-7 rounded-lg flex items-center justify-center text-slate-600 hover:text-red-400 hover:bg-red-500/10 transition-all duration-150 shrink-0"
         >
@@ -499,6 +497,36 @@ function BrokerRow({
           }
         </button>
       )}
+
+      {/* Drill-in arrow (owner view of non-self brokers) */}
+      {isOwner && !isSelf && (
+        <ChevronRight className="w-4 h-4 text-slate-600 group-hover:text-primary transition-colors shrink-0" />
+      )}
+    </>
+  )
+
+  const rowClass = cn(
+    'group flex items-center gap-4 px-5 py-3.5 border-b border-slate-800/60 last:border-0',
+    'transition-colors duration-100',
+    isBeingRemoved && 'opacity-50 pointer-events-none',
+    isOwner && !isSelf ? 'hover:bg-slate-800/40 cursor-pointer' : 'hover:bg-slate-800/30'
+  )
+
+  // Agency owners can drill into a broker's member list via the manager page
+  if (isOwner && !isSelf) {
+    return (
+      <Link
+        href={`/dashboard/manager?brokerId=${broker.user_id}`}
+        className={rowClass}
+      >
+        {inner}
+      </Link>
+    )
+  }
+
+  return (
+    <div className={rowClass}>
+      {inner}
     </div>
   )
 }
@@ -682,6 +710,7 @@ export function TeamManagement({ brokers: initial, agencyId, isOwner, pendingInv
           <SeatUtilizationBar
             status={seatStatus}
             onInvite={handleInviteClick}
+            isOwner={isOwner}
           />
         )}
 

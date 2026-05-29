@@ -121,8 +121,8 @@ function EnterpriseModal({ onClose }: { onClose: () => void }) {
 // ── Marketing Pillars ─────────────────────────────────────────────────────────
 const FEATURES = [
   {
-    title: "Automated MBI Carrier Verification Engine",
-    desc: "Our Chrome Extension syncs client Name, current Plan, and MBI in the background — silently checking each member against carrier rosters. Catches plan switches automatically without manual portal lookups or spreadsheet audits.",
+    title: "Automated Carrier Verification Engine",
+    desc: "Our Chrome Extension syncs client Name, current Plan, and Coverage in the background — silently checking each member against carrier rosters. Catches plan switches automatically without manual portal lookups or spreadsheet audits.",
     icon: Activity,
     demo: "Background sync complete — plan switch detected · Robert Sanchez · Humana → United.",
     tier: "both",
@@ -145,7 +145,7 @@ const FEATURES = [
 
 const BROKER_FEATURES = [
   "Personal book-of-business protection",
-  "MBI lookup & Chrome Extension sync",
+  "Plan & Coverage lookup · Chrome Extension sync",
   "48-hour roster change monitoring",
   "VCC fax automation to physicians",
   "Churn & switch alerts",
@@ -237,7 +237,7 @@ export default function LandingPage() {
               Medicare Retention Intelligence
             </Badge>
             <h1 className="text-4xl sm:text-6xl md:text-9xl font-black tracking-tighter leading-[0.9] md:leading-[0.85] text-white">
-              Stop Guessing Your Retention.<br />Automated MBI &amp; Plan Verification,<br />Driven by Your CRM.
+              Stop Guessing Your Retention.<br />Real-Time Plan Verification,<br />Driven Automatically by Your CRM.
             </h1>
             <p className="text-base sm:text-xl md:text-2xl text-slate-300 font-medium leading-relaxed max-w-3xl mx-auto">
               The only Medicare retention platform built for independent brokers and agency owners who refuse to lose a client to a plan switch they didn't see coming.
@@ -266,40 +266,42 @@ export default function LandingPage() {
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
 
               {/* Broker Tier */}
-              <div className="rounded-[2.5rem] border border-slate-200 bg-white overflow-hidden shadow-sm hover:shadow-xl hover:border-slate-300 transition-all">
-                <div className="h-1.5 bg-gradient-to-r from-slate-700 to-slate-500 w-full" />
+              <div className="rounded-[2.5rem] border-0 ring-2 ring-slate-700 bg-slate-950 overflow-hidden shadow-2xl shadow-slate-900/50">
+                <div className="h-1.5 bg-gradient-to-r from-slate-500 to-slate-400 w-full" />
                 <div className="p-10 space-y-8">
                   <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-2xl bg-slate-900 flex items-center justify-center shadow-lg">
+                    <div className="w-14 h-14 rounded-2xl bg-white/10 border border-white/15 flex items-center justify-center shadow-lg">
                       <Zap className="w-7 h-7 text-white" />
                     </div>
                     <div>
-                      <p className="text-[9px] font-black uppercase tracking-[0.3em]" style={{ color: '#1A1A1A' }}>Independent Broker</p>
-                      <p className="text-2xl font-black tracking-tight text-slate-900">Personal Speed &amp; Control</p>
+                      <p className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-400">Independent Broker</p>
+                      <p className="text-2xl font-black tracking-tight text-white">Personal Speed &amp; Control</p>
                     </div>
                   </div>
-                  <p className="text-sm font-medium text-slate-600 leading-relaxed">Your personal command center. MBI lookups, Chrome Extension sync, roster monitoring, and switch alerts — faster than any competitor.</p>
+                  <p className="text-sm font-medium text-white/60 leading-relaxed">Your personal command center. Plan & Coverage lookups, Chrome Extension sync, roster monitoring, and switch alerts — faster than any competitor.</p>
                   <div className="grid grid-cols-2 gap-2">
-                    {[{ label: "MBI Lookup", sub: "Chrome Extension sync" }, { label: "48-hr Monitoring", sub: "Roster change alerts" }, { label: "VCC Automation", sub: "Fax to physician" }, { label: "AEP Shield", sub: "Enrollment protection" }].map(({ label, sub }) => (
-                      <div key={label} className="p-3 rounded-2xl bg-slate-50 border border-slate-100 space-y-0.5">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-slate-800">{label}</p>
-                        <p className="text-[9px] font-medium text-slate-400 uppercase tracking-wide">{sub}</p>
+                    {[{ label: "Coverage Lookup", sub: "Chrome Extension sync" }, { label: "48-hr Monitoring", sub: "Roster change alerts" }, { label: "VCC Automation", sub: "Fax to physician" }, { label: "AEP Shield", sub: "Enrollment protection" }].map(({ label, sub }) => (
+                      <div key={label} className="p-3 rounded-2xl bg-white/5 border border-white/10 space-y-0.5">
+                        <p className="text-[10px] font-black uppercase tracking-widest text-white/80">{label}</p>
+                        <p className="text-[9px] font-medium text-white/30 uppercase tracking-wide">{sub}</p>
                       </div>
                     ))}
                   </div>
-                  <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 font-mono text-[10px] space-y-2">
-                    <div className="flex items-center gap-2 text-slate-500 mb-3">
-                      <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                      <span className="text-[9px] font-black uppercase tracking-widest">My Book — Live</span>
+                  <div className="p-4 rounded-2xl bg-black/40 border border-white/10 font-mono text-[10px] space-y-2">
+                    <div className="flex items-center justify-between text-white/30 mb-3">
+                      <div className="flex items-center gap-2">
+                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                        <span className="text-[9px] font-black uppercase tracking-widest">My Book — Live</span>
+                      </div>
                     </div>
                     {[{ name: "Margaret Thompson", status: "🔴 Switched" }, { name: "Robert Sanchez", status: "✓ Verified" }, { name: "Linda Park", status: "🚨 Switching Soon" }].map(row => (
                       <div key={row.name} className="flex items-center justify-between text-[9px]">
-                        <span className="text-slate-300 font-bold">{row.name}</span>
-                        <span className="text-slate-500">{row.status}</span>
+                        <span className="text-white/60 font-bold">{row.name}</span>
+                        <span className="text-white/40">{row.status}</span>
                       </div>
                     ))}
                   </div>
-                  <Button asChild className="w-full h-14 rounded-2xl font-black uppercase text-[10px] tracking-widest bg-slate-900 text-white hover:bg-primary transition-all">
+                  <Button asChild className="w-full h-14 rounded-2xl font-black uppercase text-[10px] tracking-widest bg-primary hover:bg-primary/90 text-white transition-all">
                     <Link href="/signup?plan=broker">Get Started Now</Link>
                   </Button>
                 </div>
@@ -376,7 +378,7 @@ export default function LandingPage() {
                   <h3 className="text-2xl font-black uppercase tracking-tight text-black">{feature.title}</h3>
                   <p className="text-sm font-bold text-muted-foreground uppercase leading-relaxed opacity-70">{feature.desc}</p>
                 </div>
-                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 font-mono text-[10px] text-primary/70 font-black uppercase tracking-tighter">
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 font-mono text-[10px] font-black uppercase tracking-tighter" style={{ color: '#1A1A1A' }}>
                   <div className="flex items-center gap-2 mb-1">
                     <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />Live Signal
                   </div>
@@ -412,7 +414,7 @@ export default function LandingPage() {
                     <span className="text-sm font-bold text-black uppercase opacity-60">/mo</span>
                   </div>
                   {brokerAnnual && <p className="text-[10px] font-black text-primary uppercase tracking-widest mb-4">Billed annually · Save $360/yr</p>}
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-8">One broker seat</p>
+                  <p className="text-[10px] font-bold text-slate-700 uppercase tracking-widest mb-8">One broker seat</p>
                   <div className="space-y-3 mb-10">
                     {BROKER_FEATURES.map((f, i) => (
                       <div key={i} className="flex items-center gap-3 text-xs font-black text-black uppercase tracking-tight">
@@ -443,7 +445,7 @@ export default function LandingPage() {
                     <span className="text-sm font-bold text-black uppercase opacity-60">/mo base</span>
                   </div>
                   {agencyAnnual && <p className="text-[10px] font-black text-primary uppercase tracking-widest mb-1">Billed annually · Save $1,800/yr</p>}
-                  <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-8">+$49/broker seat/mo</p>
+                  <p className="text-[10px] font-bold text-slate-700 uppercase tracking-widest mb-8">+$49/broker seat/mo</p>
                   <div className="space-y-3 mb-10">
                     {AGENCY_FEATURES.map((f, i) => (
                       <div key={i} className="flex items-center gap-3 text-xs font-black text-black uppercase tracking-tight">
@@ -459,18 +461,6 @@ export default function LandingPage() {
               </Card>
             </div>
 
-            {/* Consolidated trust badge row */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-4">
-              {[{ icon: Shield, title: "HIPAA Compliant", sub: "PHI handled under BAA" }, { icon: Lock, title: "AES-256 Encrypted", sub: "Data at rest + in transit" }, { icon: CheckCircle2, title: "BAA Included", sub: "Required for all agencies" }, { icon: BarChart3, title: "SOC 2 Aligned", sub: "Audit-ready infrastructure" }].map(({ icon: Icon, title, sub }) => (
-                <div key={title} className="flex items-start gap-3 p-4 rounded-2xl bg-white border border-slate-100 shadow-sm">
-                  <Icon className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-slate-900">{title}</p>
-                    <p className="text-[9px] font-medium text-slate-400 mt-0.5">{sub}</p>
-                  </div>
-                </div>
-              ))}
-            </div>
           </div>
         </section>
 
@@ -530,10 +520,27 @@ export default function LandingPage() {
               </div>
             </div>
           </div>
-          <div className="border-t border-white/5 pt-8 flex flex-col md:flex-row items-center justify-between gap-4">
-            <p className="text-slate-600 text-[10px] font-bold uppercase tracking-widest">&copy; 2026 AegisSage Intelligence Inc. All rights reserved.</p>
-            <div className="flex items-center gap-2 text-[9px] font-black uppercase tracking-widest text-slate-600">
-              <Shield className="w-3 h-3" />HIPAA Compliant &nbsp;·&nbsp;<Lock className="w-3 h-3" />AES-256 &nbsp;·&nbsp; BAA Available Upon Request
+          {/* Trust badge grid — absolute bottom of page */}
+          <div className="border-t border-white/5 pt-8 space-y-6">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              {[
+                { icon: Shield,       title: "HIPAA Compliant",  sub: "PHI handled under BAA" },
+                { icon: Lock,         title: "AES-256 Encrypted", sub: "Data at rest + in transit" },
+                { icon: CheckCircle2, title: "BAA Included",      sub: "Required for all agencies" },
+                { icon: BarChart3,    title: "SOC 2 Aligned",     sub: "Audit-ready infrastructure" },
+              ].map(({ icon: Icon, title, sub }) => (
+                <div key={title} className="flex items-start gap-3 p-4 rounded-2xl bg-white/5 border border-white/10">
+                  <Icon className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-white">{title}</p>
+                    <p className="text-[9px] font-medium text-slate-400 mt-0.5">{sub}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
+              <p className="text-slate-600 text-[10px] font-bold uppercase tracking-widest">&copy; 2026 AegisSage Intelligence Inc. All rights reserved.</p>
+              <p className="text-slate-700 text-[9px] font-bold uppercase tracking-widest">Not affiliated with CMS · For licensed Agents of Record only</p>
             </div>
           </div>
         </div>
