@@ -10,11 +10,25 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        body: ['Inter', 'sans-serif'],
-        headline: ['Inter', 'sans-serif'],
-        code: ['monospace'],
+        // Inter — primary UI + data tables (loaded via layout.tsx from Google Fonts)
+        body:     ['Inter', 'ui-sans-serif', 'system-ui', '-apple-system', 'Segoe UI', 'sans-serif'],
+        headline: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        // Monospace — MBIs, NPNs, plan codes (tabular-nums enforced)
+        mono:     ['JetBrains Mono', 'Fira Mono', 'ui-monospace', 'Cascadia Code', 'SF Mono', 'Menlo', 'monospace'],
+        code:     ['JetBrains Mono', 'Fira Mono', 'ui-monospace', 'monospace'],
       },
       colors: {
+        // Warning / CRITICAL_PENDING amber — exclusive to retention alert tier
+        warning: {
+          DEFAULT:    'hsl(var(--warning))',
+          foreground: 'hsl(var(--warning-foreground))',
+        },
+        // Surface depth system — use instead of hardcoded slate values
+        surface: {
+          '1': 'hsl(var(--surface-1))',
+          '2': 'hsl(var(--surface-2))',
+          '3': 'hsl(var(--surface-3))',
+        },
         background: 'hsl(var(--background))',
         foreground: 'hsl(var(--foreground))',
         card: {
@@ -67,10 +81,12 @@ export default {
         },
       },
       borderRadius: {
-        lg: 'var(--radius)',
-        md: 'calc(var(--radius) - 2px)',
-        sm: 'calc(var(--radius) - 4px)',
-        '2xl': '1.5rem',
+        lg:   'var(--radius)',
+        md:   'calc(var(--radius) - 2px)',
+        sm:   'calc(var(--radius) - 4px)',
+        '2xl':'1.5rem',
+        '3xl':'1.75rem',
+        '4xl':'2rem',
       },
       keyframes: {
         'accordion-down': {

@@ -50,14 +50,14 @@ function NavLink({ item, isActive, isOpen }: { item: NavItem; isActive: boolean;
             "flex items-center rounded-xl transition-all duration-150 group relative",
             isOpen ? "px-3 py-2.5 gap-3" : "justify-center py-3",
             isActive
-              ? "bg-primary/10 text-primary font-bold shadow-sm"
-              : "text-slate-400 hover:bg-white/5 hover:text-white"
+              ? "bg-primary/[0.12] text-primary font-bold shadow-[inset_0_1px_0_rgba(255,255,255,0.06)] border border-primary/20"
+              : "text-slate-500 hover:bg-[hsl(var(--sidebar-accent))] hover:text-white border border-transparent"
           )}
         >
           <div className="relative shrink-0">
             <item.icon className={cn(
-              "w-5 h-5",
-              isActive ? "text-primary" : "text-slate-400 group-hover:text-white"
+              "w-4.5 h-4.5",
+              isActive ? "text-primary" : "text-slate-500 group-hover:text-slate-200"
             )} />
             {showBadge && !isOpen && (
               <span className="absolute -top-1.5 -right-1.5 min-w-[14px] h-3.5 rounded-full bg-red-500 text-[8px] font-black text-white flex items-center justify-center px-0.5">
@@ -128,11 +128,12 @@ export function SidebarNav({ isStaff, role, name, email, criticalAlerts = 0 }: S
   return (
     <TooltipProvider delayDuration={0}>
       <div className={cn(
-        "flex flex-col bg-slate-950 border-r border-white/10 h-full shrink-0 z-50 overflow-hidden transition-all duration-300 ease-in-out relative",
+        // Use CSS variable for sidebar bg so it stays in sync with --sidebar-background token
+        "flex flex-col bg-[hsl(var(--sidebar-background))] border-r border-[hsl(var(--sidebar-border))] h-full shrink-0 z-50 overflow-hidden transition-all duration-300 ease-in-out relative",
         isOpen ? "w-64" : "w-16"
       )}>
         {/* Brand + role chip */}
-        <div className={cn("p-4 flex items-center shrink-0 h-16 border-b border-white/10", isOpen ? "justify-between" : "justify-center px-0")}>
+        <div className={cn("p-4 flex items-center shrink-0 h-16 border-b border-[hsl(var(--sidebar-border))]", isOpen ? "justify-between" : "justify-center px-0")}>
           {isOpen ? (
             <a href="/dashboard" className="flex items-center gap-2">
               <Logo className="scale-90" />
@@ -179,15 +180,15 @@ export function SidebarNav({ isStaff, role, name, email, criticalAlerts = 0 }: S
 
         {/* CMS Disclaimer */}
         {isOpen && (
-          <div className="px-4 py-3 border-t border-white/5">
-            <p className="text-[8px] font-bold text-slate-600 leading-tight uppercase">
-              Not connected with or endorsed by the U.S. government or the federal Medicare program.
+          <div className="px-4 py-3 border-t border-[hsl(var(--sidebar-border))]">
+            <p className="text-[8px] font-bold text-slate-600 leading-tight uppercase tracking-wider">
+              Not affiliated with or endorsed by the U.S. government or the federal Medicare program.
             </p>
           </div>
         )}
 
         {/* Footer Nav */}
-        <div className="p-3 border-t border-white/10 space-y-0.5">
+        <div className="p-3 border-t border-[hsl(var(--sidebar-border))] space-y-0.5">
           {FOOTER_NAV.map(item => (
             <NavLink key={item.href} item={item} isActive={isActive(item.href)} isOpen={isOpen} />
           ))}
@@ -213,11 +214,11 @@ export function SidebarNav({ isStaff, role, name, email, criticalAlerts = 0 }: S
         </div>
 
         {/* User Profile Dropdown */}
-        <div className="p-3 border-t border-white/10">
+        <div className="p-3 border-t border-[hsl(var(--sidebar-border))]">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button className={cn(
-                "w-full flex items-center rounded-xl transition-all duration-150 hover:bg-white/5 group",
+                "w-full flex items-center rounded-xl transition-all duration-150 hover:bg-[hsl(var(--sidebar-accent))] group",
                 isOpen ? "px-3 py-2.5 gap-3" : "justify-center py-3"
               )}>
                 <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center text-primary text-[10px] font-black shrink-0">
@@ -232,7 +233,7 @@ export function SidebarNav({ isStaff, role, name, email, criticalAlerts = 0 }: S
               </button>
             </DropdownMenuTrigger>
             <DropdownMenuContent side="right" align="end" sideOffset={8}
-              className="w-60 rounded-2xl p-2 bg-slate-900 border-slate-700 shadow-2xl">
+              className="w-60 rounded-2xl p-2 bg-[hsl(var(--surface-3))] border-[hsl(var(--sidebar-border))] shadow-2xl shadow-black/40">
               <DropdownMenuLabel className="px-3 py-2">
                 <p className="text-sm font-bold text-white">{name}</p>
                 <p className="text-[10px] text-slate-400">{email}</p>

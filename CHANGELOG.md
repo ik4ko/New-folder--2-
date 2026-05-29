@@ -1,5 +1,241 @@
 # Aegis Sage — Changelog
 
+## [Operational Sovereignty: Edge-Mapping Engine, Compliance Audit Trail, Revenue Calculator] — 2026-05-28
+
+### Migration: `20260528040000_carrier_edge_maps.sql` — Autonomous Carrier Edge-Mapping Engine
+
+New table `public.carrier_edge_maps` stores server-delivered CSS/DOM selectors for the Chrome extension. This eliminates the structural vulnerability where a carrier portal DOM update (Humana button layout change, Aetna table restructure, etc.) would silently break extension extraction until a Chrome Web Store review cycle completed.
+
+**Architecture:**
+- Extension calls `GET /api/edge-mapping` (authenticated via `extension_api_key`) on startup and every 15 minutes
+- Server returns the active selector set for all carriers (or one specific carrier via `?carrier=humana`)
+- Extension caches selectors locally with a `version` integer for cache invalidation — sends `?version=N` and receives `304 Not Modified` when nothing changed
+- `version` auto-increments on every row UPDATE via a `BEFORE UPDATE` trigger. Updating a selector in Supabase Studio instantly propagates to all live extension installs on next fetch cycle.
+- `fallback_selectors` JSONB column stores hardcoded fallback values per carrier — extension falls back gracefully if the API is unreachable
+
+**Seeded carriers:** humana, uhc, aetna, wellcare, bcbs, devoted — with extraction_strategy typed as css / aria / xpath / text.
+
+**RLS:** `SELECT` open to any authenticated session (extension API key resolves to a broker session). `INSERT/UPDATE/DELETE` requires service role — no broker can modify selectors.
+
+**Table columns:** `carrier_slug` (UNIQUE), `carrier_display`, `portal_base_url`, `mbi_selector`, `roster_row_selector`, `name_selector`, `plan_selector`, `status_selector`, `effective_date_selector`, `search_input_selector`, `search_button_selector`, `extraction_strategy`, `version`, `is_active`, `fallback_enabled`, `fallback_selectors`, `last_verified_at`, `verified_by`, `notes`.
+
+---
+
+### API Route: `src/app/api/edge-mapping/route.ts`
+
+**`GET /api/edge-mapping`**
+- Auth: `Authorization: Bearer <extension_api_key>` (same pattern as `/api/extension/sync`)
+- Query params: `?carrier=humana` (filter), `?version=N` (cache check → 304 if no changes)
+- Response: `{ maps: CarrierEdgeMap[], fetched_at, ttl_seconds, max_version }`
+- Headers: `Cache-Control: private, max-age=900`, `X-Edge-Map-Version`
+- Every fetch logged to `enterprise_audit_logs` with `action_type: 'EDGE_MAP_FETCH'`
+
+**`POST /api/edge-mapping`** (field verification reporting)
+- Extension reports whether selectors still work against the live portal
+- Body: `{ carrier_slug, verified: boolean, broken_selectors?: string[], notes?: string }`
+- Updates `last_verified_at` and appends broken selector report to `notes` column
+
+---
+
+### Migration: `20260528050000_enterprise_audit_logs.sql` — HIPAA Compliance Audit Trail
+
+New table `public.enterprise_audit_logs` — purpose-built HIPAA §164.312(b) compliance audit log. Supplements (does not replace) the existing general-purpose `audit_log` table.
+
+**Key differences from `audit_log`:**
+- `client_ip` + `user_agent` + `session_id` columns (required by HIPAA for access audit)
+- `phi_touched BOOLEAN` — fast triage flag for breach assessment (filter WHERE phi_touched = TRUE)
+- `action_type TEXT CHECK(...)` — enum constraint preventing arbitrary string pollution
+- **Append-only enforced at SQL rule level** — `CREATE RULE ... DO INSTEAD NOTHING` blocks UPDATE and DELETE even from the service role. True immutability without triggers.
+
+**Action types:**
+- PHI-touch: `MBI_REVEAL`, `MBI_COPY`, `CSV_EXPORT`, `RECORD_MODIFY`, `RECORD_DELETE`, `RECORD_VIEW`
+- Infrastructure: `EDGE_MAP_FETCH`, `API_KEY_GENERATE`, `ROSTER_UPLOAD`, `ALERT_ACKNOWLEDGE`, `CRM_SYNC`
+- Auth: `LOGIN`, `LOGOUT`, `LOGIN_FAILED`
+
+**RLS:** OWNER + MANAGER/CS can SELECT (audit report access). Agency members can INSERT. No UPDATE/DELETE policy (blocked at SQL rule level regardless).
+
+**Indexes:** `idx_eal_agency_phi` (partial, WHERE phi_touched = TRUE) — primary compliance query path. `idx_eal_user_timeline` — breach investigation. `idx_eal_action_type` — action filter. `idx_eal_resource` — "who accessed member X" lookup.
+
+---
+
+### Library: `src/lib/audit/log-enterprise-event.ts`
+
+Server-side audit helper callable from any API route or server action.
+
+**`logEnterpriseEvent(params)`** — core function. Uses service role client. Failures are silently swallowed (audit failures must not disrupt primary operations). Automatically forces `phi_touched = true` for `MBI_REVEAL`, `MBI_COPY`, `CSV_EXPORT`, `RECORD_MODIFY`, `RECORD_DELETE`.
+
+**Convenience wrappers:** `logMbiReveal()`, `logMbiCopy()`, `logCsvExport()`, `logRosterUpload()`, `logCrmSync()` — pre-typed for the most common event patterns.
+
+**PHI policy enforced:** jsdoc and parameter naming explicitly prohibit passing raw PHI (names, MBI values) in `metadata`. Only `resourceId` (UUID) is acceptable for identifying records.
+
+---
+
+### API Route: `src/app/api/audit/phi-touch/route.ts`
+
+Client-side PHI-touch event endpoint for browser-initiated events that cannot be captured server-side.
+
+- Auth: Supabase session cookie (JWT). `agencyId` and `userId` resolved from the authenticated session — **never from the request body**.
+- `clientIp` from `x-forwarded-for` header — never from body.
+- `metadata` sanitized: strips any key matching `/mbi|ssn|hicn|medicare|dob|birth|phone|address|name|email/i`
+- Allowed action types from client: `MBI_REVEAL`, `MBI_COPY`, `CSV_EXPORT`, `RECORD_VIEW`, `ALERT_ACKNOWLEDGE`
+- Returns `204 No Content` immediately — write is fire-and-forget, never blocks the UI
+
+**Integration points (where to call from book-member-table.tsx):**
+```typescript
+// On MBI overlay open:
+fetch('/api/audit/phi-touch', { method: 'POST', body: JSON.stringify({ actionType: 'MBI_REVEAL', resourceId: member.id }) })
+// On MBI copy click:
+fetch('/api/audit/phi-touch', { method: 'POST', body: JSON.stringify({ actionType: 'MBI_COPY', resourceId: member.id }) })
+// On CSV export:
+fetch('/api/audit/phi-touch', { method: 'POST', body: JSON.stringify({ actionType: 'CSV_EXPORT', metadata: { row_count: filtered.length } }) })
+```
+
+---
+
+### Component: `src/components/revenue-leakage-calculator.tsx` — Agency Revenue Leakage Calculator
+
+Dashboard panel for Agency Owner view showing the exact annualized commission revenue at risk from CRITICAL_PENDING member switches. Slotted into `src/app/dashboard/page.tsx` directly above the Alert Summary Widget — only renders when `switchingAlerts > 0 || termedAlerts > 0`.
+
+**Calculation model:**
+- `switchingLoss = switchingCount × $600/member/yr` — CRITICAL_PENDING switches (100% loss risk)
+- `termedLoss = termedCount × $600 × 0.5` — Termed members (50% recovery possible via SEP/OEP re-enrollment)
+- `totalAnnualLoss = switchingLoss + termedLoss`
+- `monthlyImpact = totalAnnualLoss ÷ 12`
+- `atRiskPercent = (switchingCount + termedCount) ÷ totalCount × 100`
+
+**Visual spec:**
+- Uses `bg-[hsl(var(--surface-1))]` and `bg-[hsl(var(--surface-2))]` CSS tokens — not hardcoded slate
+- Amber (`text-amber-300`, `border-amber-500/25`) for CRITICAL_PENDING (recoverable)
+- Red (`text-red-400`) for termed (harder to recover)
+- Primary figure displayed as `$X,XXX / Year` in 4xl–5xl font-black tabular-nums
+- Secondary display: `≈ $X,XXX/mo`
+- Zero-loss state: renders emerald "No Detected Revenue Risk" health card instead
+
+**CTAs:** "Review & Recover" → `/dashboard/alerts`, "File VCC Forms" → `/dashboard/vcc`
+
+---
+
+## [Enterprise Design System: AegisMessage, Typography, Dark Mode Unification] — 2026-05-28
+
+### New: `src/components/ui/aegis-message.tsx` — AegisMessage System Notification Component
+Premium platform-wide notification component for all system, compliance, and retention communications. Replaces ad-hoc inline alerts across the dashboard.
+
+**Three alert tiers:**
+- `INFO` — Blue primary accent. Shield badge. Routine system announcements, feature updates, onboarding tips.
+- `COMPLIANCE_WARNING` — Amber `--warning` token. ShieldCheck icon. HIPAA reminders, carrier deadline notices, regulatory updates. Amber border-left, amber glow background.
+- `CRITICAL_RETENTION` — Red. ShieldAlert icon. Active member loss risk, CRITICAL_PENDING plan switches. Animated pulse ring on the shield badge.
+
+**Props API:**
+- `type` — `'INFO' | 'COMPLIANCE_WARNING' | 'CRITICAL_RETENTION'`
+- `title` — Headline (5–10 words ideal)
+- `body` — Message body (1–3 sentences)
+- `timestamp` — ISO or pre-formatted label, displayed with Clock icon
+- `actionLabel` + `onAction` — Optional CTA button, right-aligned
+- `deadline` — Optional deadline label (left-aligned next to CTA)
+- `pulse` — Auto-true for CRITICAL_RETENTION; shows animated ring on shield
+
+**Convenience wrappers:** `InfoMessage`, `ComplianceWarning`, `CriticalRetentionAlert` (type pre-filled).
+
+**Stack wrapper:** `AegisMessageStack` — renders an ordered list of messages with consistent `space-y-2.5` gaps.
+
+**Accessibility:** `role="alert"`, `aria-live="assertive"` for CRITICAL_RETENTION, `aria-live="polite"` for others.
+
+---
+
+### `src/app/globals.css` — Enterprise Typography & Color System Overhaul
+
+**New CSS tokens (`:root` + `.dark`):**
+- `--warning` / `--warning-foreground` — Amber-500 equivalent. **Exclusively reserved for CRITICAL_PENDING retention alerts.** Prevents amber creeping into non-critical UI states.
+- `--surface-1` / `--surface-2` / `--surface-3` — Three-stop elevation depth system for dark mode cards. Replaces the 2% lightness-difference card/background that was nearly imperceptible.
+  - `surface-1`: base card floor (`222 47% 6%`)
+  - `surface-2`: raised card / hover state (`222 47% 9%`)
+  - `surface-3`: floating panel / modal tier (`222 40% 13%`)
+- `--sidebar-background`: Moved to a dedicated token (`220 47% 3%`) — one lightness stop below `--background` to create clear visual separation between sidebar and content pane.
+
+**Typography upgrades:**
+- `font-variant-numeric: tabular-nums` + `font-feature-settings: "tnum"` applied via `.data-cell` utility — makes MBIs, NPNs, phone numbers, and dates render in consistent column widths.
+- `.identifier` utility class — monospace font stack (JetBrains Mono → Fira Mono → ui-monospace) with `letter-spacing: 0.04em` for credentials.
+- `th` global rule adds `white-space: nowrap` preventing column headers from collapsing into multi-line blocks in dense data tables.
+- `.data-table` component class enforces all table header standards in one declaration.
+- `letter-spacing: -0.015em` on `.dark` headings for tighter, more premium titling.
+
+**Scrollbar refinement:**
+- Custom 4px dark scrollbar in `.dark` contexts — `slate-700/60` thumb, transparent track. Consistent with the "invisible chrome" enterprise aesthetic.
+
+**New animation:**
+- `fade-up` keyframe (`opacity 0 → 1`, `translateY 6px → 0`, 0.3s ease-out) — for page-level content reveal.
+- `critical-ring` keyframe — box-shadow pulse for CRITICAL_RETENTION alerts.
+
+**Global transition fix:**
+- Changed `transition-colors` global rule to explicit `transition-property: color, background-color, border-color, opacity, box-shadow` with `duration: 150ms`. Prevents the `transition-colors` rule from inadvertently animating layout properties (width, padding) on sidebar open/close.
+
+---
+
+### `tailwind.config.ts` — Design Token Extensions
+
+- **Font families updated**: `body` / `headline` extended to full system-ui fallback chain. `mono` / `code` now use JetBrains Mono → Fira Mono → ui-monospace stack.
+- **New color tokens**: `warning.DEFAULT` / `warning.foreground`, `surface.1` / `surface.2` / `surface.3` — all mapped to CSS variables.
+- **Border radius additions**: `3xl` (1.75rem), `4xl` (2rem) for future modal/sheet surfaces.
+
+---
+
+### `src/components/sidebar-nav.tsx` — Token-Driven Surface Unification
+
+- **`bg-slate-950` → `bg-[hsl(var(--sidebar-background))]`** — sidebar now reads from the CSS token system, not a hardcoded Tailwind slate.
+- **`border-white/10` → `border-[hsl(var(--sidebar-border))]`** — all sidebar dividers token-driven.
+- **Active nav link**: Upgraded from `bg-primary/10` flat fill to `bg-primary/[0.12]` + inset top highlight `shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]` + `border border-primary/20`. Matches premium glass-morphism depth.
+- **Inactive nav hover**: Changed from `hover:bg-white/5` (nearly invisible) to `hover:bg-[hsl(var(--sidebar-accent))]` — a deliberate, legible hover state.
+- **User profile dropdown**: Background changed from `bg-slate-900` to `bg-[hsl(var(--surface-3))]` — uses the elevation system.
+- **CMS disclaimer text**: Copy fixed to "Not affiliated with or endorsed by" (was "Not connected with").
+
+### `src/components/app-layout-shell.tsx` — Layout Cohesion
+
+- All shell surfaces changed from raw `bg-background` / `bg-card` to use `antialiased` consistently.
+- Mobile header changed from `bg-card` to `bg-[hsl(var(--sidebar-background))]` — visually matches the sidebar on mobile, instead of the brighter card surface.
+
+---
+
+## [Security Architecture: Broker-Isolated RLS, CRITICAL_PENDING Alerts, MBI Masking] — 2026-05-28
+
+### Migration: `20260528030000_broker_isolated_rls.sql`
+Complete rewrite of the three core data-access policies (`bob_agency_access`, `alerts_agency_access`, `contacts_agency_access`) — all of which previously granted every agency member (brokers included) full table access with zero isolation. Replaced with a tiered RBAC policy set:
+
+**Role isolation rules implemented:**
+- **BROKER** (`broker` / `solo_broker` role): `SELECT` restricted to records where their own `broker_id` (book_of_business, switch_alerts) or `assigned_broker_id` (ghl_contacts) matches. Cannot see peer broker data.
+- **MANAGER** (`agency_admin` role): Broad `SELECT` across all agency records. Can `UPDATE` alerts and BOB records. Cannot mutate billing columns.
+- **CS** (`customer_service` role): Same read breadth as MANAGER for monitoring/support. Cannot mutate core records.
+- **OWNER** (`agencies.owner_id`): Full `ALL` access via `agencies_owner_all` policy. Exclusive `UPDATE` rights to `agencies` table (subscription_tier, stripe_customer_id, seat_limit).
+- **OWNER does NOT consume a broker seat** — isolation is via `agencies.owner_id` path, separate from the `brokers` table.
+
+**CRITICAL_PENDING broadcast:**
+- Alerts where `switch_alerts.effective_date > CURRENT_DATE` are broadcast to all agency members regardless of `broker_id` — implemented via `alerts_critical_pending_broadcast` policy.
+- New view `critical_pending_alerts` created: joins `switch_alerts` with `book_of_business` for member name/plan context.
+
+**Schema additions (idempotent `ADD COLUMN IF NOT EXISTS`):**
+- `book_of_business`: `future_plan_name TEXT`, `future_effective_date DATE`, `future_plan_code TEXT`, `has_mbi BOOLEAN DEFAULT false`, `last_marx_check TIMESTAMPTZ`, `detected_plan_name TEXT`, `detected_carrier_name TEXT` — all were queried in the frontend but absent from all migration files.
+- `switch_alerts`: `broker_id UUID REFERENCES brokers(id)` — denormalized for efficient row-level isolation without multi-table joins in RLS checks. Backfilled from `bob_member_id → book_of_business.broker_id`.
+
+**Helper functions recreated:**
+- `get_my_role(agency_id)` — returns role string for the calling user.
+- `is_staff(agency_id)` — returns `true` for OWNER / MANAGER / CS.
+- `is_owner(agency_id)` — returns `true` for OWNER only (new).
+
+**Indexes added:**
+- `idx_brokers_user_role(user_id, role)` — accelerates all role-check subqueries.
+- `idx_agencies_owner_id(owner_id)` — accelerates owner-check subqueries.
+- `idx_bob_broker_id(broker_id)` — accelerates broker isolation reads.
+- `idx_ghl_contacts_assigned_broker(assigned_broker_id)` — accelerates broker contact isolation.
+- `idx_switch_alerts_broker_id(broker_id)` — accelerates alert isolation.
+- `idx_switch_alerts_critical_pending(agency_id, effective_date)` — accelerates critical pending broadcast query.
+
+### MBI Visual Masking (`src/components/book-member-table.tsx`)
+- **Table row MBI button** now displays `**-***-****` (monospace font) instead of plain "MBI" text when an MBI is on file. Color remains emerald (present) vs. red (missing).
+- Button tooltip added: "Click to reveal & copy MBI" / "Click to enter MBI".
+- **Overlay modal unchanged** — still displays the raw unmasked MBI with copy-to-clipboard. Masking is purely visual at the row level.
+- When no MBI is set, button now reads "Add MBI" (was "MBI") for clearer affordance.
+
+---
+
 ## [Marketing Overhaul: Tier Separation, Compliance Pages, Billing-v2 Sandbox] — 2026-05-28
 
 ### Landing Page (`src/app/page.tsx`) — Full Overhaul

@@ -474,11 +474,12 @@ export function BookMemberTable({ members }: Props) {
                             </Button>
                           )}
                           <button
-                            className={`flex items-center gap-1 h-6 px-2 rounded border text-[9px] font-black uppercase tracking-widest transition-colors ${
+                            className={`flex items-center gap-1 h-6 px-2 rounded border text-[9px] font-black tracking-widest transition-colors ${
                               member.mbi
-                                ? 'text-emerald-400 border-emerald-700 hover:bg-emerald-950'
-                                : 'text-red-400 border-red-700 hover:bg-red-950'
+                                ? 'text-emerald-400 border-emerald-700 hover:bg-emerald-950 font-mono'
+                                : 'text-red-400 border-red-700 hover:bg-red-950 uppercase'
                             }`}
+                            title={member.mbi ? 'Click to reveal & copy MBI' : 'Click to enter MBI'}
                             onClick={() => {
                               if (member.mbi) {
                                 setMbiOverlay({ name: member.full_name, mbi: member.mbi! })
@@ -488,7 +489,8 @@ export function BookMemberTable({ members }: Props) {
                               }
                             }}
                           >
-                            <KeyRound className="w-3 h-3" />MBI
+                            <KeyRound className="w-3 h-3 shrink-0" />
+                            {member.mbi ? '**-***-****' : 'Add MBI'}
                           </button>
                         </div>
                       </TableCell>

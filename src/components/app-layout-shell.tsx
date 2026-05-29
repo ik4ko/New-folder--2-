@@ -78,7 +78,7 @@ export function AppShell({ children, sidebar }: { children: React.ReactNode; sid
 
   if (isExcluded) {
     return (
-      <div className="h-screen w-screen overflow-y-auto bg-background">
+      <div className="h-screen w-screen overflow-y-auto bg-background antialiased">
         {children}
       </div>
     )
@@ -86,19 +86,21 @@ export function AppShell({ children, sidebar }: { children: React.ReactNode; sid
 
   if (isCheckingAuth) {
     return (
-      <div className="h-screen w-screen flex items-center justify-center bg-background">
+      <div className="h-screen w-screen flex items-center justify-center bg-background antialiased">
         <div className="flex flex-col items-center gap-4">
           <Logo iconOnly className="animate-pulse" />
-          <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground opacity-50">Verifying Agency Credentials...</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-slate-600 opacity-60">
+            Verifying Agency Credentials...
+          </p>
         </div>
       </div>
     )
   }
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-background flex-col md:flex-row">
+    <div className="flex h-screen w-screen overflow-hidden bg-background antialiased flex-col md:flex-row">
       {isMobile && (
-        <header className="h-14 border-b bg-card flex items-center justify-between px-4 shrink-0 z-50">
+        <header className="h-14 border-b border-white/[0.07] bg-[hsl(var(--sidebar-background))] flex items-center justify-between px-4 shrink-0 z-50">
           <Logo iconOnly className="scale-75" />
           <div className="flex items-center gap-1">
             <Button variant="ghost" size="icon" className="h-9 w-9" onClick={toggleRoster}>

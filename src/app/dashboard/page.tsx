@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { autoProvisionUser } from '@/app/actions/auto-provision'
 import { OnboardingChecklist } from '@/components/onboarding-checklist'
+import { RevenueLeakageCalculator } from '@/components/revenue-leakage-calculator'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import Link from 'next/link'
@@ -189,6 +190,16 @@ export default async function Dashboard() {
               <StatCard label="My Save Rate" value={`${brokerStats.mySaveRate}%`} sub="Alerts resolved" icon={ShieldCheck} accentCls={brokerStats.mySaveRate >= 70 ? 'text-emerald-500' : 'text-amber-500'} />
             </div>
           ) : null}
+
+          {/* Revenue Leakage Calculator — Agency Owner only */}
+          {isStaff && ownerStats && (ownerStats.switchingAlerts > 0 || ownerStats.termedAlerts > 0) && (
+            <RevenueLeakageCalculator
+              switchingCount={ownerStats.switchingAlerts}
+              termedCount={ownerStats.termedAlerts}
+              totalCount={ownerStats.totalClients}
+              perMemberValue={600}
+            />
+          )}
 
           {/* Alert Summary Widget */}
           {isStaff && ownerStats ? (
