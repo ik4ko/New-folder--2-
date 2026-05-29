@@ -516,7 +516,7 @@ function BrokerRow({
   if (isOwner && !isSelf) {
     return (
       <Link
-        href={`/dashboard/manager?brokerId=${broker.user_id}`}
+        href={`/dashboard/manager?brokerId=${broker.id}`}
         className={rowClass}
       >
         {inner}

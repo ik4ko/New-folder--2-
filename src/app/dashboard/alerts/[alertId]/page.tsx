@@ -122,8 +122,7 @@ export default async function AlertDetailPage({
     return null
   })()
 
-  const showConfidence = C > 0 || scoreLines.length > 0
-
+  // scoreLines must be declared before showConfidence to avoid TDZ crash
   const scoreLines = Object.entries(components)
     .filter(([, v]) => (v as number) !== 0)
     .map(([k, v]) => ({
@@ -131,6 +130,8 @@ export default async function AlertDetailPage({
       label: SCORE_LABELS[k] ?? k.replace(/_/g, ' '),
       points: v as number,
     }))
+
+  const showConfidence = C > 0 || scoreLines.length > 0
 
   const borderCls = C >= 85
     ? 'border-red-500/30'

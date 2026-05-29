@@ -9,9 +9,11 @@ import {
   Table, TableBody, TableCell, TableHead,
   TableHeader, TableRow,
 } from '@/components/ui/table'
-import { DollarSign, FileText, BarChart3, AlertTriangle, Clock, Shield } from 'lucide-react'
+import {
+  DollarSign, FileText, BarChart3, AlertTriangle,
+  Clock, Shield, ArrowLeft, Users, Bell, CheckCircle2,
+} from 'lucide-react'
 import { createServiceClient } from '@/lib/supabase/service'
-import { FaxAuditExport } from './fax-audit-export'
 
 type FaxStatus = 'pending' | 'sent' | 'failed' | 'signed' | 'expired' | 'no_fax'
 
@@ -35,7 +37,239 @@ function daysLeft(d: string) {
 
 const AVG_COMMISSION = 600
 
-export default async function ManagerPage() {
+function groupCount(rows: Array<Record<string, unknown>>, key: string): Record<string, number> {
+  return rows.reduce<Record<string, number>>((acc, row) => {
+    const val = row[key] as string | null
+    if (val) acc[val] = (acc[val] ?? 0) + 1
+    return acc
+  }, {})
+}
+
+// ── Broker-isolated drilldown view ────────────────────────────────────────────
+
+async function BrokerIsolatedView({
+  brokerId,
+  agencyId,
+}: {
+  brokerId: string
+  agencyId: string
+}) {
+  const svc = createServiceClient()
+
+  const { data: brokerRow } = await svc
+    .from('brokers')
+    .select('id, first_name, last_name, email, role, npn, created_at')
+    .eq('id', brokerId)
+    .eq('agency_id', agencyId)
+    .maybeSingle()
+
+  // Strict agency isolation: broker must belong to caller's agency
+  if (!brokerRow) {
+    redirect('/dashboard/team')
+  }
+
+  const brokerName = `${brokerRow.first_name} ${brokerRow.last_name}`
+
+  const [
+    { data: members },
+    { data: alerts },
+    { data: vccRows },
+    { data: aorRows },
+  ] = await Promise.all([
+    svc.from('book_of_business')
+      .select('id, full_name, carrier, plan_name, enrollment_status, updated_at')
+      .eq('broker_id', brokerId)
+      .eq('agency_id', agencyId)
+      .order('updated_at', { ascending: false })
+      .limit(25),
+    svc.from('switch_alerts')
+      .select('id, alert_type, status, priority, detected_at, bob_member_id')
+      .eq('broker_id', brokerId)
+      .eq('agency_id', agencyId)
+      .in('status', ['open', 'contacted'])
+      .order('detected_at', { ascending: false })
+      .limit(15),
+    svc.from('vcc_submissions')
+      .select('id', { count: 'exact', head: true })
+      .eq('broker_id', brokerId)
+      .eq('agency_id', agencyId),
+    svc.from('aor_submissions')
+      .select('id', { count: 'exact', head: true })
+      .eq('broker_id', brokerId)
+      .eq('agency_id', agencyId)
+      .in('status', ['faxed', 'confirmed']),
+  ])
+
+  const memberList    = members ?? []
+  const alertList     = alerts  ?? []
+  const vccCount      = (vccRows as any)?.count ?? 0
+  const aorCount      = (aorRows as any)?.count ?? 0
+  const openAlerts    = alertList.length
+  const totalMembers  = memberList.length  // approximate from limit-25 fetch
+
+  return (
+    <div className="flex h-full w-full bg-background">
+      <CollectionSidebar />
+      <div className="flex-1 flex flex-col h-full overflow-hidden">
+
+        <header className="h-16 border-b border-border px-8 flex items-center gap-4 bg-white/50 backdrop-blur-md sticky top-0 z-10">
+          <Link href="/dashboard/team">
+            <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground hover:text-foreground -ml-2">
+              <ArrowLeft className="w-4 h-4" />
+              <span className="text-[10px] font-black uppercase tracking-widest">Team</span>
+            </Button>
+          </Link>
+          <div className="w-px h-5 bg-border" />
+          <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center text-primary">
+            <Users className="w-5 h-5" />
+          </div>
+          <div>
+            <h1 className="text-xl font-black text-foreground uppercase tracking-tight">{brokerName}</h1>
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+              Isolated Book View · {brokerRow.role.replace(/_/g, ' ')}
+            </p>
+          </div>
+        </header>
+
+        <div className="flex-1 overflow-y-auto p-8 max-w-5xl mx-auto w-full pb-32 space-y-8">
+
+          {/* Stats row */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            {[
+              { label: 'Members',      value: totalMembers >= 25 ? '25+' : String(totalMembers), icon: Users,         color: 'text-primary',      bg: 'bg-primary/10' },
+              { label: 'Open Alerts',  value: String(openAlerts),  icon: Bell,          color: 'text-red-500',  bg: 'bg-red-500/10' },
+              { label: 'VCC Filings',  value: String(vccCount),    icon: FileText,      color: 'text-blue-500', bg: 'bg-blue-500/10' },
+              { label: 'AORs Locked',  value: String(aorCount),    icon: Shield,        color: 'text-emerald-600', bg: 'bg-emerald-500/10' },
+            ].map(({ label, value, icon: Icon, color, bg }) => (
+              <Card key={label} className="rounded-2xl border border-border shadow-sm">
+                <CardContent className="p-5 flex items-center gap-3">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${bg}`}>
+                    <Icon className={`w-5 h-5 ${color}`} />
+                  </div>
+                  <div>
+                    <p className="text-2xl font-black text-foreground">{value}</p>
+                    <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">{label}</p>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+
+          {/* Open alerts */}
+          <Card className="rounded-3xl border border-border shadow-sm overflow-hidden">
+            <CardHeader className="bg-muted/30 border-b py-4">
+              <CardTitle className="text-sm font-black uppercase tracking-tight flex items-center gap-2">
+                <Bell className="w-4 h-4 text-red-400" />
+                Open Alerts
+                {openAlerts > 0 && (
+                  <Badge className="bg-red-500/10 text-red-500 border-red-500/20 text-[9px] font-black ml-1">{openAlerts}</Badge>
+                )}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              {alertList.length === 0 ? (
+                <div className="py-12 text-center flex flex-col items-center gap-2">
+                  <CheckCircle2 className="w-8 h-8 text-emerald-500/40" />
+                  <p className="text-[11px] font-black uppercase tracking-widest text-muted-foreground/50">No open alerts</p>
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent bg-transparent border-none">
+                      {['Type', 'Priority', 'Detected', 'Status'].map(h => (
+                        <TableHead key={h} className="font-black uppercase text-[9px] tracking-widest text-muted-foreground py-4 px-4">{h}</TableHead>
+                      ))}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {alertList.map(a => (
+                      <TableRow key={a.id} className="border-border/50 hover:bg-muted/20">
+                        <TableCell className="px-4 py-3 font-bold text-sm capitalize">
+                          {(a.alert_type ?? '—').replace(/_/g, ' ')}
+                        </TableCell>
+                        <TableCell className="px-4">
+                          <Badge className={`text-[8px] font-black uppercase px-2 border ${
+                            a.priority === 'critical' ? 'bg-red-500/10 text-red-500 border-red-500/20'
+                            : a.priority === 'high' ? 'bg-orange-500/10 text-orange-500 border-orange-500/20'
+                            : 'bg-slate-500/10 text-slate-500 border-slate-500/20'
+                          }`}>{a.priority ?? '—'}</Badge>
+                        </TableCell>
+                        <TableCell className="px-4 text-[10px] text-muted-foreground">{fmt(a.detected_at)}</TableCell>
+                        <TableCell className="px-4 text-[10px] text-muted-foreground capitalize">{a.status}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Member list */}
+          <Card className="rounded-3xl border border-border shadow-sm overflow-hidden">
+            <CardHeader className="bg-muted/30 border-b py-4">
+              <CardTitle className="text-sm font-black uppercase tracking-tight flex items-center gap-2">
+                <Users className="w-4 h-4" />
+                Book of Business
+                <span className="text-[9px] font-bold text-muted-foreground normal-case">most recent 25</span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0 overflow-x-auto">
+              {memberList.length === 0 ? (
+                <div className="py-12 text-center text-[11px] font-black uppercase tracking-widest text-muted-foreground/50">
+                  No members in this broker's book
+                </div>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow className="hover:bg-transparent bg-transparent border-none">
+                      {['Member', 'Carrier', 'Plan', 'Status', 'Last Updated'].map(h => (
+                        <TableHead key={h} className="font-black uppercase text-[9px] tracking-widest text-muted-foreground py-4 px-4">{h}</TableHead>
+                      ))}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {memberList.map(m => (
+                      <TableRow key={m.id} className="border-border/50 hover:bg-muted/20">
+                        <TableCell className="px-4 py-3 font-bold text-sm">{m.full_name ?? '—'}</TableCell>
+                        <TableCell className="px-4 text-[10px] font-bold uppercase text-muted-foreground">{m.carrier ?? '—'}</TableCell>
+                        <TableCell className="px-4 text-[10px] text-muted-foreground max-w-[160px] truncate">{m.plan_name ?? '—'}</TableCell>
+                        <TableCell className="px-4 text-[10px] capitalize text-muted-foreground">{m.enrollment_status ?? '—'}</TableCell>
+                        <TableCell className="px-4 text-[10px] text-muted-foreground">{fmt(m.updated_at)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Broker profile metadata */}
+          <div className="rounded-2xl border border-border p-5 space-y-2 bg-muted/20">
+            <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-3">Broker Profile</p>
+            {[
+              { label: 'Email',   value: brokerRow.email ?? '—' },
+              { label: 'NPN',     value: brokerRow.npn ?? '—' },
+              { label: 'Joined',  value: fmt(brokerRow.created_at) },
+            ].map(({ label, value }) => (
+              <div key={label} className="flex justify-between text-sm">
+                <span className="text-muted-foreground font-medium">{label}</span>
+                <span className="font-bold text-foreground">{value}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+// ── Agency overview (owner/staff view) ───────────────────────────────────────
+
+export default async function ManagerPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ brokerId?: string }>
+}) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -48,13 +282,18 @@ export default async function ManagerPage() {
 
   const staffRoles = ['agency_owner', 'agency_admin', 'customer_service']
   const isStaff = staffRoles.includes(brokerRow?.role ?? '')
-  const isOwner = !!agency
   if (!isStaff) redirect('/dashboard')
 
   const agencyId = agency?.id ?? brokerRow?.agency_id
   if (!agencyId) redirect('/dashboard')
 
-  // -- Section A: Revenue at Risk --------------------------------------------
+  // Resolve brokerId param — strict agency-membership enforced inside BrokerIsolatedView
+  const { brokerId } = await searchParams
+  if (brokerId) {
+    return <BrokerIsolatedView brokerId={brokerId} agencyId={agencyId} />
+  }
+
+  // -- Section A: Revenue at Risk ------------------------------------------
   const { count: openSwitchCount } = await supabase
     .from('switch_alerts')
     .select('id', { count: 'exact', head: true })
@@ -64,7 +303,7 @@ export default async function ManagerPage() {
 
   const revenueAtRisk = (openSwitchCount ?? 0) * AVG_COMMISSION
 
-  // -- Section B: Fax Audit Trail --------------------------------------------
+  // -- Section B: Fax Audit Trail ------------------------------------------
   const { data: submissions } = await supabase
     .from('vcc_submissions')
     .select('id, client_name, carrier, fax_status, fax_sent_at, fax_confirmation_id, deadline_at, filled_pdf_path, broker:broker_id (first_name, last_name)')
@@ -73,18 +312,7 @@ export default async function ManagerPage() {
 
   const allSubmissions = submissions ?? []
 
-  // Build export data
-  const exportData = allSubmissions.map(s => ({
-    client_name: s.client_name,
-    carrier: s.carrier,
-    broker_name: s.broker ? `${(s.broker as any).first_name} ${(s.broker as any).last_name}` : '--',
-    fax_status: s.fax_status ?? 'pending',
-    fax_sent_at: s.fax_sent_at ?? null,
-    deadline_at: s.deadline_at,
-    fax_confirmation_id: s.fax_confirmation_id ?? null,
-  }))
-
-  // -- Section C: Broker Performance ----------------------------------------
+  // -- Section C: Broker Performance ---------------------------------------
   const { data: brokers } = await supabase
     .from('brokers')
     .select('id, first_name, last_name, role')
@@ -93,40 +321,31 @@ export default async function ManagerPage() {
 
   const allBrokers = brokers ?? []
 
-  // Parallel count queries per metric
   const supabaseAdmin = createServiceClient()
 
   const [clientCounts, openAlertCounts, totalAlertCounts, resolvedAlertCounts, VCCCounts, campaignCounts, aorLockedCounts, protectionStats] =
     await Promise.all([
-      // clients per broker (scoped to agency)
       supabaseAdmin.from('book_of_business').select('broker_id').eq('agency_id', agencyId).then(r =>
         groupCount(r.data ?? [], 'broker_id')
       ),
-      // open alerts per broker (scoped to agency)
       supabaseAdmin.from('switch_alerts').select('broker_id').eq('agency_id', agencyId).in('status', ['open', 'contacted']).then(r =>
         groupCount(r.data ?? [], 'broker_id')
       ),
-      // total alerts per broker (scoped to agency)
       supabaseAdmin.from('switch_alerts').select('broker_id').eq('agency_id', agencyId).then(r =>
         groupCount(r.data ?? [], 'broker_id')
       ),
-      // resolved alerts per broker (scoped to agency)
       supabaseAdmin.from('switch_alerts').select('broker_id').eq('agency_id', agencyId).eq('status', 'resolved').then(r =>
         groupCount(r.data ?? [], 'broker_id')
       ),
-      // VCC submissions per broker (scoped to agency)
       supabaseAdmin.from('vcc_submissions').select('broker_id').eq('agency_id', agencyId).then(r =>
         groupCount(r.data ?? [], 'broker_id')
       ),
-      // active campaigns per broker (scoped to agency)
       supabaseAdmin.from('campaign_enrollments').select('broker_id').eq('agency_id', agencyId).eq('status', 'active').then(r =>
         groupCount(r.data ?? [], 'broker_id')
       ),
-      // AOR locked per broker (scoped to agency)
       supabaseAdmin.from('aor_submissions').select('broker_id').eq('agency_id', agencyId).in('status', ['faxed', 'confirmed']).then(r =>
         groupCount(r.data ?? [], 'broker_id')
       ),
-      // Agency protection stats
       supabaseAdmin.from('agency_protection_stats')
         .select('total_contacts, locked_contacts, protection_rate')
         .eq('agency_id', agencyId)
@@ -134,14 +353,14 @@ export default async function ManagerPage() {
         .then(r => r.data ?? null),
     ])
 
-  const protectionRate = Number(protectionStats?.protection_rate ?? 0)
-  const totalProtected = Number(protectionStats?.total_contacts ?? 0)
+  const protectionRate  = Number(protectionStats?.protection_rate ?? 0)
+  const totalProtected  = Number(protectionStats?.total_contacts ?? 0)
   const lockedProtected = Number(protectionStats?.locked_contacts ?? 0)
   const rateColor = protectionRate >= 70 ? 'text-emerald-600' : protectionRate >= 30 ? 'text-amber-500' : 'text-red-500'
 
   const brokerStats = allBrokers
     .map(b => {
-      const total = totalAlertCounts[b.id] ?? 0
+      const total    = totalAlertCounts[b.id] ?? 0
       const resolved = resolvedAlertCounts[b.id] ?? 0
       const saveRate = total > 0 ? Math.round((resolved / total) * 100) : null
       return {
@@ -157,7 +376,6 @@ export default async function ManagerPage() {
       }
     })
     .sort((a, b) => {
-      // null save rate (no alerts) -> end; lower save rate -> higher priority
       if (a.saveRate === null && b.saveRate === null) return 0
       if (a.saveRate === null) return 1
       if (b.saveRate === null) return -1
@@ -238,9 +456,8 @@ export default async function ManagerPage() {
             <CardHeader className="bg-muted/30 border-b">
               <div className="flex items-center justify-between">
                 <CardTitle className="text-sm font-black uppercase tracking-tight flex items-center gap-2">
-                  <FileText className="w-4 h-4" /> Compliance Vault -- Fax Audit Trail
+                  <FileText className="w-4 h-4" /> Compliance Vault — Fax Audit Trail
                 </CardTitle>
-                {isOwner && <FaxAuditExport submissions={exportData} />}
               </div>
             </CardHeader>
             <CardContent className="p-0 overflow-x-auto">
@@ -260,8 +477,8 @@ export default async function ManagerPage() {
                   <TableBody>
                     {allSubmissions.map(s => {
                       const status = (s.fax_status ?? 'pending') as FaxStatus
-                      const cfg = FAX_CONFIG[status] ?? FAX_CONFIG.pending
-                      const dl = daysLeft(s.deadline_at)
+                      const cfg    = FAX_CONFIG[status] ?? FAX_CONFIG.pending
+                      const dl     = daysLeft(s.deadline_at)
                       const broker = s.broker as unknown as { first_name: string; last_name: string } | null
                       return (
                         <TableRow key={s.id} className="border-border/50 hover:bg-muted/20">
@@ -303,7 +520,7 @@ export default async function ManagerPage() {
             <CardHeader className="bg-muted/30 border-b">
               <CardTitle className="text-sm font-black uppercase tracking-tight flex items-center gap-2">
                 <BarChart3 className="w-4 h-4" /> Broker Performance
-                <span className="text-[9px] font-bold text-muted-foreground normal-case">sorted by save rate -- worst first</span>
+                <span className="text-[9px] font-bold text-muted-foreground normal-case">sorted by save rate — worst first</span>
               </CardTitle>
             </CardHeader>
             <CardContent className="p-0 overflow-x-auto">
@@ -322,8 +539,13 @@ export default async function ManagerPage() {
                   </TableHeader>
                   <TableBody>
                     {brokerStats.map(b => (
-                      <TableRow key={b.id} className="border-border/50 hover:bg-muted/20">
-                        <TableCell className="px-4 py-3 font-bold text-sm">{b.name}</TableCell>
+                      <TableRow key={b.id} className="border-border/50 hover:bg-muted/20 cursor-pointer"
+                        onClick={() => {/* navigate handled by Link wrapper below */}}>
+                        <TableCell className="px-4 py-3 font-bold text-sm">
+                          <Link href={`/dashboard/manager?brokerId=${b.id}`} className="hover:text-primary transition-colors">
+                            {b.name}
+                          </Link>
+                        </TableCell>
                         <TableCell className="px-4 text-[9px] font-black uppercase tracking-widest text-muted-foreground">
                           {b.role.replace('_', ' ')}
                         </TableCell>
@@ -371,12 +593,4 @@ export default async function ManagerPage() {
       </div>
     </div>
   )
-}
-
-function groupCount(rows: Array<Record<string, unknown>>, key: string): Record<string, number> {
-  return rows.reduce<Record<string, number>>((acc, row) => {
-    const val = row[key] as string | null
-    if (val) acc[val] = (acc[val] ?? 0) + 1
-    return acc
-  }, {})
 }
