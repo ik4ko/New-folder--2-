@@ -87,6 +87,15 @@ export default function ProfilePage() {
       </header>
 
       <div className="flex-1 overflow-y-auto p-8 max-w-xl mx-auto w-full space-y-6 pb-32">
+        {/* Context banner — explains how profile data is used in the platform */}
+        <div className="rounded-2xl border border-border bg-muted/20 px-5 py-4 space-y-1">
+          <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">How your profile is used</p>
+          <p className="text-xs font-medium text-foreground/80 leading-relaxed">
+            Your information here is scoped exclusively to your isolated broker account.
+            It is not shared with or visible to any other account on the platform.
+          </p>
+        </div>
+
         {loading ? (
           <div className="flex justify-center py-16">
             <RefreshCw className="w-5 h-5 animate-spin text-muted-foreground" />
@@ -110,7 +119,11 @@ export default function ProfilePage() {
               <div className="space-y-1.5">
                 <Label className="text-[10px] font-black uppercase tracking-widest">NPN (National Producer Number)</Label>
                 <Input className="h-11 rounded-2xl font-mono" placeholder="12345678" {...field('npn')} />
-                <p className="text-[9px] text-muted-foreground">Your CMS-issued NPN. Printed on AOR forms.</p>
+                <p className="text-[9px] text-muted-foreground leading-relaxed">
+                  Your CMS-issued NPN is strictly utilized to sign compliance log verifications
+                  and process automation workflows on behalf of your book. It is printed on AOR
+                  forms and used only within your isolated broker context.
+                </p>
               </div>
               <div className="space-y-1.5">
                 <Label className="text-[10px] font-black uppercase tracking-widest">Phone</Label>

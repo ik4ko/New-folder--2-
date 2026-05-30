@@ -20,19 +20,27 @@ import { createClient } from '@/lib/supabase/client'
 
 type NavItem = { href: string; icon: React.ElementType; label: string; desc: string; badge?: number }
 
+// Full nav for Agency Plan users (isStaff + tier !== 'broker')
 const CORE_NAV: NavItem[] = [
   { href: '/dashboard',              icon: LayoutDashboard, label: 'Dashboard',            desc: 'Real-time monitoring' },
   { href: '/dashboard/book',         icon: Users,           label: 'Book of Business',     desc: 'Monitored clients' },
-  { href: '/dashboard/alerts',         icon: Bell,     label: 'Alerts',        desc: 'Switch & plan change alerts' },
-  { href: '/dashboard/churn/upload',  icon: Radar,    label: 'Upload Roster', desc: 'Upload roster CSV' },
-  { href: '/dashboard/vcc',           icon: FileCheck, label: 'VCC Forms',    desc: 'Doctor-signed carrier forms' },
-  { href: '/dashboard/campaigns',     icon: Megaphone, label: 'Campaigns',    desc: 'Maya AI outreach campaigns' },
+  { href: '/dashboard/alerts',       icon: Bell,            label: 'Alerts',               desc: 'Switch & plan change alerts' },
+  { href: '/dashboard/churn/upload', icon: Radar,           label: 'Upload Roster',        desc: 'Upload roster CSV' },
+  { href: '/dashboard/vcc',          icon: FileCheck,       label: 'VCC Forms',            desc: 'Doctor-signed carrier forms' },
+  { href: '/dashboard/campaigns',    icon: Megaphone,       label: 'Campaigns',            desc: 'Maya AI outreach campaigns' },
+]
+
+// Stripped-down nav for Solo Broker plan (tier === 'broker' or !isStaff)
+const BROKER_CORE_NAV: NavItem[] = [
+  { href: '/dashboard/book',         icon: Users,  label: 'My Book',           desc: 'Your monitored clients' },
+  { href: '/dashboard/alerts',       icon: Bell,   label: 'Active Alerts',     desc: 'Switch & plan change alerts' },
+  { href: '/dashboard/churn/upload', icon: Radar,  label: 'Upload Roster',     desc: 'Upload roster CSV' },
 ]
 
 const STAFF_MGMT_NAV: NavItem[] = [
-  { href: '/dashboard/team',    icon: UserPlus, label: 'Team',         desc: 'Manage brokers & seats' },
-  { href: '/dashboard/manager', icon: Shield,   label: 'Agency View',  desc: 'Agency-wide oversight' },
-  { href: '/ghl',               icon: Link2,    label: 'GHL Sync',     desc: 'GoHighLevel contact import' },
+  { href: '/dashboard/team',    icon: UserPlus, label: 'Team',        desc: 'Manage brokers & seats' },
+  { href: '/dashboard/manager', icon: Shield,   label: 'Agency View', desc: 'Agency-wide oversight' },
+  { href: '/ghl',               icon: Link2,    label: 'GHL Sync',    desc: 'GoHighLevel contact import' },
 ]
 
 const FOOTER_NAV: NavItem[] = [
@@ -93,9 +101,10 @@ interface SidebarNavProps {
   name: string
   email: string
   criticalAlerts?: number
+  tier?: string
 }
 
-export function SidebarNav({ isStaff, role, name, email, criticalAlerts = 0 }: SidebarNavProps) {
+export function SidebarNav({ isStaff, role, name, email, criticalAlerts = 0, tier }: SidebarNavProps) {
   const pathname = usePathname()
   const router = useRouter()
   const isOpen = true
@@ -112,7 +121,12 @@ export function SidebarNav({ isStaff, role, name, email, criticalAlerts = 0 }: S
       ? pathname === '/dashboard'
       : pathname?.startsWith(href) ?? false
 
-  const coreNav = CORE_NAV.map(item => {
+  // Solo Broker plan: only show the 3 core broker items (no Dashboard overview,
+  // VCC, or Campaigns — those are agency-tier features).
+  const isBrokerTier = !isStaff || tier === 'broker'
+
+  const baseNav = isBrokerTier ? BROKER_CORE_NAV : CORE_NAV
+  const coreNav = baseNav.map(item => {
     if (item.href === '/dashboard/alerts')
       return { ...item, badge: criticalAlerts > 0 ? criticalAlerts : undefined }
     return item
@@ -161,8 +175,10 @@ export function SidebarNav({ isStaff, role, name, email, criticalAlerts = 0 }: S
             <NavLink key={item.href} item={item} isActive={isActive(item.href)} isOpen={isOpen} />
           ))}
 
-          {/* Staff-only: Team + Manager View */}
-          {isStaff && (
+          {/* Staff-only management section.
+              On 'broker' tier: hide Team (/dashboard/team) — solo plan has no seats to manage.
+              Agency tier: show full management panel. */}
+          {isStaff && !isBrokerTier && (
             <>
               <div className={cn("pt-4 pb-2", isOpen ? "px-3" : "flex justify-center")}>
                 {isOpen ? (

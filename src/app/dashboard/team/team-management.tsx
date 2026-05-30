@@ -67,10 +67,11 @@ interface SeatStatus {
 }
 
 interface Props {
-  brokers:       Broker[]
-  agencyId:      string
-  isOwner:       boolean
+  brokers:        Broker[]
+  agencyId:       string
+  isOwner:        boolean
   pendingInvites: PendingInvite[]
+  agencyTier?:    string
 }
 
 // ── Role config ────────────────────────────────────────────────────────────────
@@ -575,7 +576,9 @@ function InviteRow({
 
 // ── Main Component ────────────────────────────────────────────────────────────
 
-export function TeamManagement({ brokers: initial, agencyId, isOwner, pendingInvites: initialInvites }: Props) {
+export function TeamManagement({ brokers: initial, agencyId, isOwner, pendingInvites: initialInvites, agencyTier }: Props) {
+  // Solo Broker plan ($149) has no team seats. Hide seat management UI entirely.
+  const isAgencyTier = agencyTier === 'agency' || agencyTier === 'enterprise'
   const [brokers,       setBrokers]       = useState<Broker[]>(initial)
   const [invites,       setInvites]       = useState<PendingInvite[]>(initialInvites)
   const [seatStatus,    setSeatStatus]    = useState<SeatStatus | null>(null)
@@ -687,7 +690,7 @@ export function TeamManagement({ brokers: initial, agencyId, isOwner, pendingInv
           </div>
         </div>
 
-        {isOwner && (
+        {isOwner && isAgencyTier && (
           <Button
             onClick={handleInviteClick}
             disabled={checking}
@@ -705,8 +708,10 @@ export function TeamManagement({ brokers: initial, agencyId, isOwner, pendingInv
       {/* ── Body ─────────────────────────────────────────────────────────── */}
       <div className="flex-1 p-6 md:p-8 space-y-6 max-w-4xl mx-auto w-full">
 
-        {/* Seat utilization bar */}
-        {isOwner && (
+        {/* Seat utilization bar — only for Agency Plan owners.
+            Solo Broker plan has exactly 1 seat; the bar is meaningless and
+            showing '2/1 used' caused visible confusion in the broker view. */}
+        {isOwner && isAgencyTier && (
           <SeatUtilizationBar
             status={seatStatus}
             onInvite={handleInviteClick}
@@ -793,10 +798,13 @@ export function TeamManagement({ brokers: initial, agencyId, isOwner, pendingInv
       </div>
 
       {/* ── Modals ───────────────────────────────────────────────────────── */}
-      <UpgradeModal
-        open={showUpgrade}
-        onClose={() => setShowUpgrade(false)}
-      />
+      {/* Upgrade modal only relevant for Agency Plan — never show to Solo Broker tier */}
+      {isAgencyTier && (
+        <UpgradeModal
+          open={showUpgrade}
+          onClose={() => setShowUpgrade(false)}
+        />
+      )}
       <InviteModal
         open={showInvite}
         onClose={() => setShowInvite(false)}

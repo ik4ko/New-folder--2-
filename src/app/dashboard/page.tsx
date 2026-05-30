@@ -45,7 +45,7 @@ export default async function Dashboard() {
   if (!user) redirect('/login')
 
   const [{ data: agency }, { data: brokerRow }] = await Promise.all([
-    supabase.from('agencies').select('id, name').eq('owner_id', user.id).maybeSingle(),
+    supabase.from('agencies').select('id, name, subscription_tier').eq('owner_id', user.id).maybeSingle(),
     supabase.from('brokers').select('id, role, agency_id').eq('user_id', user.id).maybeSingle(),
   ])
 
@@ -53,6 +53,9 @@ export default async function Dashboard() {
   const isCS        = brokerRow?.role === 'customer_service'
   const isStaff     = isPrincipal || isCS || !!agency
   const agencyId    = agency?.id ?? brokerRow?.agency_id
+  // 'broker' tier = Solo $149 plan — never show agency-wide counters or revenue leakage
+  const agencyTier      = agency?.subscription_tier ?? 'broker'
+  const showAgencyView  = isStaff && agencyTier !== 'broker'
 
   if (!agencyId) {
     try {
@@ -100,7 +103,7 @@ export default async function Dashboard() {
   let ownerStats: OwnerStats | null = null
   let brokerStats: BrokerStats | null = null
 
-  if (isStaff) {
+  if (showAgencyView) {
     const [
       { count: totalClients },
       { count: openAlerts },
@@ -175,7 +178,7 @@ export default async function Dashboard() {
           </div>
 
           {/* Stat Cards */}
-          {isStaff && ownerStats ? (
+          {showAgencyView && ownerStats ? (
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
               <StatCard label="Total Agency Clients" value={ownerStats.totalClients} sub="Book of business" icon={Users} href="/dashboard/book" />
               <StatCard label="Open Switch Alerts" value={ownerStats.openAlerts} sub="Require action" icon={TrendingDown} href="/dashboard/churn" accentCls={ownerStats.openAlerts > 0 ? 'text-red-500' : ''} />
@@ -191,8 +194,8 @@ export default async function Dashboard() {
             </div>
           ) : null}
 
-          {/* Revenue Leakage Calculator — Agency Owner only */}
-          {isStaff && ownerStats && (ownerStats.switchingAlerts > 0 || ownerStats.termedAlerts > 0) && (
+          {/* Revenue Leakage Calculator — Agency Plan only, never Solo Broker */}
+          {showAgencyView && ownerStats && (ownerStats.switchingAlerts > 0 || ownerStats.termedAlerts > 0) && (
             <RevenueLeakageCalculator
               switchingCount={ownerStats.switchingAlerts}
               termedCount={ownerStats.termedAlerts}
@@ -201,8 +204,8 @@ export default async function Dashboard() {
             />
           )}
 
-          {/* Alert Summary Widget */}
-          {isStaff && ownerStats ? (
+          {/* Alert Summary Widget — agency view only */}
+          {showAgencyView && ownerStats ? (
             <Link href="/dashboard/alerts" className="block">
               <div className={`rounded-3xl border p-5 transition-colors ${
                 ownerStats.openAlerts > 0
@@ -262,8 +265,8 @@ export default async function Dashboard() {
           {/* Onboarding */}
           <OnboardingChecklist />
 
-          {/* MARx Monitoring Status */}
-          {isStaff && ownerStats && (
+          {/* MARx Monitoring Status — agency view only */}
+          {showAgencyView && ownerStats && (
             <div className="flex items-center justify-between p-4 rounded-2xl border border-border bg-muted/20">
               <div>
                 <p className="text-sm font-medium text-foreground">MARx Monitoring</p>

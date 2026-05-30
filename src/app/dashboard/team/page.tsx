@@ -10,12 +10,13 @@ export default async function TeamPage() {
 
   const { data: agency } = await supabase
     .from('agencies')
-    .select('id, name')
+    .select('id, name, subscription_tier')
     .eq('owner_id', user.id)
     .maybeSingle()
 
   let agencyId: string | null = agency?.id ?? null
   const isOwner = !!agency
+  const agencyTier = agency?.subscription_tier ?? 'broker'
 
   if (!agencyId) {
     const { data: broker } = await supabase
@@ -68,6 +69,7 @@ export default async function TeamPage() {
       agencyId={agencyId}
       isOwner={isOwner}
       pendingInvites={pendingInvites}
+      agencyTier={agencyTier}
     />
   )
 }
