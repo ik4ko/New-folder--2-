@@ -52,7 +52,20 @@ export default async function Dashboard() {
   const isPrincipal = ['agency_owner', 'agency_admin'].includes(brokerRow?.role ?? '')
   const isCS        = brokerRow?.role === 'customer_service'
   const isStaff     = isPrincipal || isCS || !!agency
-  const agencyId    = agency?.id ?? brokerRow?.agency_id
+
+  // ── Agency ID resolution ─────────────────────────────────────────────────
+  // Priority: brokerRow.agency_id > agency.id
+  //
+  // Rationale: A user may OWN one agency (owner_id match) while their broker
+  // row — and all their actual data (BOB, alerts, VCC) — lives in a different
+  // agency (e.g. after a tenant-isolation repair that moved the owned agency
+  // but left data in the old shared one). Using brokerRow.agency_id ensures
+  // stats queries target the agency that actually holds their records.
+  //
+  // If there is no broker row at all (pure owner with no broker profile yet),
+  // fall back to agency.id — autoProvision will create the broker row.
+  const agencyId = brokerRow?.agency_id ?? agency?.id
+
   // 'broker' tier = Solo $149 plan — never show agency-wide counters or revenue leakage
   const agencyTier      = agency?.subscription_tier ?? 'broker'
   const showAgencyView  = isStaff && agencyTier !== 'broker'
