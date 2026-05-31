@@ -3,18 +3,29 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import {
+  Upload, Link2, RefreshCw, CheckCircle2, AlertCircle,
+  FileSpreadsheet, X, ArrowRight, Database, Zap,
+  FileText, ExternalLink, ChevronRight,
+} from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
+
+// ── Types ─────────────────────────────────────────────────────────────────────
 
 type SyncState = 'idle' | 'uploading' | 'syncing' | 'success' | 'error';
 
 type ImportResult = {
-  imported: number
-  dropped: number
-  mbiCount: number
-  planCount: number
+  imported:     number
+  dropped:      number
+  mbiCount:     number
+  planCount:    number
   carrierCount: number
 }
 
-// Mirrors server-side ALIAS_MAP — used for client-side preview detection only
+// ── Column detection — mirrors server-side ALIAS_MAP ─────────────────────────
+
 const PREVIEW_ALIAS_MAP: Record<string, string[]> = {
   mbi: [
     'mbi', 'medicare id', 'medicare number', 'medicare beneficiary identifier',
@@ -56,20 +67,22 @@ const PREVIEW_ALIAS_MAP: Record<string, string[]> = {
 };
 
 const FIELD_LABELS: Record<string, string> = {
-  mbi: 'MBI',
-  full_name: 'Name',
+  mbi:        'MBI',
+  full_name:  'Name',
   first_name: 'First Name',
-  last_name: 'Last Name',
-  plan_code: 'Plan',
-  carrier: 'Carrier',
+  last_name:  'Last Name',
+  plan_code:  'Plan',
+  carrier:    'Carrier',
 };
 
 interface PreviewState {
   detectedColumns: Record<string, string>;
-  sampleRows: Array<{ name: string; mbi: string; plan: string }>;
-  totalRows: number;
-  isXlsx: boolean;
+  sampleRows:      Array<{ name: string; mbi: string; plan: string }>;
+  totalRows:       number;
+  isXlsx:          boolean;
 }
+
+// ── CSV preview builder ───────────────────────────────────────────────────────
 
 function resolvePreviewHeader(h: string): string | null {
   const normalized = h.toLowerCase().trim();
@@ -81,17 +94,13 @@ function resolvePreviewHeader(h: string): string | null {
 
 async function buildPreview(f: File): Promise<PreviewState | null> {
   const isXlsx = /\.(xlsx|xls)$/i.test(f.name);
-
   if (isXlsx) {
     return { detectedColumns: {}, sampleRows: [], totalRows: 0, isXlsx: true };
   }
 
   let text: string;
-  try {
-    text = await f.text();
-  } catch {
-    return null;
-  }
+  try { text = await f.text(); }
+  catch { return null; }
 
   const lines = text.split(/\r?\n/).filter(l => l.trim());
   if (lines.length < 2) return null;
@@ -109,11 +118,10 @@ async function buildPreview(f: File): Promise<PreviewState | null> {
     return cells;
   }
 
-  const headers = parseLine(lines[0]).map(h => h.replace(/^"|"$/g, '').trim());
-  const dataLines = lines.slice(1, 4);
-  const dataRows = dataLines.map(parseLine);
+  const headers  = parseLine(lines[0]).map(h => h.replace(/^"|"$/g, '').trim());
+  const dataRows = lines.slice(1, 4).map(parseLine);
 
-  const colMap: Record<string, number> = {};
+  const colMap:          Record<string, number> = {};
   const detectedColumns: Record<string, string> = {};
 
   headers.forEach((h, i) => {
@@ -128,26 +136,58 @@ async function buildPreview(f: File): Promise<PreviewState | null> {
     let name = colMap['full_name'] !== undefined ? (row[colMap['full_name']] ?? '') : '';
     if (!name) {
       const first = colMap['first_name'] !== undefined ? (row[colMap['first_name']] ?? '') : '';
-      const last = colMap['last_name'] !== undefined ? (row[colMap['last_name']] ?? '') : '';
+      const last  = colMap['last_name']  !== undefined ? (row[colMap['last_name']]  ?? '') : '';
       name = `${first} ${last}`.trim();
     }
     return {
       name,
-      mbi: colMap['mbi'] !== undefined ? (row[colMap['mbi']] ?? '') : '',
+      mbi:  colMap['mbi']       !== undefined ? (row[colMap['mbi']]       ?? '') : '',
       plan: colMap['plan_code'] !== undefined ? (row[colMap['plan_code']] ?? '') : '',
     };
   });
 
-  return {
-    detectedColumns,
-    sampleRows,
-    totalRows: lines.length - 1,
-    isXlsx: false,
-  };
+  return { detectedColumns, sampleRows, totalRows: lines.length - 1, isXlsx: false };
 }
 
 const MARX_PORTAL_URL =
   'https://portal.cms.gov/mma/servlet/mmcs.beneficiaries.eligibility.BeneEligibilityDisplayServlet';
+
+// ── Stat pill used in the quality report ────────────────────────────────────
+
+function StatPill({
+  label, value, total,
+}: {
+  label: string; value: number; total: number;
+}) {
+  const pct     = total > 0 ? Math.round((value / total) * 100) : 0;
+  const perfect = value === total;
+  return (
+    <div className="rounded-2xl border border-border bg-muted/20 px-4 py-3 space-y-2">
+      <div className="flex items-center justify-between">
+        <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">
+          {label}
+        </span>
+        <span className={cn(
+          'text-[10px] font-black tabular-nums',
+          perfect ? 'text-emerald-400' : 'text-amber-400'
+        )}>
+          {value}/{total}
+        </span>
+      </div>
+      <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+        <div
+          className={cn(
+            'h-full rounded-full transition-all duration-700',
+            perfect ? 'bg-emerald-500' : 'bg-amber-500'
+          )}
+          style={{ width: `${pct}%` }}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ── Page ─────────────────────────────────────────────────────────────────────
 
 export default function ChurnUploadPage() {
   const router       = useRouter();
@@ -155,19 +195,19 @@ export default function ChurnUploadPage() {
   const supabase     = createClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [file,         setFile]         = useState<File | null>(null);
-  const [sheetsUrl,    setSheetsUrl]    = useState('');
-  const [isDragging,   setIsDragging]   = useState(false);
-  const [syncState,    setSyncState]    = useState<SyncState>('idle');
-  const [statusMessage,setStatusMessage]= useState('');
-  const [ghlConnected, setGhlConnected] = useState<boolean | null>(null);
-  const [ghlSyncing,   setGhlSyncing]   = useState(false);
-  const [ghlBanner,    setGhlBanner]    = useState<'success' | 'error' | null>(null);
-  const [preview,      setPreview]      = useState<PreviewState | null>(null);
-  const [importResult, setImportResult] = useState<ImportResult | null>(null);
-  const [marxOpened,   setMarxOpened]   = useState(false);
+  const [file,          setFile]          = useState<File | null>(null);
+  const [sheetsUrl,     setSheetsUrl]     = useState('');
+  const [isDragging,    setIsDragging]    = useState(false);
+  const [syncState,     setSyncState]     = useState<SyncState>('idle');
+  const [statusMessage, setStatusMessage] = useState('');
+  const [ghlConnected,  setGhlConnected]  = useState<boolean | null>(null);
+  const [ghlSyncing,    setGhlSyncing]    = useState(false);
+  const [ghlBanner,     setGhlBanner]     = useState<'success' | 'error' | null>(null);
+  const [preview,       setPreview]       = useState<PreviewState | null>(null);
+  const [importResult,  setImportResult]  = useState<ImportResult | null>(null);
+  const [marxOpened,    setMarxOpened]    = useState(false);
 
-  // ── Check GHL connection status ───────────────────────────────────────────
+  // ── Check GHL connection ──────────────────────────────────────────────────
   useEffect(() => {
     supabase
       .from('agency_credentials')
@@ -177,25 +217,27 @@ export default function ChurnUploadPage() {
   }, []);
 
   // ── Handle OAuth callback return ──────────────────────────────────────────
-  // After a successful GHL OAuth the callback redirects back here with
-  // ?ghl=connected. We fire an immediate background sync and show a banner.
   useEffect(() => {
     const ghlParam = searchParams?.get('ghl');
     if (ghlParam === 'connected') {
       setGhlConnected(true);
       setGhlBanner('success');
-      // Kick off background sync automatically on first connect
       setGhlSyncing(true);
-      fetch('/api/ghl/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ force: true, maxPages: 20 }) })
+      fetch('/api/ghl/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ force: true, maxPages: 20 }),
+      })
         .then(r => r.json())
         .then(json => {
           setGhlSyncing(false);
           if (json.synced > 0) {
-            setStatusMessage(`GHL import complete — ${json.synced.toLocaleString()} contacts added to your Book of Business.`);
+            setStatusMessage(
+              `GHL import complete — ${json.synced.toLocaleString()} contacts added to your Book of Business.`
+            );
           }
         })
         .catch(() => setGhlSyncing(false));
-      // Clean the URL
       router.replace('/dashboard/churn/upload', { scroll: false });
     } else if (ghlParam === 'error') {
       setGhlBanner('error');
@@ -203,44 +245,42 @@ export default function ChurnUploadPage() {
     }
   }, [searchParams]);
 
+  // ── File handlers ─────────────────────────────────────────────────────────
   async function handleFileSelected(f: File) {
     setFile(f);
     setPreview(null);
+    setSyncState('idle');
+    setImportResult(null);
     const p = await buildPreview(f);
     setPreview(p);
   }
 
-  const onDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  }, []);
-
+  const onDragOver  = useCallback((e: React.DragEvent) => { e.preventDefault(); setIsDragging(true);  }, []);
   const onDragLeave = useCallback(() => setIsDragging(false), []);
-
-  const onDrop = useCallback((e: React.DragEvent) => {
+  const onDrop      = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     setIsDragging(false);
     const dropped = e.dataTransfer.files[0];
     if (dropped) handleFileSelected(dropped);
   }, []);
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const f = e.target.files?.[0];
     if (f) handleFileSelected(f);
   };
 
-  const handleGhlConnect = () => {
-    // Route through our GHL OAuth connect endpoint.
-    // After the OAuth dance, GHL redirects back here with ?ghl=connected.
-    window.location.href = '/api/ghl/connect';
-  };
+  // ── GHL handlers ──────────────────────────────────────────────────────────
+  const handleGhlConnect = () => { window.location.href = '/api/ghl/connect'; };
 
   const handleGhlSync = async () => {
     if (!ghlConnected) { handleGhlConnect(); return; }
     setGhlSyncing(true);
     setStatusMessage('');
     try {
-      const res  = await fetch('/api/ghl/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ maxPages: 20 }) });
+      const res  = await fetch('/api/ghl/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ maxPages: 20 }),
+      });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Sync failed');
       setGhlSyncing(false);
@@ -251,13 +291,13 @@ export default function ChurnUploadPage() {
     }
   };
 
+  // ── Form submit (CSV or Sheets) ───────────────────────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!file && !sheetsUrl.trim()) {
       setStatusMessage('Please drop a file or paste a Google Sheets URL.');
       return;
     }
-
     setSyncState('uploading');
     setStatusMessage('');
     setPreview(null);
@@ -266,7 +306,7 @@ export default function ChurnUploadPage() {
 
     try {
       if (sheetsUrl.trim()) {
-        const res = await fetch('/api/roster/sheets-import', {
+        const res  = await fetch('/api/roster/sheets-import', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ sheetsUrl: sheetsUrl.trim() }),
@@ -275,28 +315,21 @@ export default function ChurnUploadPage() {
         if (!res.ok) throw new Error(json.error || 'Sheets import failed');
         setSyncState('success');
         setImportResult({
-          imported: json.imported ?? 0,
-          dropped: json.dropped ?? 0,
+          imported: json.imported ?? 0, dropped: json.dropped ?? 0,
           mbiCount: json.mbiCount ?? (json.imported ?? 0),
-          planCount: json.planCount ?? 0,
-          carrierCount: json.carrierCount ?? 0,
+          planCount: json.planCount ?? 0, carrierCount: json.carrierCount ?? 0,
         });
       } else if (file) {
         const formData = new FormData();
         formData.append('file', file);
-        const res = await fetch('/api/roster/upload', {
-          method: 'POST',
-          body: formData,
-        });
+        const res  = await fetch('/api/roster/upload', { method: 'POST', body: formData });
         const json = await res.json();
         if (!res.ok) throw new Error(json.error || 'Upload failed');
         setSyncState('success');
         setImportResult({
-          imported: json.imported ?? 0,
-          dropped: json.dropped ?? 0,
+          imported: json.imported ?? 0, dropped: json.dropped ?? 0,
           mbiCount: json.mbiCount ?? (json.imported ?? 0),
-          planCount: json.planCount ?? 0,
-          carrierCount: json.carrierCount ?? 0,
+          planCount: json.planCount ?? 0, carrierCount: json.carrierCount ?? 0,
         });
       }
     } catch (err: unknown) {
@@ -307,335 +340,523 @@ export default function ChurnUploadPage() {
 
   const isLoading = syncState === 'uploading' || syncState === 'syncing';
 
-  return (
-    <div className="max-w-2xl mx-auto py-10 px-4 space-y-8">
-      <div>
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Import Data</h1>
-        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Pull clients from GoHighLevel, paste a Google Sheets link, or upload a carrier roster file.
-        </p>
-      </div>
+  // ─────────────────────────────────────────────────────────────────────────
+  // RENDER
+  // ─────────────────────────────────────────────────────────────────────────
 
-      {/* ── GHL OAuth callback banners ── */}
-      {ghlBanner === 'success' && (
-        <div className="rounded-xl border border-emerald-700/50 bg-emerald-950/40 px-4 py-3 flex items-start gap-3">
-          <span className="mt-0.5 shrink-0 text-emerald-400 text-lg">✓</span>
+  return (
+    <div className="flex flex-col h-full w-full bg-background">
+
+      {/* ── Sticky page header ─────────────────────────────────────────────── */}
+      <header className="h-16 border-b border-border px-6 md:px-8 flex items-center justify-between bg-background/80 backdrop-blur-md sticky top-0 z-10 shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="w-9 h-9 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
+            <Database className="w-4 h-4 text-primary" />
+          </div>
           <div>
-            <p className="text-sm font-semibold text-emerald-300">GoHighLevel connected</p>
-            <p className="text-xs text-emerald-400/80">
-              {ghlSyncing ? 'Importing contacts in the background…' : 'Your contacts have been imported into your Book of Business.'}
+            <h1 className="text-base font-black uppercase tracking-tight text-foreground leading-none">
+              Import Data
+            </h1>
+            <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mt-0.5">
+              GHL · Google Sheets · CSV roster
             </p>
           </div>
-          <button onClick={() => setGhlBanner(null)} className="ml-auto text-emerald-600 hover:text-emerald-400 text-xs">✕</button>
-        </div>
-      )}
-      {ghlBanner === 'error' && (
-        <div className="rounded-xl border border-red-700/50 bg-red-950/40 px-4 py-3 flex items-start gap-3">
-          <span className="mt-0.5 shrink-0 text-red-400 text-lg">✕</span>
-          <div>
-            <p className="text-sm font-semibold text-red-300">GHL connection failed</p>
-            <p className="text-xs text-red-400/80">Please try connecting again. Make sure you approve the AegisSage app in your GHL account.</p>
-          </div>
-          <button onClick={() => setGhlBanner(null)} className="ml-auto text-red-600 hover:text-red-400 text-xs">✕</button>
-        </div>
-      )}
-
-      {/* ── GoHighLevel data source panel ── */}
-      <div className="rounded-2xl border border-indigo-500/30 bg-indigo-950/30 p-5 space-y-3">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-xl bg-indigo-500/20 flex items-center justify-center shrink-0">
-              {/* GHL icon */}
-              <svg className="w-4 h-4 text-indigo-400" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/>
-              </svg>
-            </div>
-            <div>
-              <p className="text-sm font-black uppercase tracking-tight text-indigo-100">GoHighLevel CRM</p>
-              <p className="text-[10px] text-indigo-400 font-medium">
-                {ghlConnected === null
-                  ? 'Checking connection…'
-                  : ghlConnected
-                  ? 'Connected · contacts sync automatically'
-                  : 'Not connected · click to authorize via OAuth'}
-              </p>
-            </div>
-          </div>
-          {ghlConnected && (
-            <span className="text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
-              Live
-            </span>
-          )}
         </div>
 
-        <div className="flex gap-2">
-          {ghlConnected ? (
-            <>
-              <button
-                type="button"
-                onClick={handleGhlSync}
-                disabled={ghlSyncing}
-                className="flex-1 px-4 py-2 text-[11px] font-black uppercase tracking-widest rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50 transition-colors"
-              >
-                {ghlSyncing ? 'Importing…' : 'Sync Contacts Now'}
-              </button>
-              <button
-                type="button"
-                onClick={handleGhlConnect}
-                className="px-4 py-2 text-[11px] font-black uppercase tracking-widest rounded-xl border border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10 transition-colors"
-              >
-                Reconnect
-              </button>
-            </>
-          ) : (
-            <button
-              type="button"
-              onClick={handleGhlConnect}
-              disabled={ghlConnected === null}
-              className="flex-1 px-4 py-2 text-[11px] font-black uppercase tracking-widest rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50 transition-colors"
-            >
-              Connect GoHighLevel →
-            </button>
-          )}
-        </div>
-      </div>
-
-      <div className="relative flex items-center">
-        <div className="flex-grow border-t border-gray-200 dark:border-gray-700" />
-        <span className="mx-3 text-xs text-gray-400 uppercase tracking-wider">or import a file</span>
-        <div className="flex-grow border-t border-gray-200 dark:border-gray-700" />
-      </div>
-
-      {/* Download Template */}
-      <div className="flex items-center justify-between -mt-4">
-        <p className="text-xs text-gray-500 dark:text-gray-400">
-          Use our template for the best import results.
-        </p>
+        {/* Template download — always visible in header */}
         <a
           href="/api/roster/template"
           download
-          className="text-xs font-semibold text-indigo-500 hover:text-indigo-400 underline underline-offset-2 transition-colors"
+          className="hidden sm:flex items-center gap-1.5 text-[9px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors"
         >
-          Download Template CSV
+          <FileText className="w-3.5 h-3.5" />
+          Template CSV
         </a>
-      </div>
+      </header>
 
-      <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Drag and Drop Zone */}
-        <div
-          onDragOver={onDragOver}
-          onDragLeave={onDragLeave}
-          onDrop={onDrop}
-          onClick={() => fileInputRef.current?.click()}
-          className={`
-            relative flex flex-col items-center justify-center gap-3 p-10 rounded-xl border-2 border-dashed cursor-pointer transition-colors
-            ${isDragging
-              ? 'border-indigo-500 bg-indigo-50 dark:bg-indigo-950'
-              : 'border-gray-300 dark:border-gray-600 hover:border-indigo-400 dark:hover:border-indigo-500 bg-white dark:bg-gray-900'}
-          `}
-        >
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept=".csv,.xlsx,.xls"
-            onChange={handleFileChange}
-            className="hidden"
-          />
-          <svg className="w-10 h-10 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5}
-              d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5m-13.5-9L12 3m0 0l4.5 4.5M12 3v13.5" />
-          </svg>
-          {file ? (
-            <div className="text-center">
-              <p className="text-sm font-medium text-indigo-600 dark:text-indigo-400">{file.name}</p>
-              <p className="text-xs text-gray-400">{(file.size / 1024).toFixed(1)} KB — click to change</p>
-            </div>
-          ) : (
-            <div className="text-center">
-              <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
-                Drop your roster file here
-              </p>
-              <p className="text-xs text-gray-400 mt-1">CSV, XLSX, or XLS — any carrier format accepted</p>
+      {/* ── Scrollable body ───────────────────────────────────────────────── */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-3xl mx-auto px-4 md:px-8 py-8 space-y-6 pb-32">
+
+          {/* ── GHL OAuth callback banners ──────────────────────────────── */}
+          {ghlBanner === 'success' && (
+            <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/5 px-5 py-4 flex items-start gap-3">
+              <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-[11px] font-black uppercase tracking-widest text-emerald-400">
+                  GoHighLevel Connected
+                </p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  {ghlSyncing
+                    ? 'Importing contacts in the background — this may take a moment…'
+                    : 'Your contacts have been imported into your Book of Business.'}
+                </p>
+              </div>
+              <button
+                onClick={() => setGhlBanner(null)}
+                className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
             </div>
           )}
-        </div>
 
-        {/* File Preview */}
-        {preview && (
-          <div className="p-4 rounded-lg border border-gray-700 bg-gray-900">
-            {preview.isXlsx ? (
-              <p className="text-xs text-gray-400">
-                XLSX file selected — columns will be auto-detected on import.
-              </p>
-            ) : (
-              <>
-                <p className="text-xs font-medium text-gray-400 mb-2 uppercase tracking-widest">Detected Columns</p>
-                {Object.keys(preview.detectedColumns).length > 0 ? (
-                  <div className="flex gap-2 flex-wrap mb-3">
-                    {Object.entries(preview.detectedColumns).map(([field, header]) => (
-                      <span key={field} className="px-2 py-1 text-xs rounded bg-indigo-900 text-indigo-300 font-mono">
-                        {header} → {FIELD_LABELS[field] ?? field}
-                      </span>
-                    ))}
+          {ghlBanner === 'error' && (
+            <div className="rounded-2xl border border-red-500/30 bg-red-500/5 px-5 py-4 flex items-start gap-3">
+              <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+              <div className="flex-1 min-w-0">
+                <p className="text-[11px] font-black uppercase tracking-widest text-red-400">
+                  Connection Failed
+                </p>
+                <p className="text-[11px] text-muted-foreground mt-0.5">
+                  Please try again and make sure you approve the AegisSage app in your GHL account.
+                </p>
+              </div>
+              <button
+                onClick={() => setGhlBanner(null)}
+                className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          )}
+
+          {/* ── Source 1: GoHighLevel CRM ──────────────────────────────── */}
+          <div className={cn(
+            'rounded-3xl border p-6 space-y-4 transition-colors',
+            ghlConnected
+              ? 'border-primary/20 bg-primary/[0.03]'
+              : 'border-border bg-card'
+          )}>
+            {/* Header row */}
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className={cn(
+                  'w-10 h-10 rounded-2xl flex items-center justify-center shrink-0',
+                  ghlConnected ? 'bg-primary/10' : 'bg-muted/50'
+                )}>
+                  <Zap className={cn('w-5 h-5', ghlConnected ? 'text-primary' : 'text-muted-foreground')} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <p className="text-sm font-black uppercase tracking-tight text-foreground">
+                      GoHighLevel CRM
+                    </p>
+                    {ghlConnected && (
+                      <Badge className="bg-emerald-500/10 text-emerald-400 border-emerald-500/20 border font-black text-[8px] uppercase tracking-widest px-2 h-4 gap-1">
+                        <span className="w-1 h-1 rounded-full bg-emerald-400 animate-pulse inline-block" />
+                        Live
+                      </Badge>
+                    )}
                   </div>
-                ) : (
-                  <p className="text-xs text-amber-400 mb-3">No recognized column headers — MBI will be detected from content.</p>
-                )}
-                <p className="text-xs text-gray-500 mb-2">{preview.totalRows} rows detected</p>
-                {preview.sampleRows.length > 0 && (
-                  <div className="overflow-x-auto">
-                    <table className="text-xs text-gray-300 w-full">
-                      <thead>
-                        <tr className="text-gray-500">
-                          <th className="text-left pb-1 pr-4">Name</th>
-                          <th className="text-left pb-1 pr-4">MBI</th>
-                          <th className="text-left pb-1">Plan</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {preview.sampleRows.map((row, i) => (
-                          <tr key={i} className="border-t border-gray-800">
-                            <td className="py-1 pr-4">{row.name || '—'}</td>
-                            <td className="py-1 pr-4 font-mono">{row.mbi || '—'}</td>
-                            <td className="py-1">{row.plan || '—'}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                )}
-              </>
-            )}
-          </div>
-        )}
-
-        {/* Google Sheets URL */}
-        <div>
-          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-            Or paste a Google Sheets URL
-          </label>
-          <input
-            type="url"
-            value={sheetsUrl}
-            onChange={(e) => setSheetsUrl(e.target.value)}
-            placeholder="https://docs.google.com/spreadsheets/d/..."
-            className="w-full px-3 py-2 text-sm rounded-lg border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-900 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          />
-        </div>
-
-        {/* Status / error message */}
-        {statusMessage && (
-          <div className={`rounded-lg px-4 py-3 text-sm ${
-            syncState === 'error'
-              ? 'bg-red-50 text-red-700 dark:bg-red-950 dark:text-red-300'
-              : 'bg-blue-50 text-blue-700 dark:bg-blue-950 dark:text-blue-300'
-          }`}>
-            {statusMessage}
-          </div>
-        )}
-
-        <button
-          type="submit"
-          disabled={isLoading || (!file && !sheetsUrl.trim())}
-          className="w-full py-3 px-4 text-sm font-semibold rounded-lg bg-gray-900 dark:bg-white text-white dark:text-gray-900 hover:bg-gray-700 dark:hover:bg-gray-100 disabled:opacity-40 transition-colors"
-        >
-          {syncState === 'uploading' ? 'Processing...' : 'Import Roster'}
-        </button>
-      </form>
-
-      {/* Post-import: quality report + MARx baseline prompt */}
-      {syncState === 'success' && importResult && (
-        <div className="space-y-4">
-
-          {/* Import Quality Report */}
-          <div className="rounded-lg border border-gray-700 p-4">
-            <p className="text-sm font-medium text-white mb-3">Import Quality Report</p>
-            <div className="space-y-2">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-400">Members imported</span>
-                <span className="text-white font-medium">{importResult.imported}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-400">MBI captured</span>
-                <span className={importResult.mbiCount === importResult.imported ? 'text-green-400' : 'text-yellow-400'}>
-                  {importResult.mbiCount}/{importResult.imported}
-                </span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-400">Plan name captured</span>
-                <span className={importResult.planCount === importResult.imported ? 'text-green-400' : 'text-yellow-400'}>
-                  {importResult.planCount}/{importResult.imported}
-                </span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-400">Carrier captured</span>
-                <span className={importResult.carrierCount === importResult.imported ? 'text-green-400' : 'text-yellow-400'}>
-                  {importResult.carrierCount}/{importResult.imported}
-                </span>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    {ghlConnected === null
+                      ? 'Checking connection…'
+                      : ghlConnected
+                      ? 'Authorized · contacts import automatically on sync'
+                      : 'Not connected · authorize via OAuth to import your CRM'}
+                  </p>
+                </div>
               </div>
             </div>
 
-            {(importResult.planCount < importResult.imported || importResult.carrierCount < importResult.imported) && (
-              <div className="mt-3 pt-3 border-t border-gray-700">
-                <p className="text-xs text-yellow-400">
-                  Missing plan or carrier data?{' '}
-                  <a href="/api/roster/template" download className="underline ml-1">
-                    Download our template
+            {/* Action buttons */}
+            <div className="flex gap-2 flex-wrap">
+              {ghlConnected ? (
+                <>
+                  <Button
+                    type="button"
+                    onClick={handleGhlSync}
+                    disabled={ghlSyncing}
+                    className="flex-1 min-w-[140px] h-10 rounded-xl font-black uppercase text-[9px] tracking-widest gap-2"
+                  >
+                    {ghlSyncing
+                      ? <><RefreshCw className="w-3.5 h-3.5 animate-spin" /> Importing…</>
+                      : <><RefreshCw className="w-3.5 h-3.5" /> Sync Contacts Now</>
+                    }
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={handleGhlConnect}
+                    className="h-10 rounded-xl font-black uppercase text-[9px] tracking-widest gap-1.5 border-border"
+                  >
+                    <Link2 className="w-3.5 h-3.5" />
+                    Reconnect
+                  </Button>
+                </>
+              ) : (
+                <Button
+                  type="button"
+                  onClick={handleGhlConnect}
+                  disabled={ghlConnected === null}
+                  className="flex-1 h-10 rounded-xl font-black uppercase text-[9px] tracking-widest gap-2"
+                >
+                  <Link2 className="w-3.5 h-3.5" />
+                  Connect GoHighLevel
+                  <ChevronRight className="w-3.5 h-3.5 ml-auto" />
+                </Button>
+              )}
+            </div>
+
+            {/* GHL sync success inline message */}
+            {statusMessage && ghlConnected && !isLoading && (
+              <div className="rounded-xl bg-emerald-500/5 border border-emerald-500/20 px-4 py-2.5 flex items-center gap-2">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                <p className="text-[11px] text-emerald-400 font-bold">{statusMessage}</p>
+              </div>
+            )}
+          </div>
+
+          {/* ── Divider ────────────────────────────────────────────────── */}
+          <div className="flex items-center gap-4">
+            <div className="flex-1 h-px bg-border" />
+            <span className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">
+              or upload directly
+            </span>
+            <div className="flex-1 h-px bg-border" />
+          </div>
+
+          {/* ── Source 2 + 3: CSV & Sheets in a two-column grid ────────── */}
+          <form onSubmit={handleSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-start">
+
+              {/* ── CSV Drag-and-Drop Zone ── */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">
+                    CSV / XLSX Roster
+                  </p>
+                  <a
+                    href="/api/roster/template"
+                    download
+                    className="sm:hidden text-[9px] font-black uppercase tracking-widest text-primary hover:text-primary/80 transition-colors"
+                  >
+                    Template ↓
                   </a>
-                  {' '}for best results, or run a MARx baseline check to auto-populate plan data from CMS.
+                </div>
+
+                <div
+                  onDragOver={onDragOver}
+                  onDragLeave={onDragLeave}
+                  onDrop={onDrop}
+                  onClick={() => fileInputRef.current?.click()}
+                  className={cn(
+                    'relative flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed cursor-pointer transition-all duration-200 min-h-[160px] px-6',
+                    isDragging
+                      ? 'border-primary bg-primary/5 scale-[1.01]'
+                      : file
+                      ? 'border-emerald-500/40 bg-emerald-500/5 hover:border-emerald-500/60'
+                      : 'border-border bg-muted/20 hover:border-primary/40 hover:bg-primary/5'
+                  )}
+                >
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept=".csv,.xlsx,.xls"
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
+
+                  {file ? (
+                    <>
+                      <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 flex items-center justify-center">
+                        <FileSpreadsheet className="w-5 h-5 text-emerald-400" />
+                      </div>
+                      <div className="text-center space-y-1">
+                        <p className="text-[11px] font-black uppercase tracking-tight text-foreground truncate max-w-[180px]">
+                          {file.name}
+                        </p>
+                        <p className="text-[9px] text-muted-foreground font-medium">
+                          {(file.size / 1024).toFixed(1)} KB · click to change
+                        </p>
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <div className={cn(
+                        'w-10 h-10 rounded-2xl flex items-center justify-center transition-colors',
+                        isDragging ? 'bg-primary/20' : 'bg-muted/50'
+                      )}>
+                        <Upload className={cn('w-5 h-5', isDragging ? 'text-primary' : 'text-muted-foreground')} />
+                      </div>
+                      <div className="text-center space-y-1">
+                        <p className="text-[11px] font-black uppercase tracking-tight text-foreground">
+                          {isDragging ? 'Drop to import' : 'Drop file here'}
+                        </p>
+                        <p className="text-[9px] text-muted-foreground font-medium">
+                          CSV, XLSX, XLS · any carrier format
+                        </p>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* Column detection preview */}
+                {preview && (
+                  <div className="rounded-2xl border border-border bg-muted/10 p-4 space-y-3">
+                    {preview.isXlsx ? (
+                      <p className="text-[10px] text-muted-foreground font-medium">
+                        XLSX detected — columns auto-mapped on import.
+                      </p>
+                    ) : (
+                      <>
+                        <div className="space-y-1.5">
+                          <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">
+                            {Object.keys(preview.detectedColumns).length > 0
+                              ? `${Object.keys(preview.detectedColumns).length} columns detected`
+                              : 'No standard columns found'}
+                          </p>
+                          {Object.keys(preview.detectedColumns).length > 0 ? (
+                            <div className="flex flex-wrap gap-1.5">
+                              {Object.entries(preview.detectedColumns).map(([field, header]) => (
+                                <span
+                                  key={field}
+                                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-primary/10 text-primary text-[9px] font-black uppercase tracking-wider"
+                                >
+                                  {header}
+                                  <ArrowRight className="w-2.5 h-2.5 opacity-60" />
+                                  {FIELD_LABELS[field] ?? field}
+                                </span>
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-[10px] text-amber-400 font-medium">
+                              MBI will be auto-detected from cell content.
+                            </p>
+                          )}
+                        </div>
+
+                        <div className="space-y-1">
+                          <p className="text-[9px] text-muted-foreground font-medium">
+                            {preview.totalRows.toLocaleString()} rows · preview
+                          </p>
+                          {preview.sampleRows.length > 0 && (
+                            <div className="rounded-xl overflow-hidden border border-border">
+                              <table className="w-full text-[10px]">
+                                <thead>
+                                  <tr className="bg-muted/30">
+                                    <th className="text-left px-3 py-1.5 text-[8px] font-black uppercase tracking-widest text-muted-foreground">Name</th>
+                                    <th className="text-left px-3 py-1.5 text-[8px] font-black uppercase tracking-widest text-muted-foreground">MBI</th>
+                                    <th className="text-left px-3 py-1.5 text-[8px] font-black uppercase tracking-widest text-muted-foreground">Plan</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-border">
+                                  {preview.sampleRows.map((row, i) => (
+                                    <tr key={i} className="bg-background hover:bg-muted/10 transition-colors">
+                                      <td className="px-3 py-1.5 text-foreground font-medium">{row.name || '—'}</td>
+                                      <td className="px-3 py-1.5 font-mono text-primary/80">{row.mbi || '—'}</td>
+                                      <td className="px-3 py-1.5 text-muted-foreground">{row.plan || '—'}</td>
+                                    </tr>
+                                  ))}
+                                </tbody>
+                              </table>
+                            </div>
+                          )}
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+
+              {/* ── Google Sheets URL ── */}
+              <div className="space-y-3">
+                <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground">
+                  Google Sheets URL
+                </p>
+
+                <div
+                  className={cn(
+                    'rounded-2xl border-2 border-dashed transition-all duration-200 min-h-[160px] flex flex-col justify-center p-6 space-y-4',
+                    sheetsUrl.trim()
+                      ? 'border-emerald-500/40 bg-emerald-500/5'
+                      : 'border-border bg-muted/20 hover:border-primary/40 hover:bg-primary/5'
+                  )}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={cn(
+                      'w-10 h-10 rounded-2xl flex items-center justify-center shrink-0',
+                      sheetsUrl.trim() ? 'bg-emerald-500/10' : 'bg-muted/50'
+                    )}>
+                      <FileSpreadsheet className={cn(
+                        'w-5 h-5',
+                        sheetsUrl.trim() ? 'text-emerald-400' : 'text-muted-foreground'
+                      )} />
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-black uppercase tracking-tight text-foreground">
+                        Paste Sheets link
+                      </p>
+                      <p className="text-[9px] text-muted-foreground font-medium mt-0.5">
+                        Share → "Anyone with link" to view
+                      </p>
+                    </div>
+                  </div>
+
+                  <input
+                    type="url"
+                    value={sheetsUrl}
+                    onChange={e => { setSheetsUrl(e.target.value); if (file) { setFile(null); setPreview(null); } }}
+                    placeholder="https://docs.google.com/spreadsheets/d/…"
+                    className={cn(
+                      'w-full h-10 px-3 rounded-xl border text-[11px] font-medium bg-background text-foreground',
+                      'placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30',
+                      'transition-colors',
+                      sheetsUrl.trim() ? 'border-emerald-500/30' : 'border-border'
+                    )}
+                  />
+                </div>
+              </div>
+            </div>
+
+            {/* ── Status / error message ── */}
+            {statusMessage && !ghlConnected && (
+              <div className={cn(
+                'rounded-2xl px-4 py-3 flex items-start gap-2.5',
+                syncState === 'error'
+                  ? 'bg-red-500/5 border border-red-500/20'
+                  : 'bg-primary/5 border border-primary/20'
+              )}>
+                {syncState === 'error'
+                  ? <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                  : <CheckCircle2 className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                }
+                <p className={cn(
+                  'text-[11px] font-bold leading-relaxed',
+                  syncState === 'error' ? 'text-red-400' : 'text-primary'
+                )}>
+                  {statusMessage}
                 </p>
               </div>
             )}
 
-            {importResult.dropped > 0 && (
-              <p className="mt-3 text-xs text-gray-500">
-                {importResult.dropped} row{importResult.dropped !== 1 ? 's' : ''} in your source file had no Medicare ID and were skipped.
-              </p>
-            )}
-          </div>
+            {/* ── Submit button ── */}
+            <Button
+              type="submit"
+              disabled={isLoading || (!file && !sheetsUrl.trim())}
+              className="w-full h-12 rounded-2xl font-black uppercase tracking-widest text-[10px] gap-2 shadow-lg shadow-primary/10"
+            >
+              {isLoading
+                ? <><RefreshCw className="w-4 h-4 animate-spin" /> Processing…</>
+                : <><Upload className="w-4 h-4" /> Import Roster</>
+              }
+            </Button>
+          </form>
 
-          {/* MARx Baseline Prompt */}
-          {!marxOpened ? (
-            <div className="rounded-lg border border-indigo-700 bg-indigo-950/40 p-4">
-              <p className="text-sm font-semibold text-white mb-1">
-                {importResult.imported} member{importResult.imported !== 1 ? 's' : ''} imported.
-                {' '}Run MARx now to establish their baseline plans?
-              </p>
-              <p className="text-xs text-indigo-300 mb-3">
-                MARx pulls current plan data directly from CMS — filling in any missing carrier and plan info automatically.
-              </p>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    window.open(MARX_PORTAL_URL, '_blank');
-                    setMarxOpened(true);
-                  }}
-                  className="px-4 py-2 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white transition-colors"
-                >
-                  Run MARx Baseline
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setMarxOpened(true)}
-                  className="px-4 py-2 text-xs font-semibold rounded-lg bg-gray-800 hover:bg-gray-700 text-gray-300 transition-colors"
-                >
-                  Skip for now
-                </button>
+          {/* ── Post-import quality report ──────────────────────────────── */}
+          {syncState === 'success' && importResult && (
+            <div className="space-y-4">
+
+              {/* Success header */}
+              <div className="rounded-3xl border border-emerald-500/20 bg-emerald-500/5 px-6 py-5 flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-500 flex items-center justify-center shrink-0 shadow-lg shadow-emerald-500/30">
+                  <CheckCircle2 className="w-6 h-6 text-white" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-black uppercase tracking-tight text-emerald-400">
+                    Import Complete
+                  </p>
+                  <p className="text-[11px] text-muted-foreground mt-0.5">
+                    <span className="font-black text-foreground">{importResult.imported.toLocaleString()}</span> member
+                    {importResult.imported !== 1 ? 's' : ''} added to your Book of Business
+                    {importResult.dropped > 0 && (
+                      <> · <span className="text-amber-400">{importResult.dropped} skipped</span> (no MBI found)</>
+                    )}
+                  </p>
+                </div>
+                <Button asChild variant="outline" size="sm"
+                  className="shrink-0 rounded-xl font-black uppercase text-[9px] tracking-widest h-8 gap-1.5">
+                  <a href="/dashboard/book">
+                    View Book
+                    <ExternalLink className="w-3 h-3" />
+                  </a>
+                </Button>
               </div>
-            </div>
-          ) : (
-            <div className="rounded-lg border border-emerald-700 bg-emerald-950/40 p-4">
-              <p className="text-sm font-semibold text-emerald-300 mb-1">CMS MARx portal opened</p>
-              <p className="text-xs text-emerald-400/80">
-                Log into the CMS portal, then click{' '}
-                <strong className="text-emerald-300">Run MARx Check</strong>{' '}
-                in the AegisSage extension to verify all {importResult.imported} members.
-              </p>
+
+              {/* Data quality grid */}
+              <div>
+                <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-3">
+                  Data Quality Report
+                </p>
+                <div className="grid grid-cols-3 gap-3">
+                  <StatPill label="MBI"     value={importResult.mbiCount}     total={importResult.imported} />
+                  <StatPill label="Plan"    value={importResult.planCount}    total={importResult.imported} />
+                  <StatPill label="Carrier" value={importResult.carrierCount} total={importResult.imported} />
+                </div>
+
+                {(importResult.planCount < importResult.imported ||
+                  importResult.carrierCount < importResult.imported) && (
+                  <div className="mt-3 rounded-2xl border border-amber-500/20 bg-amber-500/5 px-4 py-3 flex items-start gap-2.5">
+                    <AlertCircle className="w-3.5 h-3.5 text-amber-400 shrink-0 mt-0.5" />
+                    <p className="text-[10px] text-amber-400/90 font-medium leading-relaxed">
+                      Missing plan or carrier data?{' '}
+                      <a href="/api/roster/template" download
+                        className="font-black underline underline-offset-2 hover:text-amber-300 transition-colors">
+                        Download our template
+                      </a>
+                      {' '}for best results, or run a MARx check to auto-fill plan data from CMS.
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              {/* MARx baseline prompt */}
+              {!marxOpened ? (
+                <div className="rounded-3xl border border-primary/20 bg-primary/[0.03] p-6 space-y-4">
+                  <div className="flex items-start gap-4">
+                    <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
+                      <Zap className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-black uppercase tracking-tight text-foreground">
+                        Run MARx Baseline?
+                      </p>
+                      <p className="text-[11px] text-muted-foreground mt-1 leading-relaxed">
+                        MARx pulls current plan data directly from CMS — filling in missing carrier
+                        and plan info for all {importResult.imported.toLocaleString()} members automatically.
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      type="button"
+                      onClick={() => { window.open(MARX_PORTAL_URL, '_blank'); setMarxOpened(true); }}
+                      className="rounded-xl h-10 font-black uppercase text-[9px] tracking-widest gap-2"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      Open CMS MARx Portal
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      onClick={() => setMarxOpened(true)}
+                      className="rounded-xl h-10 font-black uppercase text-[9px] tracking-widest text-muted-foreground hover:text-foreground"
+                    >
+                      Skip for now
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="rounded-3xl border border-emerald-500/20 bg-emerald-500/5 px-6 py-4 flex items-start gap-3">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                  <div>
+                    <p className="text-[11px] font-black uppercase tracking-widest text-emerald-400">
+                      CMS MARx Portal Opened
+                    </p>
+                    <p className="text-[11px] text-muted-foreground mt-0.5 leading-relaxed">
+                      Log in, then click{' '}
+                      <span className="font-black text-foreground">Run MARx Check</span>{' '}
+                      in the AegisSage extension to verify all {importResult.imported.toLocaleString()} members.
+                    </p>
+                  </div>
+                </div>
+              )}
             </div>
           )}
+
         </div>
-      )}
+      </div>
     </div>
   );
 }
