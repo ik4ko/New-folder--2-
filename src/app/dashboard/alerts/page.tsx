@@ -3,6 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { Bell } from 'lucide-react'
 import { AlertsFeed } from '@/components/alerts-feed'
+import { getAlertTypology } from '@/components/alert-card'
 
 export default async function AlertsPage() {
   const supabase = await createClient()
@@ -94,18 +95,27 @@ export default async function AlertsPage() {
     estimated_revenue_at_risk:  (a as Record<string, unknown>).estimated_revenue_at_risk as number | null ?? null,
   }))
 
-  const openCritical = enriched.filter(a => a.priority === 'critical' && a.status === 'open').length
+  // Typology counts for header subtitle — no financial values
+  const flightRiskCount = enriched.filter(a => getAlertTypology(a) === 'flight_risk').length
+  const switchedCount   = enriched.filter(a => getAlertTypology(a) === 'switched').length
+
+  const headerSubtitle = enriched.length === 0
+    ? 'No active alerts'
+    : [
+        flightRiskCount > 0 && `${flightRiskCount} flight risk`,
+        switchedCount   > 0 && `${switchedCount} switched`,
+      ].filter(Boolean).join(' · ') || `${enriched.length} alerts`
 
   return (
     <div className="flex flex-col h-full w-full bg-background">
-      <header className="h-16 border-b border-slate-800 px-8 flex items-center gap-3 bg-slate-950/80 backdrop-blur-md sticky top-0 z-10">
+      <header className="h-16 border-b border-border px-8 flex items-center gap-3 bg-background/80 backdrop-blur-md sticky top-0 z-10">
         <div className="w-9 h-9 rounded-2xl bg-red-500/10 flex items-center justify-center">
           <Bell className="w-4 h-4 text-red-400" />
         </div>
         <div>
-          <h1 className="text-lg font-black text-white uppercase tracking-tight">Alerts</h1>
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-            {openCritical > 0 ? `${openCritical} critical open` : 'All clear'} · {enriched.length} total
+          <h1 className="text-lg font-black text-foreground uppercase tracking-tight">Alerts</h1>
+          <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+            {headerSubtitle} · {enriched.length} total
           </p>
         </div>
       </header>

@@ -2,17 +2,18 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Badge } from '@/components/ui/badge'
+import { Badge }  from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
+import { Card }   from '@/components/ui/card'
 import {
   AlertTriangle, Bell, CheckCircle2, Clock,
   PhoneCall, XCircle, ArrowRight, Flag, ArrowLeftRight,
   Sparkles, ShieldCheck, Loader2,
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { cn } from '@/lib/utils'
 
-// ── Shared type (also consumed by alerts-feed.tsx and alerts page) ────────────
+// ── Shared type ───────────────────────────────────────────────────────────────
 
 export type AlertRow = {
   id: string
@@ -39,49 +40,89 @@ export type AlertRow = {
   new_plan_name?: string | null
   effective_date?: string | null
   end_date?: string | null
-  // Revenue / carrier columns (migration 20260529100000 + 20260530000000)
   previous_carrier?: string | null
   new_carrier?: string | null
+  // Retained in type for data completeness — not displayed in UI
   estimated_revenue_at_risk?: number | null
 }
 
 export type AlertStatus = 'contacted' | 'resolved' | 'mitigating'
 
+// ── Typology system ───────────────────────────────────────────────────────────
+//
+// Three canonical operational event types that every alert maps to:
+//
+//   flight_risk  — Member has declared or shows strong intention to switch.
+//                  Broker still has a window to intervene.
+//
+//   switched     — Plan or carrier change has already executed, or member
+//                  has disenrolled. The event is a fait accompli.
+//
+//   secured      — Broker has confirmed the client is re-anchored.
+//                  Alert is resolved; retention confirmed.
+
+export type AlertTypology = 'flight_risk' | 'switched' | 'secured'
+
+const FLIGHT_RISK_TYPES  = new Set(['future_plan_change', 'plan_switch', 'pending_switch'])
+const SWITCHED_TYPES     = new Set(['plan_changed', 'carrier_switch', 'termed', 'fully_disenrolled'])
+
+export function getAlertTypology(alert: AlertRow): AlertTypology {
+  if (alert.status === 'resolved') return 'secured'
+  const st = alert.switch_type ?? ''
+  if (SWITCHED_TYPES.has(st))     return 'switched'
+  if (FLIGHT_RISK_TYPES.has(st))  return 'flight_risk'
+  // Open/contacted/mitigating alerts without a specific switch_type signal
+  // are treated as flight-risk until confirmed otherwise.
+  return 'flight_risk'
+}
+
+export const TYPOLOGY_CFG: Record<AlertTypology, {
+  label:   string
+  icon:    typeof AlertTriangle
+  chip:    string       // badge className
+  border:  string       // left border colour
+  bar:     string       // confidence bar colour
+}> = {
+  flight_risk: {
+    label:  'Flight Risk',
+    icon:   AlertTriangle,
+    chip:   'bg-amber-500/10 text-amber-400 border-amber-500/20 border',
+    border: 'border-l-amber-500',
+    bar:    'bg-amber-500',
+  },
+  switched: {
+    label:  'Plan Switched',
+    icon:   XCircle,
+    chip:   'bg-rose-500/10 text-rose-400 border-rose-500/20 border',
+    border: 'border-l-rose-500',
+    bar:    'bg-rose-500',
+  },
+  secured: {
+    label:  'Retention Secured',
+    icon:   ShieldCheck,
+    chip:   'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 border',
+    border: 'border-l-emerald-600',
+    bar:    'bg-emerald-500',
+  },
+}
+
 interface Props {
   alert: AlertRow
   isStaff?: boolean
   onStatusChange?: (alertId: string, status: AlertStatus) => void
-  onFalseAlarm?: (alertId: string) => void
+  onFalseAlarm?:  (alertId: string) => void
 }
 
 // ── Formatting helpers ─────────────────────────────────────────────────────────
-
-function timeAgo(d: string | null | undefined): string {
-  if (!d) return ''
-  const ms   = Date.now() - new Date(d).getTime()
-  const mins = Math.floor(ms / 60_000)
-  if (mins < 60)  return `${mins}m ago`
-  const hrs = Math.floor(mins / 60)
-  if (hrs < 24)   return `${hrs}h ago`
-  return `${Math.floor(hrs / 24)}d ago`
-}
 
 function timeAgoVerbose(d: string | null | undefined): string {
   if (!d) return ''
   const ms   = Date.now() - new Date(d).getTime()
   const mins = Math.floor(ms / 60_000)
-  if (mins < 60)  return `Detected ${mins} minute${mins !== 1 ? 's' : ''} ago`
+  if (mins < 60)  return `Detected ${mins}m ago`
   const hrs = Math.floor(mins / 60)
-  if (hrs < 24)   return `Detected ${hrs} hour${hrs !== 1 ? 's' : ''} ago`
-  const days = Math.floor(hrs / 24)
-  return `Detected ${days} day${days !== 1 ? 's' : ''} ago`
-}
-
-function fmtDate(d: string | null | undefined): string {
-  if (!d) return '--'
-  return new Date(d).toLocaleDateString('en-US', {
-    month: 'numeric', day: 'numeric', year: 'numeric',
-  })
+  if (hrs < 24)   return `Detected ${hrs}h ago`
+  return `Detected ${Math.floor(hrs / 24)}d ago`
 }
 
 function fmtFull(d: string | null | undefined): string {
@@ -92,7 +133,13 @@ function fmtFull(d: string | null | undefined): string {
   })
 }
 
-/** Extract the human-readable carrier name from a pipe-delimited value string. */
+function fmtDate(d: string | null | undefined): string {
+  if (!d) return '--'
+  return new Date(d).toLocaleDateString('en-US', {
+    month: 'numeric', day: 'numeric', year: 'numeric',
+  })
+}
+
 function parseCarrierFromValue(val: string | null | undefined): string | null {
   if (!val) return null
   return val.includes('|') ? val.split('|')[0].trim() : val.trim()
@@ -103,7 +150,7 @@ function parsePlanFromValue(val: string | null | undefined): string | null {
   return val.split('|').slice(1).join('|').trim()
 }
 
-// ── Switch-type-specific alert body ──────────────────────────────────────────
+// ── Switch-type body ───────────────────────────────────────────────────────────
 
 function AlertBody({ alert }: { alert: AlertRow }) {
   const st = alert.switch_type
@@ -112,163 +159,138 @@ function AlertBody({ alert }: { alert: AlertRow }) {
     ? alert.member_plan
     : (alert.carrier_display ?? alert.carrier) || 'Unknown Plan'
 
-  // ── Carrier switch (cross-carrier, from Ghost Churn Monitor cron) ───────────
   if (st === 'carrier_switch') {
-    const fromCarrier = alert.previous_carrier
-      ?? alert.carrier_display
-      ?? parseCarrierFromValue(alert.previous_value)
-      ?? 'Previous Carrier'
-    const toCarrier   = alert.new_carrier
-      ?? parseCarrierFromValue(alert.new_value)
-      ?? alert.carrier
-      ?? 'New Carrier'
-    const fromPlan = alert.member_plan ?? parsePlanFromValue(alert.previous_value)
-    const toPlan   = alert.new_plan_name ?? parsePlanFromValue(alert.new_value)
+    const fromCarrier = alert.previous_carrier ?? alert.carrier_display ?? parseCarrierFromValue(alert.previous_value) ?? 'Previous Carrier'
+    const toCarrier   = alert.new_carrier ?? parseCarrierFromValue(alert.new_value) ?? alert.carrier ?? 'New Carrier'
+    const fromPlan    = alert.member_plan ?? parsePlanFromValue(alert.previous_value)
+    const toPlan      = alert.new_plan_name ?? parsePlanFromValue(alert.new_value)
 
     return (
-      <div className="space-y-3">
-        {/* Arrow indicator */}
+      <div className="space-y-2">
         <div className="flex items-center gap-3">
-          <div className="space-y-0.5 min-w-0">
-            <p className="text-[8px] font-black uppercase tracking-widest text-slate-600">From</p>
-            <p className="text-xs font-bold text-slate-400 truncate">{fromCarrier}</p>
-            {fromPlan && (
-              <p className="text-[10px] text-slate-600 truncate">{fromPlan}</p>
-            )}
+          <div className="min-w-0 space-y-0.5">
+            <p className="text-[8px] font-black uppercase tracking-widest text-muted-foreground/60">From</p>
+            <p className="text-xs font-bold text-muted-foreground truncate">{fromCarrier}</p>
+            {fromPlan && <p className="text-[10px] text-muted-foreground/60 truncate">{fromPlan}</p>}
           </div>
-          <ArrowRight className="w-4 h-4 text-red-500 shrink-0" />
-          <div className="space-y-0.5 min-w-0">
-            <p className="text-[8px] font-black uppercase tracking-widest text-red-400">Switched To</p>
+          <ArrowRight className="w-4 h-4 text-rose-500 shrink-0" />
+          <div className="min-w-0 space-y-0.5">
+            <p className="text-[8px] font-black uppercase tracking-widest text-rose-400">Switched To</p>
             <div className="flex items-center gap-1.5">
-              <span className="w-2 h-2 rounded-full bg-red-500 shrink-0 animate-pulse" />
-              <p className="text-xs font-black text-white truncate">{toCarrier}</p>
+              <span className="w-1.5 h-1.5 rounded-full bg-rose-500 shrink-0 animate-pulse" />
+              <p className="text-xs font-black text-foreground truncate">{toCarrier}</p>
             </div>
-            {toPlan && (
-              <p className="text-[10px] text-slate-400 truncate">{toPlan}</p>
-            )}
+            {toPlan && <p className="text-[10px] text-muted-foreground/60 truncate">{toPlan}</p>}
           </div>
         </div>
-        <p className="text-[9px] uppercase tracking-widest text-slate-600 font-bold">
+        <p className="text-[9px] uppercase tracking-widest text-muted-foreground/40 font-bold">
           Ghost Churn Monitor · Cross-carrier detection
         </p>
       </div>
     )
   }
 
-  // ── Plan switch (same carrier, from Ghost Churn Monitor cron) ───────────────
   if (st === 'plan_switch') {
     const carrier  = alert.previous_carrier ?? alert.carrier_display ?? alert.carrier ?? 'Carrier'
     const fromPlan = alert.member_plan ?? parsePlanFromValue(alert.previous_value) ?? alert.previous_value ?? 'Previous Plan'
     const toPlan   = alert.new_plan_name ?? parsePlanFromValue(alert.new_value) ?? alert.new_value ?? 'New Plan'
 
     return (
-      <div className="space-y-3">
-        <p className="text-[9px] font-black uppercase tracking-widest text-slate-600">{carrier}</p>
+      <div className="space-y-2">
+        <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground/60">{carrier}</p>
         <div className="flex items-center gap-2">
-          <p className="text-xs text-slate-400 font-medium truncate max-w-[40%]">{fromPlan}</p>
+          <p className="text-xs text-muted-foreground font-medium truncate max-w-[40%]">{fromPlan}</p>
           <ArrowRight className="w-3.5 h-3.5 text-amber-500 shrink-0" />
           <div className="flex items-center gap-1.5 min-w-0">
             <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" />
             <p className="text-xs font-black text-amber-300 truncate">{toPlan}</p>
           </div>
         </div>
-        <p className="text-[9px] uppercase tracking-widest text-slate-600 font-bold">
+        <p className="text-[9px] uppercase tracking-widest text-muted-foreground/40 font-bold">
           Ghost Churn Monitor · Plan switch detected
         </p>
       </div>
     )
   }
 
-  // ── MARx: termed ──────────────────────────────────────────────────────────
   if (st === 'termed') {
     return (
       <div className="space-y-1 text-xs">
-        <p className="text-slate-300">
-          <span className="text-slate-500">Left: </span>
-          {planDisplay}
+        <p className="text-muted-foreground">
+          <span className="text-muted-foreground/60">Left: </span>{planDisplay}
           {alert.previous_plan_code && ` (${alert.previous_plan_code})`}
         </p>
         {alert.end_date && (
-          <p className="text-slate-400">
-            <span className="text-slate-500">Plan ended: </span>
-            {fmtDate(alert.end_date)}
+          <p className="text-muted-foreground/80">
+            <span className="text-muted-foreground/60">Plan ended: </span>{fmtDate(alert.end_date)}
           </p>
         )}
-        <p className="text-[9px] uppercase tracking-widest text-slate-600 font-bold pt-0.5">
+        <p className="text-[9px] uppercase tracking-widest text-muted-foreground/40 font-bold pt-0.5">
           Source: CMS MARx (verified)
         </p>
       </div>
     )
   }
 
-  // ── MARx: future plan change ───────────────────────────────────────────────
   if (st === 'future_plan_change') {
     return (
       <div className="space-y-1 text-xs">
-        <p className="text-slate-300">
-          <span className="text-slate-500">Currently: </span>
-          {planDisplay}
+        <p className="text-muted-foreground">
+          <span className="text-muted-foreground/60">Currently: </span>{planDisplay}
           {alert.previous_plan_code && ` (${alert.previous_plan_code})`}
         </p>
-        <p className="text-orange-300 font-medium">
-          <span className="text-slate-500">Switching to: </span>
+        <p className="text-amber-300 font-medium">
+          <span className="text-muted-foreground/60">Switching to: </span>
           {alert.new_plan_name ?? alert.new_plan_code ?? 'Unknown plan'}
           {alert.new_plan_code && ` (${alert.new_plan_code})`}
         </p>
         {alert.effective_date && (
-          <p className="text-slate-400">
-            <span className="text-slate-500">Effective: </span>
-            {fmtDate(alert.effective_date)}
+          <p className="text-muted-foreground/80">
+            <span className="text-muted-foreground/60">Effective: </span>{fmtDate(alert.effective_date)}
           </p>
         )}
-        <p className="text-[9px] uppercase tracking-widest text-slate-600 font-bold pt-0.5">
-          Source: CMS MARx (AEP enrollment detected)
+        <p className="text-[9px] uppercase tracking-widest text-muted-foreground/40 font-bold pt-0.5">
+          Source: CMS MARx · AEP enrollment detected
         </p>
       </div>
     )
   }
 
-  // ── MARx: plan changed ──────────────────────────────────────────────────────
   if (st === 'plan_changed') {
     return (
       <div className="space-y-1 text-xs">
-        <p className="text-slate-400">
-          <span className="text-slate-500">Was on: </span>
-          {planDisplay}
+        <p className="text-muted-foreground">
+          <span className="text-muted-foreground/60">Was on: </span>{planDisplay}
           {alert.previous_plan_code && ` (${alert.previous_plan_code})`}
         </p>
-        <p className="text-red-300 font-medium">
-          <span className="text-slate-500">Now on: </span>
+        <p className="text-rose-300 font-medium">
+          <span className="text-muted-foreground/60">Now on: </span>
           {alert.new_plan_name ?? alert.new_plan_code ?? 'Unknown plan'}
           {alert.new_plan_code && ` (${alert.new_plan_code})`}
         </p>
-        <p className="text-[9px] uppercase tracking-widest text-slate-600 font-bold pt-0.5">
+        <p className="text-[9px] uppercase tracking-widest text-muted-foreground/40 font-bold pt-0.5">
           Detected via: CMS MARx
         </p>
       </div>
     )
   }
 
-  // ── MARx: fully disenrolled ─────────────────────────────────────────────────
   if (st === 'fully_disenrolled') {
     return (
       <div className="space-y-1 text-xs">
-        <p className="text-red-400 font-medium">No active Medicare plan found in MARx</p>
-        <p className="text-[9px] uppercase tracking-widest text-slate-600 font-bold pt-0.5">
+        <p className="text-rose-400 font-medium">No active Medicare plan found in MARx</p>
+        <p className="text-[9px] uppercase tracking-widest text-muted-foreground/40 font-bold pt-0.5">
           Source: CMS MARx (verified)
         </p>
       </div>
     )
   }
 
-  // ── Fallback ─────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-1 text-xs">
-      {alert.new_value && (
-        <p className="text-slate-300">{alert.new_value}</p>
-      )}
+      {alert.new_value && <p className="text-muted-foreground">{alert.new_value}</p>}
       {alert.detection_source && (
-        <p className="text-[9px] uppercase tracking-widest text-slate-600 font-bold pt-0.5">
+        <p className="text-[9px] uppercase tracking-widest text-muted-foreground/40 font-bold pt-0.5">
           Source: {alert.detection_source.replace(/_/g, ' ')}
         </p>
       )}
@@ -283,53 +305,27 @@ export function AlertCard({ alert, isStaff, onStatusChange, onFalseAlarm }: Prop
   const [shieldState, setShieldState] = useState<'idle' | 'launching' | 'active' | 'error'>('idle')
   const [scriptPreview, setScriptPreview] = useState<string | null>(null)
 
-  const C  = alert.confidence_score ?? 0
-  const st = alert.switch_type
+  const C        = alert.confidence_score ?? 0
+  const typology = getAlertTypology(alert)
+  const tCfg     = TYPOLOGY_CFG[typology]
+  const TypIcon  = tCfg.icon
 
-  const borderCls = C >= 85 ? 'border-l-red-500'
-    : C >= 70 ? 'border-l-orange-500'
-    : C >= 60 ? 'border-l-yellow-500'
-    : 'border-l-slate-700'
-
-  const barCls = C > 70 ? 'bg-red-500'
-    : C >= 40 ? 'bg-yellow-500'
-    : 'bg-slate-600'
-
-  const PriorityIcon = st === 'future_plan_change' ? AlertTriangle
-    : (st === 'plan_changed' || st === 'termed' || st === 'fully_disenrolled') ? XCircle
-    : alert.priority === 'critical' ? XCircle
-    : alert.priority === 'high'     ? AlertTriangle
-    : Bell
-
-  const priorityCls = st === 'future_plan_change' ? 'text-orange-400'
-    : alert.priority === 'critical' ? 'text-red-400'
-    : alert.priority === 'high'     ? 'text-orange-400'
-    : 'text-yellow-400'
-
-  const statusCls = ({
+  // Workflow status badge
+  const workflowBadgeCls = ({
     open:       'bg-red-500/10 text-red-400 border-red-500/20',
-    contacted:  'bg-yellow-500/10 text-yellow-400 border-yellow-500/20',
+    contacted:  'bg-amber-500/10 text-amber-400 border-amber-500/20',
     mitigating: 'bg-violet-500/10 text-violet-400 border-violet-500/20',
     resolved:   'bg-emerald-500/10 text-emerald-400 border-emerald-500/20',
-    dismissed:  'bg-slate-500/10 text-slate-400 border-slate-500/20',
+    dismissed:  'bg-muted/10 text-muted-foreground border-border',
   } as Record<string, string>)[alert.status ?? 'open']
-    ?? 'bg-slate-500/10 text-slate-400 border-slate-500/20'
-
-  const priorityLabel = st === 'future_plan_change'
-    ? `HIGH — ${alert.carrier_display ?? alert.carrier ?? 'Unknown'}`
-    : `CRITICAL — ${alert.carrier_display ?? alert.carrier ?? 'Unknown'}`
-
-  const priorityLabelCls = st === 'future_plan_change' ? 'text-orange-400' : 'text-red-400'
+    ?? 'bg-muted/10 text-muted-foreground border-border'
 
   const isOpen       = alert.status === 'open'
   const isContacted  = alert.status === 'contacted'
   const isMitigating = alert.status === 'mitigating'
   const isActionable = isOpen || isContacted
 
-  // Revenue at risk for this single alert
-  const revenue = alert.estimated_revenue_at_risk ?? 35
-
-  // ── Handlers ─────────────────────────────────────────────────────────────────
+  // ── Handlers ──────────────────────────────────────────────────────────────────
 
   async function handleStatusChange(status: AlertStatus) {
     setBusy(status)
@@ -362,15 +358,10 @@ export function AlertCard({ alert, isStaff, onStatusChange, onFalseAlarm }: Prop
     if (!alert.bob_member_id) return
     setShieldState('launching')
     try {
-      // 1. Transition to 'mitigating' in the DB
       const supabase = createClient()
-      await supabase
-        .from('switch_alerts')
-        .update({ status: 'mitigating' })
-        .eq('id', alert.id)
+      await supabase.from('switch_alerts').update({ status: 'mitigating' }).eq('id', alert.id)
       onStatusChange?.(alert.id, 'mitigating')
 
-      // 2. Fire the Maya AI script engine
       const res  = await fetch('/api/ai/generate-script', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -379,12 +370,7 @@ export function AlertCard({ alert, isStaff, onStatusChange, onFalseAlarm }: Prop
       const data = await res.json() as {
         success?: boolean; smsDraft?: string; phoneScript?: string; error?: string
       }
-
-      if (!res.ok || !data.success) {
-        throw new Error(data.error ?? 'Script generation failed')
-      }
-
-      // 3. Surface a preview of the SMS draft
+      if (!res.ok || !data.success) throw new Error(data.error ?? 'Script generation failed')
       setScriptPreview(data.smsDraft ?? data.phoneScript ?? null)
       setShieldState('active')
     } catch {
@@ -392,69 +378,90 @@ export function AlertCard({ alert, isStaff, onStatusChange, onFalseAlarm }: Prop
     }
   }
 
-  // ── Render ───────────────────────────────────────────────────────────────────
+  // ── Render ────────────────────────────────────────────────────────────────────
 
   return (
-    <Card className={`rounded-2xl border border-slate-800 border-l-4 ${borderCls} bg-slate-900/60 overflow-hidden`}>
+    <Card className={cn(
+      'rounded-2xl border border-border border-l-4 bg-card overflow-hidden',
+      tCfg.border
+    )}>
       <div className="p-4">
         <div className="flex items-start gap-4">
 
-          {/* Priority icon */}
-          <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 bg-slate-800">
-            <PriorityIcon className={`w-4 h-4 ${priorityCls}`} />
+          {/* Typology icon */}
+          <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 bg-muted/30">
+            <TypIcon className={cn(
+              'w-4 h-4',
+              typology === 'flight_risk' ? 'text-amber-400'
+              : typology === 'switched'  ? 'text-rose-400'
+              : 'text-emerald-400'
+            )} />
           </div>
 
           {/* Body */}
           <div className="flex-1 min-w-0 space-y-2">
-            {/* Priority label */}
-            <p className={`text-[9px] font-black uppercase tracking-widest ${priorityLabelCls}`}>
-              {priorityLabel}
-            </p>
 
-            {/* Member name + status badge */}
+            {/* Typology chip + workflow status badge */}
             <div className="flex items-center gap-2 flex-wrap">
-              <p className="text-sm font-black text-white">
-                {alert.member_full_name ?? (
-                  <span className="text-slate-500 italic font-normal">Unknown Member</span>
-                )}
-              </p>
-              <Badge className={`font-black uppercase text-[8px] px-2 h-5 cursor-default pointer-events-none ${statusCls}`}>
+              <Badge className={cn('font-black uppercase text-[8px] px-2 h-5', tCfg.chip)}>
+                {tCfg.label}
+              </Badge>
+              <Badge className={cn(
+                'font-black uppercase text-[8px] px-2 h-5 border cursor-default pointer-events-none',
+                workflowBadgeCls
+              )}>
                 {(alert.status ?? 'open').replace(/_/g, ' ')}
               </Badge>
               {isStaff && alert.broker_full_name && (
-                <span className="text-[9px] text-slate-500 font-medium ml-auto">
+                <span className="text-[9px] text-muted-foreground font-medium ml-auto">
                   {alert.broker_full_name}
                 </span>
               )}
             </div>
 
+            {/* Member name */}
+            <p className="text-sm font-black text-foreground">
+              {alert.member_full_name ?? (
+                <span className="text-muted-foreground italic font-normal">Unknown Member</span>
+              )}
+            </p>
+
+            {/* Carrier / plan context */}
+            {(alert.carrier_display ?? alert.carrier ?? alert.member_plan) && (
+              <p className="text-[10px] text-muted-foreground font-medium">
+                {alert.carrier_display ?? alert.carrier}
+                {alert.member_plan && (
+                  <span className="text-muted-foreground/60"> · {alert.member_plan}</span>
+                )}
+              </p>
+            )}
+
             {/* Switch visualization */}
             <AlertBody alert={alert} />
 
-            {/* Timestamp — verbose "Detected X hours ago" format */}
+            {/* Timestamp row — no financial data */}
             <div className="flex items-center gap-2 flex-wrap pt-0.5">
-              <span className="text-[10px] text-slate-600 font-medium flex items-center gap-1">
+              <span className="text-[10px] text-muted-foreground/60 font-medium flex items-center gap-1">
                 <Clock className="w-3 h-3" />
                 {timeAgoVerbose(alert.detected_at)}
-                <span className="text-slate-700 mx-1">·</span>
+                <span className="text-muted-foreground/30 mx-1">·</span>
                 {fmtFull(alert.detected_at)}
               </span>
-              {revenue > 0 && (
-                <span className="text-[9px] font-black text-amber-500/70 ml-auto">
-                  ${revenue}/mo at risk
-                </span>
-              )}
               {C > 0 && (
-                <span className={`text-[10px] font-black ${C >= 85 ? 'text-red-400' : C >= 70 ? 'text-orange-400' : 'text-yellow-400'}`}>
+                <span className={cn(
+                  'text-[10px] font-black ml-auto',
+                  C >= 85 ? 'text-rose-400' : C >= 70 ? 'text-amber-400' : 'text-muted-foreground'
+                )}>
                   {C}% conf.
                 </span>
               )}
             </div>
 
+            {/* Confidence bar */}
             {C > 0 && (
-              <div className="h-0.5 w-full rounded-full bg-slate-800">
+              <div className="h-0.5 w-full rounded-full bg-muted">
                 <div
-                  className={`h-0.5 rounded-full transition-all ${barCls}`}
+                  className={cn('h-0.5 rounded-full transition-all', tCfg.bar)}
                   style={{ width: `${Math.min(C, 100)}%` }}
                 />
               </div>
@@ -464,7 +471,7 @@ export function AlertCard({ alert, isStaff, onStatusChange, onFalseAlarm }: Prop
           {/* Right-side action column */}
           <div className="flex flex-col items-end gap-1.5 shrink-0">
 
-            {/* LAUNCH SHIELD CAMPAIGN — primary action for open alerts */}
+            {/* Launch Shield — primary CTA for open flight-risk alerts */}
             {isOpen && alert.bob_member_id && shieldState === 'idle' && (
               <Button
                 onClick={handleLaunchShield}
@@ -478,11 +485,8 @@ export function AlertCard({ alert, isStaff, onStatusChange, onFalseAlarm }: Prop
             )}
 
             {shieldState === 'launching' && (
-              <Button
-                disabled
-                size="sm"
-                className="h-8 px-3 rounded-xl text-[9px] font-black uppercase tracking-widest bg-violet-600/60 text-violet-300 gap-1.5 whitespace-nowrap cursor-not-allowed"
-              >
+              <Button disabled size="sm"
+                className="h-8 px-3 rounded-xl text-[9px] font-black uppercase tracking-widest bg-violet-600/60 text-violet-300 gap-1.5 whitespace-nowrap cursor-not-allowed">
                 <Loader2 className="w-3 h-3 animate-spin" />
                 Launching…
               </Button>
@@ -498,76 +502,54 @@ export function AlertCard({ alert, isStaff, onStatusChange, onFalseAlarm }: Prop
             )}
 
             {shieldState === 'error' && (
-              <Button
-                onClick={handleLaunchShield}
-                size="sm"
-                variant="ghost"
-                className="h-8 px-3 rounded-xl text-[9px] font-black uppercase tracking-widest text-red-400 hover:bg-red-500/10 gap-1 whitespace-nowrap"
-              >
+              <Button onClick={handleLaunchShield} size="sm" variant="ghost"
+                className="h-8 px-3 rounded-xl text-[9px] font-black uppercase tracking-widest text-red-400 hover:bg-red-500/10 gap-1 whitespace-nowrap">
                 <Sparkles className="w-3 h-3" />
                 Retry Shield
               </Button>
             )}
 
-            {/* Secondary actions */}
+            {/* Mark contacted */}
             {isOpen && (
-              <Button
-                variant="ghost"
-                size="sm"
-                disabled={!!busy}
+              <Button variant="ghost" size="sm" disabled={!!busy}
                 onClick={() => handleStatusChange('contacted')}
-                className="h-7 px-2.5 rounded-lg text-[9px] font-black uppercase tracking-widest text-yellow-400 hover:text-white hover:bg-yellow-500/20 gap-1 whitespace-nowrap"
-              >
+                className="h-7 px-2.5 rounded-lg text-[9px] font-black uppercase tracking-widest text-amber-400 hover:text-foreground hover:bg-amber-500/20 gap-1 whitespace-nowrap">
                 <PhoneCall className="w-3 h-3" />
-                {st === 'future_plan_change' ? 'Call Now' : 'Contacted'}
+                {alert.switch_type === 'future_plan_change' ? 'Call Now' : 'Contacted'}
               </Button>
             )}
 
-            {st === 'future_plan_change' && isOpen && (
-              <Button
-                asChild
-                variant="ghost"
-                size="sm"
-                className="h-7 px-2.5 rounded-lg text-[9px] font-black uppercase tracking-widest text-orange-400 hover:text-white hover:bg-orange-500/20 gap-1"
-              >
-                <Link href="/dashboard/churn">
+            {/* Campaign — links to /dashboard/campaigns, not the deprecated /dashboard/churn */}
+            {alert.switch_type === 'future_plan_change' && isOpen && (
+              <Button asChild variant="ghost" size="sm"
+                className="h-7 px-2.5 rounded-lg text-[9px] font-black uppercase tracking-widest text-amber-400 hover:text-foreground hover:bg-amber-500/20 gap-1">
+                <Link href="/dashboard/campaigns">
                   <ArrowLeftRight className="w-3 h-3" />Campaign
                 </Link>
               </Button>
             )}
 
-            {/* Resolve: available for contacted, mitigating, or open states */}
+            {/* Resolve */}
             {(isOpen || isContacted || isMitigating) && (
-              <Button
-                variant="ghost"
-                size="sm"
-                disabled={!!busy}
+              <Button variant="ghost" size="sm" disabled={!!busy}
                 onClick={() => handleStatusChange('resolved')}
-                className="h-7 px-2.5 rounded-lg text-[9px] font-black uppercase tracking-widest text-emerald-400 hover:text-white hover:bg-emerald-500/20 gap-1"
-              >
+                className="h-7 px-2.5 rounded-lg text-[9px] font-black uppercase tracking-widest text-emerald-400 hover:text-foreground hover:bg-emerald-500/20 gap-1">
                 <CheckCircle2 className="w-3 h-3" />Resolve
               </Button>
             )}
 
-            {/* False Alarm: only while open or contacted (not after Shield launched) */}
+            {/* False Alarm */}
             {isActionable && (
-              <Button
-                variant="ghost"
-                size="sm"
-                disabled={!!busy}
+              <Button variant="ghost" size="sm" disabled={!!busy}
                 onClick={handleFalseAlarm}
-                className="h-7 px-2.5 rounded-lg text-[9px] font-black uppercase tracking-widest text-slate-400 hover:text-white hover:bg-slate-700/50 gap-1"
-              >
+                className="h-7 px-2.5 rounded-lg text-[9px] font-black uppercase tracking-widest text-muted-foreground hover:text-foreground hover:bg-muted/50 gap-1">
                 <Flag className="w-3 h-3" />False Alarm
               </Button>
             )}
 
             <Link href={`/dashboard/alerts/${alert.id}`}>
-              <Button
-                variant="ghost"
-                size="sm"
-                className="h-7 px-2 rounded-lg text-[9px] font-black uppercase tracking-widest text-slate-500 hover:text-primary gap-1"
-              >
+              <Button variant="ghost" size="sm"
+                className="h-7 px-2 rounded-lg text-[9px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary gap-1">
                 Details <ArrowRight className="w-3 h-3" />
               </Button>
             </Link>
@@ -575,7 +557,7 @@ export function AlertCard({ alert, isStaff, onStatusChange, onFalseAlarm }: Prop
         </div>
       </div>
 
-      {/* ── Inline AI script preview (shown after Shield is launched) ─────────── */}
+      {/* Inline AI script preview */}
       {shieldState === 'active' && scriptPreview && (
         <div className="mx-4 mb-4 p-3 rounded-xl bg-violet-500/5 border border-violet-500/15 space-y-2">
           <div className="flex items-center gap-2">
@@ -584,15 +566,12 @@ export function AlertCard({ alert, isStaff, onStatusChange, onFalseAlarm }: Prop
               Maya AI · Outreach Draft Ready
             </p>
           </div>
-          <p className="text-[10px] text-slate-400 leading-relaxed line-clamp-3">
+          <p className="text-[10px] text-muted-foreground leading-relaxed line-clamp-3">
             {scriptPreview}
           </p>
           <Link href={`/dashboard/scripts?alertId=${alert.id}`}>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="h-6 px-0 text-[9px] font-black uppercase tracking-widest text-violet-400 hover:text-violet-300 gap-1"
-            >
+            <Button variant="ghost" size="sm"
+              className="h-6 px-0 text-[9px] font-black uppercase tracking-widest text-violet-400 hover:text-violet-300 gap-1">
               View Full Script <ArrowRight className="w-3 h-3" />
             </Button>
           </Link>
