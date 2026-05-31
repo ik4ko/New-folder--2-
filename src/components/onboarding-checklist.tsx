@@ -29,7 +29,8 @@ const STEPS: Step[] = [
     id: 'ghl',
     label: 'Connect GoHighLevel',
     description: 'Sync your GHL account to import contacts automatically.',
-    href: '/settings/ghl-connect',
+    // GHL connect is embedded in the unified import page — /settings/ghl-connect removed
+    href: '/dashboard/churn/upload',
     checkFn: ctx => ctx.hasGHL,
   },
   {

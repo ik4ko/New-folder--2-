@@ -7,18 +7,19 @@ import { ScrollArea } from "@/components/ui/scroll-area"
 import {
   CreditCard,
   PanelLeftClose, PanelLeft,
-  User, Link2, Bell,
+  User, Bell,
 } from "lucide-react"
 import { usePathname } from "next/navigation"
 import { useEffect } from "react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 
+// GHL CRM connection moved to the unified import page: /dashboard/churn/upload
+// Settings only exposes account-level controls — data sources live in the app.
 const SETTINGS_ITEMS = [
-  { id: "profile",       label: "My Profile",       icon: User,      href: "/settings/profile" },
-  { id: "ghl-connect",   label: "GoHighLevel CRM",  icon: Link2,     href: "/settings/ghl-connect" },
-  { id: "notifications", label: "Notifications",    icon: Bell,      href: "/settings/notifications" },
-  { id: "billing",       label: "Plan & Billing",   icon: CreditCard, href: "/settings/billing" },
+  { id: "profile",       label: "My Profile",    icon: User,       href: "/settings/profile" },
+  { id: "notifications", label: "Notifications", icon: Bell,       href: "/settings/notifications" },
+  { id: "billing",       label: "Plan & Billing", icon: CreditCard, href: "/settings/billing" },
 ]
 
 function SettingsSidebar() {
