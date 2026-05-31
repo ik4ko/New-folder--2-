@@ -15,9 +15,12 @@ export function getStripe(): Stripe {
 
 // ── Pricing constants — single source of truth ───────────────────────────────────────────
 // Keep in sync with page.tsx billing constants and pricing strategy doc.
+// Current live pricing (effective 2026-05):
+//   Broker:  $149/mo  (was $150 — corrected; $79 v1 archived May 2026)
+//   Agency:  $749/mo base + $49/seat overage  (was $497 v1 archived May 2026)
 export const PRICING = {
   broker: {
-    monthly:       150,
+    monthly:       149,
     annual:        120,
     annualTotal:   1_440,
     annualSavings:   360,
@@ -71,7 +74,9 @@ export type PlanKey = keyof typeof PLANS
 // existing database subscription rows continue to resolve correctly even
 // after prices are updated and old IDs are archived in Stripe.
 //
-// Archived price history:
+// Archived price history (reverse-chronological):
+//   broker v2: $149/mo (live from 2026-05) — current STRIPE_BROKER_PRICE_ID
+//   agency v2: $749/mo base + $49/seat (live from 2026-05) — current STRIPE_AGENCY_PRICE_ID
 //   broker v1: $79/mo  (archived May 2026) → maps to 'broker' tier rules
 //   agency v1: $497/mo (archived May 2026) → maps to 'agency' tier rules
 //

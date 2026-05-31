@@ -18,10 +18,10 @@ import { getCancelUrl } from '@/app/actions/billing'
  * billingCase derivation (single source of truth):
  *
  *   'owner_agency'  → user owns an agency on agency/professional/enterprise tier
- *                     Shows $497/mo dashboard with live seat metrics
+ *                     Shows $749/mo dashboard with live seat metrics
  *
  *   'owner_broker'  → user owns an agency on broker/solo tier
- *                     Shows $79/mo card with renewal date + cancel button
+ *                     Shows $149/mo card with renewal date + cancel button
  *
  *   'sub_broker'    → user is a broker under someone else's agency
  *                     Read-only view — billing managed by owner
@@ -219,12 +219,12 @@ export default function BillingPage() {
   const hasSubscription = !!agency?.stripe_subscription_id
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // CASE A: Agency Owner on Agency/Professional/Enterprise tier  →  $497/mo
+  // CASE A: Agency Owner on Agency/Professional/Enterprise tier  →  $749/mo
   // ═══════════════════════════════════════════════════════════════════════════
   if (billingCase === 'owner_agency') {
     const overageSeats = Math.max(0, activeSeats - includedSeats)
-    const overageCost  = overageSeats * 30          // $30/mo per extra seat
-    const totalCost    = 497 + overageCost
+    const overageCost  = overageSeats * 49          // $49/mo per extra seat
+    const totalCost    = 749 + overageCost
 
     return (
       <div className="flex flex-col h-full w-full">
@@ -272,12 +272,12 @@ export default function BillingPage() {
                   <span className="text-muted-foreground font-bold">
                     Base plan ({includedSeats} broker seat{includedSeats !== 1 ? 's' : ''} included)
                   </span>
-                  <span className="font-black">$497/mo</span>
+                  <span className="font-black">$749/mo</span>
                 </div>
                 {overageSeats > 0 && (
                   <div className="flex justify-between items-center text-[11px]">
                     <span className="text-muted-foreground font-bold">
-                      +{overageSeats} additional broker{overageSeats !== 1 ? 's' : ''} × $30/mo
+                      +{overageSeats} additional broker{overageSeats !== 1 ? 's' : ''} × $49/mo
                     </span>
                     <span className="text-amber-400 font-black">+${overageCost}/mo</span>
                   </div>
@@ -350,7 +350,7 @@ export default function BillingPage() {
                 </div>
                 <div className="flex justify-between text-[9px] text-muted-foreground font-bold uppercase">
                   <span>{activeSeats} active</span>
-                  <span>{includedSeats} included · +$30/seat overage</span>
+                  <span>{includedSeats} included · +$49/seat overage</span>
                 </div>
               </div>
             </CardContent>
@@ -362,7 +362,7 @@ export default function BillingPage() {
   }
 
   // ═══════════════════════════════════════════════════════════════════════════
-  // CASE B: Agency Owner on Solo/Broker tier  →  $79/mo
+  // CASE B: Agency Owner on Solo/Broker tier  →  $149/mo
   // ═══════════════════════════════════════════════════════════════════════════
   if (billingCase === 'owner_broker') {
     return (
@@ -383,7 +383,7 @@ export default function BillingPage() {
                   </Badge>
                   <p className="text-2xl font-black uppercase tracking-tight">Individual Broker Plan</p>
                   <p className="text-3xl font-black">
-                    $79<span className="text-sm text-muted-foreground font-bold">/mo</span>
+                    $149<span className="text-sm text-muted-foreground font-bold">/mo</span>
                   </p>
                   <p className="text-[11px] text-muted-foreground">
                     1 seat · month-to-month · cancel any time
@@ -438,7 +438,7 @@ export default function BillingPage() {
                     {upgradePending && upgradingPlan === 'broker'
                       ? <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                       : <ArrowUpRight className="w-3.5 h-3.5" />}
-                    Activate $79/mo Plan
+                    Activate $149/mo Plan
                   </Button>
                 )}
               </div>
@@ -461,10 +461,10 @@ export default function BillingPage() {
                 <Building2 className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <p className="text-sm font-black uppercase tracking-tight mb-2">Scale to an Agency for $497/mo</p>
+                <p className="text-sm font-black uppercase tracking-tight mb-2">Scale to an Agency for $749/mo</p>
                 <ul className="space-y-1.5">
                   {[
-                    '5 broker seats included, $30/mo per additional',
+                    '5 broker seats included, $49/mo per additional',
                     'Agency-wide churn monitor & override alerts',
                     'Manager Control Center & downline roster',
                     'Revenue-at-risk dashboard',
@@ -523,7 +523,7 @@ export default function BillingPage() {
                 <div>
                   <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1">Agency Plan</p>
                   <p className="text-sm font-black">
-                    {AGENCY_TIERS.includes(agency.subscription_tier ?? '') ? 'Agency Plan · $497/mo' : 'Individual Broker · $79/mo'}
+                    {AGENCY_TIERS.includes(agency.subscription_tier ?? '') ? 'Agency Plan · $749/mo' : 'Individual Broker · $149/mo'}
                   </p>
                 </div>
                 <Badge className={`font-black uppercase text-[9px] px-3 h-6 border ${statusCfg.cls}`}>

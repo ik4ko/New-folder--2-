@@ -35,7 +35,7 @@ export function getTierConfig() {
       seatLimit:     SOLO_SEAT_LIMIT,
       includedSeats: SOLO_SEAT_LIMIT,
       overageBilled: false,
-      monthlyPrice:  150,
+      monthlyPrice:  149,   // v2 live price — corrected from erroneous 150
       annualPrice:   120,
     },
     agency: {
