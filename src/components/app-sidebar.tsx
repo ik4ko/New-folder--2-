@@ -10,26 +10,31 @@ import { SidebarNav } from './sidebar-nav'
  *
  *   isOwner:
  *     TRUE  → user has an agencies row with owner_id = uid
- *             (they own the subscription and pay the bill)
- *     FALSE → user is a broker under someone else's agency
  *
  *   isBrokerTier:
- *     TRUE  → the agency subscription_tier is 'broker' | 'solo' | 'starter'
- *             OR the user has no agency row at all
- *             → show stripped 3-item broker nav
+ *     TRUE  → the EFFECTIVE agency subscription_tier is 'broker' | 'solo' | 'starter'
+ *             → show stripped 3-item broker nav (My Clients, Alerts, Import)
+ *             → Team and Agency View are NEVER rendered, not hidden
  *     FALSE → tier is 'agency' | 'professional' | 'enterprise'
- *             AND isOwner = true
- *             → show full nav + management section
+ *             → show full nav + Management section
  *
- * The sidebar NEVER shows Team or Agency View to solo brokers or
- * to brokers who are not the agency owner.
+ * Tier resolution order:
+ *   1. Owned agency  →  use agency.subscription_tier directly
+ *   2. Non-owner staff → look up parent agency tier via brokerRow.agency_id
+ *      (agency_admin / customer_service under a professional-tier agency
+ *       should see the full nav, not the broker-stripped nav)
+ *   3. Fallback → 'broker' (most restrictive — show broker nav)
+ *
+ * The same sidebar output is passed to both the desktop layout and the
+ * mobile Sheet drawer in AppShell. Role gating is evaluated once,
+ * server-side, before either surface renders.
  */
 export async function AppSidebar() {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) return null
 
-  // Parallel fetch: agency (owned by this user) + broker profile
+  // ── Step 1: Parallel fetch for owned agency + broker profile ─────────────
   const [{ data: agency }, { data: brokerRow }] = await Promise.all([
     supabase
       .from('agencies')
@@ -43,37 +48,56 @@ export async function AppSidebar() {
       .maybeSingle(),
   ])
 
-  // ── Identity resolution ───────────────────────────────────────────────────
   const isOwner = agency !== null
 
-  // Agency tier determines feature access, not just the role string.
-  // 'professional' is treated as agency tier (used for beta/test accounts).
-  const AGENCY_TIERS = ['agency', 'professional', 'enterprise', 'agency_plan']
-  const tier         = agency?.subscription_tier ?? 'broker'
-  const isBrokerTier = !isOwner || !AGENCY_TIERS.includes(tier)
+  // ── Step 2: Resolve the effective tier ───────────────────────────────────
+  // For agency owners: read directly from their owned agency row.
+  // For non-owner staff (agency_admin, customer_service): fetch the parent
+  //   agency tier so they see the correct nav for their employer's plan.
+  // Fallback to 'broker' (most restrictive) if nothing resolves.
+  const AGENCY_TIERS  = ['agency', 'professional', 'enterprise', 'agency_plan']
+  const BROKER_TIERS  = ['broker', 'solo', 'starter']
 
-  // Agency ID for alert count: prefer broker row's agency (where data lives),
-  // fall back to owned agency ID.
+  let effectiveTier: string
+
+  if (isOwner) {
+    effectiveTier = agency.subscription_tier ?? 'broker'
+  } else if (brokerRow?.agency_id) {
+    // Non-owner: look up the parent agency's tier
+    const { data: parentAgency } = await supabase
+      .from('agencies')
+      .select('subscription_tier')
+      .eq('id', brokerRow.agency_id)
+      .maybeSingle()
+    effectiveTier = parentAgency?.subscription_tier ?? 'broker'
+  } else {
+    effectiveTier = 'broker'
+  }
+
+  // isBrokerTier = true  → stripped 3-item nav (solo/broker plan)
+  // isBrokerTier = false → full nav + Management section (agency plan)
+  const isBrokerTier = BROKER_TIERS.includes(effectiveTier) || !AGENCY_TIERS.includes(effectiveTier)
+
+  // ── Step 3: Supporting data ───────────────────────────────────────────────
   const agencyId = brokerRow?.agency_id ?? agency?.id
-
-  const role = brokerRow?.role ?? (isOwner ? 'agency_owner' : 'broker')
-  const name = brokerRow
+  const role     = brokerRow?.role ?? (isOwner ? 'agency_owner' : 'broker')
+  const name     = brokerRow
     ? `${brokerRow.first_name ?? ''} ${brokerRow.last_name ?? ''}`.trim()
       || (user.email?.split('@')[0] ?? 'User')
     : (user.email?.split('@')[0] ?? 'User')
   const email = user.email ?? ''
 
-  // ── Critical alert count ──────────────────────────────────────────────────
+  // ── Step 4: Critical alert badge count ───────────────────────────────────
   let criticalAlerts = 0
   if (agencyId) {
     const svc = createServiceClient()
-    // Owners/managers see all agency alerts; solo brokers see only their own.
     let q = svc
       .from('switch_alerts')
       .select('id', { count: 'exact', head: true })
       .eq('agency_id', agencyId)
       .eq('priority', 'critical')
       .in('status', ['open', 'contacted'])
+    // Broker-tier users see only their own alerts; agency staff see all
     if (isBrokerTier && brokerRow?.id) {
       q = q.eq('broker_id', brokerRow.id) as typeof q
     }

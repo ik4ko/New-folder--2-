@@ -330,18 +330,46 @@ export default async function ManagerPage({
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
 
-  // Parallel role detection
+  // ── Tier constants ─────────────────────────────────────────────────────────
+  const BROKER_TIERS = ['broker', 'solo', 'starter']
+
+  // ── Auth + tier resolution ─────────────────────────────────────────────────
+  // Fetch subscription_tier so the gate can block broker-tier users who have
+  // role='agency_owner' (assigned by auto-provision to all self-registered users).
   const [{ data: agency }, { data: brokerRow }] = await Promise.all([
-    supabase.from('agencies').select('id').eq('owner_id', user.id).maybeSingle(),
+    supabase.from('agencies').select('id, subscription_tier').eq('owner_id', user.id).maybeSingle(),
     supabase.from('brokers').select('role, agency_id').eq('user_id', user.id).maybeSingle(),
   ])
 
+  const isOwner    = !!agency
+  const agencyTier = agency?.subscription_tier ?? 'broker'
+
+  // ── Gate 1: broker-tier owners ────────────────────────────────────────────
+  // Self-provisioned solo brokers have role='agency_owner' — the role check
+  // alone is insufficient. Tier is the authoritative signal.
+  if (isOwner && BROKER_TIERS.includes(agencyTier)) {
+    redirect('/dashboard/alerts')
+  }
+
+  // ── Gate 2: role check (non-owners) ───────────────────────────────────────
   const staffRoles = ['agency_owner', 'agency_admin', 'customer_service']
-  const isStaff = staffRoles.includes(brokerRow?.role ?? '')
-  if (!isStaff) redirect('/dashboard')
+  const isStaff    = staffRoles.includes(brokerRow?.role ?? '') || isOwner
+  if (!isStaff) redirect('/dashboard/alerts')
+
+  // ── Gate 3: non-owner staff tier check ────────────────────────────────────
+  if (!isOwner && brokerRow?.agency_id) {
+    const { data: parentAgency } = await supabase
+      .from('agencies')
+      .select('subscription_tier')
+      .eq('id', brokerRow.agency_id)
+      .maybeSingle()
+    if (BROKER_TIERS.includes(parentAgency?.subscription_tier ?? 'broker')) {
+      redirect('/dashboard/alerts')
+    }
+  }
 
   const agencyId = agency?.id ?? brokerRow?.agency_id
-  if (!agencyId) redirect('/dashboard')
+  if (!agencyId) redirect('/dashboard/alerts')
 
   // Resolve brokerId param — strict agency-membership enforced inside BrokerIsolatedView
   const { brokerId } = await searchParams
