@@ -13,7 +13,7 @@ import { Logo } from "@/components/logo"
 import { useTranslation } from "@/lib/i18n"
 import { LanguageSelector } from "@/components/language-selector"
 import { ComplianceShield } from "@/components/ComplianceShield"
-
+export const dynamic = 'force-dynamic';
 // ── Enterprise Onboarding Modal ───────────────────────────────────────────────
 function EnterpriseModal({ onClose }: { onClose: () => void }) {
   const [submitted, setSubmitted] = useState(false)
@@ -146,7 +146,7 @@ const FEATURES = [
 const BROKER_FEATURES = [
   "Personal book-of-business protection",
   "Plan & Coverage lookup · Chrome Extension sync",
-  "48-hour roster change monitoring",
+  "Ghost Churn Monitor — automated switch alerts", // <-- Changed from 48-hour monitoring
   "VCC fax automation to physicians",
   "Churn & switch alerts",
   "GoHighLevel CRM integration",
@@ -278,9 +278,9 @@ export default function LandingPage() {
                       <p className="text-2xl font-black tracking-tight text-white">Personal Speed &amp; Control</p>
                     </div>
                   </div>
-                  <p className="text-sm font-medium text-white/60 leading-relaxed">Your personal command center. Plan & Coverage lookups, Chrome Extension sync, roster monitoring, and switch alerts — faster than any competitor.</p>
+                  <p className="text-sm font-medium text-white/60 leading-relaxed">Your automated command center. Real-time portal sync, cross-carrier roster audits, and immediate switch alerts—safeguarding your book effortlessly.</p>
                   <div className="grid grid-cols-2 gap-2">
-                    {[{ label: "Coverage Lookup", sub: "Chrome Extension sync" }, { label: "48-hr Monitoring", sub: "Roster change alerts" }, { label: "VCC Automation", sub: "Fax to physician" }, { label: "AEP Shield", sub: "Enrollment protection" }].map(({ label, sub }) => (
+                    {[{ label: "Coverage Lookup", sub: "Chrome Extension sync" }, { label: "Ghost Churn Monitor", sub: "Automated Switch Alerts" }, { label: "VCC Automation", sub: "Fax to physician" }, { label: "AEP Shield", sub: "Enrollment protection" }].map(({ label, sub }) => (
                       <div key={label} className="p-3 rounded-2xl bg-white/5 border border-white/10 space-y-0.5">
                         <p className="text-[10px] font-black uppercase tracking-widest text-white/80">{label}</p>
                         <p className="text-[9px] font-medium text-white/30 uppercase tracking-wide">{sub}</p>

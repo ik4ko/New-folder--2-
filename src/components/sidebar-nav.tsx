@@ -3,7 +3,7 @@
 import * as React from "react"
 import {
   LayoutDashboard, Users, FileCheck, Radar, Megaphone,
-  UserPlus, Shield, Settings, LifeBuoy, LogOut, Bell, Link2,
+  UserPlus, Shield, Settings, LifeBuoy, LogOut, Bell,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
@@ -18,34 +18,50 @@ import { useAppStore } from '@/lib/store'
 import { languages } from '@/lib/i18n'
 import { createClient } from '@/lib/supabase/client'
 
+// ── Nav item type ─────────────────────────────────────────────────────────────
+
 type NavItem = { href: string; icon: React.ElementType; label: string; desc: string; badge?: number }
 
-// Full nav for Agency Plan users (isStaff + tier !== 'broker')
-const CORE_NAV: NavItem[] = [
-  { href: '/dashboard',              icon: LayoutDashboard, label: 'Dashboard',            desc: 'Real-time monitoring' },
-  { href: '/dashboard/book',         icon: Users,           label: 'Book of Business',     desc: 'Monitored clients' },
-  { href: '/dashboard/alerts',       icon: Bell,            label: 'Alerts',               desc: 'Switch & plan change alerts' },
-  { href: '/dashboard/churn/upload', icon: Radar,           label: 'Upload Roster',        desc: 'Upload roster CSV' },
-  { href: '/dashboard/vcc',          icon: FileCheck,       label: 'VCC Forms',            desc: 'Doctor-signed carrier forms' },
-  { href: '/dashboard/campaigns',    icon: Megaphone,       label: 'Campaigns',            desc: 'Maya AI outreach campaigns' },
+// ── Route definitions ─────────────────────────────────────────────────────────
+
+/**
+ * AGENCY OWNER full nav — multi-seat plan ($497/mo)
+ * Includes Dashboard overview, VCC Forms, and Campaigns.
+ */
+const AGENCY_CORE_NAV: NavItem[] = [
+  { href: '/dashboard',              icon: LayoutDashboard, label: 'Dashboard',        desc: 'Real-time monitoring' },
+  { href: '/dashboard/book',         icon: Users,           label: 'Book of Business', desc: 'All monitored clients' },
+  { href: '/dashboard/alerts',       icon: Bell,            label: 'Alerts',           desc: 'Switch & plan change alerts' },
+  { href: '/dashboard/churn/upload', icon: Radar,           label: 'Import Data',      desc: 'CSV, Sheets, or GHL import' },
+  { href: '/dashboard/vcc',          icon: FileCheck,       label: 'VCC Forms',        desc: 'Doctor-signed carrier forms' },
+  { href: '/dashboard/campaigns',    icon: Megaphone,       label: 'Campaigns',        desc: 'Maya AI outreach campaigns' },
 ]
 
-// Stripped-down nav for Solo Broker plan (tier === 'broker' or !isStaff)
-const BROKER_CORE_NAV: NavItem[] = [
-  { href: '/dashboard/book',         icon: Users,  label: 'My Book',           desc: 'Your monitored clients' },
-  { href: '/dashboard/alerts',       icon: Bell,   label: 'Active Alerts',     desc: 'Switch & plan change alerts' },
-  { href: '/dashboard/churn/upload', icon: Radar,  label: 'Upload Roster',     desc: 'Upload roster CSV' },
-]
-
-const STAFF_MGMT_NAV: NavItem[] = [
+/**
+ * AGENCY OWNER management nav — seat counters, team roster, agency oversight.
+ * Hidden entirely from solo brokers.
+ */
+const AGENCY_MGMT_NAV: NavItem[] = [
   { href: '/dashboard/team',    icon: UserPlus, label: 'Team',        desc: 'Manage brokers & seats' },
   { href: '/dashboard/manager', icon: Shield,   label: 'Agency View', desc: 'Agency-wide oversight' },
-  { href: '/ghl',               icon: Link2,    label: 'GHL Sync',    desc: 'GoHighLevel contact import' },
+]
+
+/**
+ * SOLO BROKER nav — stripped to the three features they pay for.
+ * No Dashboard overview (no agency-wide stats), no VCC, no Campaigns,
+ * no Team management, no Agency View.
+ */
+const BROKER_CORE_NAV: NavItem[] = [
+  { href: '/dashboard/book',         icon: Users,  label: 'My Clients',    desc: 'Your monitored book' },
+  { href: '/dashboard/alerts',       icon: Bell,   label: 'Active Alerts', desc: 'Switch & plan change alerts' },
+  { href: '/dashboard/churn/upload', icon: Radar,  label: 'Import Data',   desc: 'CSV, Sheets, or GHL import' },
 ]
 
 const FOOTER_NAV: NavItem[] = [
   { href: '/settings', icon: Settings, label: 'Settings', desc: 'Workspace settings' },
 ]
+
+// ── NavLink component ─────────────────────────────────────────────────────────
 
 function NavLink({ item, isActive, isOpen }: { item: NavItem; isActive: boolean; isOpen: boolean }) {
   const showBadge = (item.badge ?? 0) > 0
@@ -95,19 +111,49 @@ function NavLink({ item, isActive, isOpen }: { item: NavItem; isActive: boolean;
   )
 }
 
-interface SidebarNavProps {
-  isStaff: boolean
+// ── Section divider ───────────────────────────────────────────────────────────
+
+function SectionDivider({ label, isOpen }: { label: string; isOpen: boolean }) {
+  return (
+    <div className={cn("pt-4 pb-2", isOpen ? "px-3" : "flex justify-center")}>
+      {isOpen
+        ? <p className="text-[9px] font-black uppercase tracking-widest text-slate-600">{label}</p>
+        : <div className="w-4 h-px bg-white/10" />
+      }
+    </div>
+  )
+}
+
+// ── SidebarNav props ──────────────────────────────────────────────────────────
+
+export interface SidebarNavProps {
+  /**
+   * isOwner = user owns an agency row (owner_id = uid).
+   * Controls whether agency management tools are shown.
+   */
+  isOwner: boolean
+  /**
+   * isBrokerTier = the agency is on the solo/broker pricing tier.
+   * Even agency owners on broker tier see the stripped nav.
+   */
+  isBrokerTier: boolean
   role: string
   name: string
   email: string
   criticalAlerts?: number
-  tier?: string
 }
 
-export function SidebarNav({ isStaff, role, name, email, criticalAlerts = 0, tier }: SidebarNavProps) {
-  const pathname = usePathname()
-  const router = useRouter()
-  const isOpen = true
+export function SidebarNav({
+  isOwner,
+  isBrokerTier,
+  role,
+  name,
+  email,
+  criticalAlerts = 0,
+}: SidebarNavProps) {
+  const pathname  = usePathname()
+  const router    = useRouter()
+  const isOpen    = true
   const { language, setLanguage } = useAppStore()
 
   async function handleSignOut() {
@@ -119,82 +165,78 @@ export function SidebarNav({ isStaff, role, name, email, criticalAlerts = 0, tie
   const isActive = (href: string) =>
     href === '/dashboard'
       ? pathname === '/dashboard'
-      : pathname?.startsWith(href) ?? false
+      : (pathname?.startsWith(href) ?? false)
 
-  // Solo Broker plan: only show the 3 core broker items (no Dashboard overview,
-  // VCC, or Campaigns — those are agency-tier features).
-  const isBrokerTier = !isStaff || tier === 'broker'
+  // ── Determine which nav set to render ────────────────────────────────────
+  // Agency Owner on agency/professional tier → full nav + management section
+  // Everyone else (solo broker, sub-broker, broker tier) → stripped 3-item nav
+  const showAgencyNav  = isOwner && !isBrokerTier
+  const coreNavBase    = showAgencyNav ? AGENCY_CORE_NAV : BROKER_CORE_NAV
 
-  const baseNav = isBrokerTier ? BROKER_CORE_NAV : CORE_NAV
-  const coreNav = baseNav.map(item => {
-    if (item.href === '/dashboard/alerts')
-      return { ...item, badge: criticalAlerts > 0 ? criticalAlerts : undefined }
-    return item
-  })
+  // Inject alert badge
+  const coreNav = coreNavBase.map(item =>
+    item.href === '/dashboard/alerts'
+      ? { ...item, badge: criticalAlerts > 0 ? criticalAlerts : undefined }
+      : item
+  )
 
   const roleLabel =
-    role === 'agency_owner' ? 'Owner'
-    : role === 'agency_admin' ? 'Manager'
+    role === 'agency_owner'     ? 'Owner'
+    : role === 'agency_admin'   ? 'Manager'
     : role === 'customer_service' ? 'CS'
-    : role === 'solo_broker' ? 'Solo Broker'
     : 'Broker'
+
+  const roleBadgeCls =
+    role === 'agency_owner'   ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'
+    : role === 'agency_admin' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
+    : 'bg-slate-800 text-slate-400 border-slate-700'
 
   return (
     <TooltipProvider delayDuration={0}>
       <div className={cn(
-        // Use CSS variable for sidebar bg so it stays in sync with --sidebar-background token
         "flex flex-col bg-[hsl(var(--sidebar-background))] border-r border-[hsl(var(--sidebar-border))] h-full shrink-0 z-50 overflow-hidden transition-all duration-300 ease-in-out relative",
         isOpen ? "w-64" : "w-16"
       )}>
-        {/* Brand + role chip */}
-        <div className={cn("p-4 flex items-center shrink-0 h-16 border-b border-[hsl(var(--sidebar-border))]", isOpen ? "justify-between" : "justify-center px-0")}>
-          {isOpen ? (
-            <a href="/dashboard" className="flex items-center gap-2">
-              <Logo className="scale-90" />
-            </a>
-          ) : (
-            <Logo iconOnly className="scale-75" />
-          )}
+
+        {/* ── Brand + role chip ────────────────────────────────────────────── */}
+        <div className={cn(
+          "p-4 flex items-center shrink-0 h-16 border-b border-[hsl(var(--sidebar-border))]",
+          isOpen ? "justify-between" : "justify-center px-0"
+        )}>
+          {isOpen
+            ? <a href="/dashboard" className="flex items-center gap-2"><Logo className="scale-90" /></a>
+            : <Logo iconOnly className="scale-75" />
+          }
           {isOpen && (
             <span className={cn(
               "text-[7px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full border shrink-0",
-              role === 'agency_owner'
-                ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20'
-                : role === 'agency_admin'
-                  ? 'bg-blue-500/10 text-blue-400 border-blue-500/20'
-                  : 'bg-slate-800 text-slate-400 border-slate-700'
+              roleBadgeCls
             )}>
               {roleLabel}
             </span>
           )}
         </div>
 
-        {/* Main Nav */}
+        {/* ── Main nav ─────────────────────────────────────────────────────── */}
         <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto pt-4">
+
+          {/* Core nav items */}
           {coreNav.map(item => (
             <NavLink key={item.href} item={item} isActive={isActive(item.href)} isOpen={isOpen} />
           ))}
 
-          {/* Staff-only management section.
-              On 'broker' tier: hide Team (/dashboard/team) — solo plan has no seats to manage.
-              Agency tier: show full management panel. */}
-          {isStaff && !isBrokerTier && (
+          {/* Management section — Agency Owner on agency tier ONLY */}
+          {showAgencyNav && (
             <>
-              <div className={cn("pt-4 pb-2", isOpen ? "px-3" : "flex justify-center")}>
-                {isOpen ? (
-                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-600">Management</p>
-                ) : (
-                  <div className="w-4 h-px bg-white/10" />
-                )}
-              </div>
-              {STAFF_MGMT_NAV.map(item => (
+              <SectionDivider label="Management" isOpen={isOpen} />
+              {AGENCY_MGMT_NAV.map(item => (
                 <NavLink key={item.href} item={item} isActive={isActive(item.href)} isOpen={isOpen} />
               ))}
             </>
           )}
         </nav>
 
-        {/* CMS Disclaimer */}
+        {/* ── CMS disclaimer ───────────────────────────────────────────────── */}
         {isOpen && (
           <div className="px-4 py-3 border-t border-[hsl(var(--sidebar-border))]">
             <p className="text-[8px] font-bold text-slate-600 leading-tight uppercase tracking-wider">
@@ -203,7 +245,7 @@ export function SidebarNav({ isStaff, role, name, email, criticalAlerts = 0, tie
           </div>
         )}
 
-        {/* Footer Nav */}
+        {/* ── Footer nav ───────────────────────────────────────────────────── */}
         <div className="p-3 border-t border-[hsl(var(--sidebar-border))] space-y-0.5">
           {FOOTER_NAV.map(item => (
             <NavLink key={item.href} item={item} isActive={isActive(item.href)} isOpen={isOpen} />
@@ -229,7 +271,7 @@ export function SidebarNav({ isStaff, role, name, email, criticalAlerts = 0, tie
           </Tooltip>
         </div>
 
-        {/* User Profile Dropdown */}
+        {/* ── User profile dropdown ─────────────────────────────────────────── */}
         <div className="p-3 border-t border-[hsl(var(--sidebar-border))]">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -248,8 +290,12 @@ export function SidebarNav({ isStaff, role, name, email, criticalAlerts = 0, tie
                 )}
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent side="right" align="end" sideOffset={8}
-              className="w-60 rounded-2xl p-2 bg-[hsl(var(--surface-3))] border-[hsl(var(--sidebar-border))] shadow-2xl shadow-black/40">
+            <DropdownMenuContent
+              side="right"
+              align="end"
+              sideOffset={8}
+              className="w-60 rounded-2xl p-2 bg-[hsl(var(--surface-3))] border-[hsl(var(--sidebar-border))] shadow-2xl shadow-black/40"
+            >
               <DropdownMenuLabel className="px-3 py-2">
                 <p className="text-sm font-bold text-white">{name}</p>
                 <p className="text-[10px] text-slate-400">{email}</p>
@@ -264,7 +310,7 @@ export function SidebarNav({ isStaff, role, name, email, criticalAlerts = 0, tie
                   {languages.map(lang => (
                     <button
                       key={lang.code}
-                      onClick={() => setLanguage(lang.code as any)}
+                      onClick={() => setLanguage(lang.code as 'en' | 'es')}
                       className={cn(
                         "flex-1 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all",
                         language === lang.code

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 
 type SyncState = 'idle' | 'uploading' | 'syncing' | 'success' | 'error';
@@ -150,20 +150,24 @@ const MARX_PORTAL_URL =
   'https://portal.cms.gov/mma/servlet/mmcs.beneficiaries.eligibility.BeneEligibilityDisplayServlet';
 
 export default function ChurnUploadPage() {
-  const router = useRouter();
-  const supabase = createClient();
+  const router       = useRouter();
+  const searchParams = useSearchParams();
+  const supabase     = createClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [file, setFile] = useState<File | null>(null);
-  const [sheetsUrl, setSheetsUrl] = useState('');
-  const [isDragging, setIsDragging] = useState(false);
-  const [syncState, setSyncState] = useState<SyncState>('idle');
-  const [statusMessage, setStatusMessage] = useState('');
+  const [file,         setFile]         = useState<File | null>(null);
+  const [sheetsUrl,    setSheetsUrl]    = useState('');
+  const [isDragging,   setIsDragging]   = useState(false);
+  const [syncState,    setSyncState]    = useState<SyncState>('idle');
+  const [statusMessage,setStatusMessage]= useState('');
   const [ghlConnected, setGhlConnected] = useState<boolean | null>(null);
-  const [preview, setPreview] = useState<PreviewState | null>(null);
+  const [ghlSyncing,   setGhlSyncing]   = useState(false);
+  const [ghlBanner,    setGhlBanner]    = useState<'success' | 'error' | null>(null);
+  const [preview,      setPreview]      = useState<PreviewState | null>(null);
   const [importResult, setImportResult] = useState<ImportResult | null>(null);
-  const [marxOpened, setMarxOpened] = useState(false);
+  const [marxOpened,   setMarxOpened]   = useState(false);
 
+  // ── Check GHL connection status ───────────────────────────────────────────
   useEffect(() => {
     supabase
       .from('agency_credentials')
@@ -171,6 +175,33 @@ export default function ChurnUploadPage() {
       .maybeSingle()
       .then(({ data }) => setGhlConnected(!!data?.access_token));
   }, []);
+
+  // ── Handle OAuth callback return ──────────────────────────────────────────
+  // After a successful GHL OAuth the callback redirects back here with
+  // ?ghl=connected. We fire an immediate background sync and show a banner.
+  useEffect(() => {
+    const ghlParam = searchParams?.get('ghl');
+    if (ghlParam === 'connected') {
+      setGhlConnected(true);
+      setGhlBanner('success');
+      // Kick off background sync automatically on first connect
+      setGhlSyncing(true);
+      fetch('/api/ghl/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ force: true, maxPages: 20 }) })
+        .then(r => r.json())
+        .then(json => {
+          setGhlSyncing(false);
+          if (json.synced > 0) {
+            setStatusMessage(`GHL import complete — ${json.synced.toLocaleString()} contacts added to your Book of Business.`);
+          }
+        })
+        .catch(() => setGhlSyncing(false));
+      // Clean the URL
+      router.replace('/dashboard/churn/upload', { scroll: false });
+    } else if (ghlParam === 'error') {
+      setGhlBanner('error');
+      router.replace('/dashboard/churn/upload', { scroll: false });
+    }
+  }, [searchParams]);
 
   async function handleFileSelected(f: File) {
     setFile(f);
@@ -198,21 +229,24 @@ export default function ChurnUploadPage() {
     if (f) handleFileSelected(f);
   };
 
+  const handleGhlConnect = () => {
+    // Route through our GHL OAuth connect endpoint.
+    // After the OAuth dance, GHL redirects back here with ?ghl=connected.
+    window.location.href = '/api/ghl/connect';
+  };
+
   const handleGhlSync = async () => {
-    if (ghlConnected === false) {
-      router.push('/api/ghl/connect');
-      return;
-    }
-    setSyncState('syncing');
-    setStatusMessage('Syncing contacts from GoHighLevel...');
+    if (!ghlConnected) { handleGhlConnect(); return; }
+    setGhlSyncing(true);
+    setStatusMessage('');
     try {
-      const res = await fetch('/api/ghl/sync', { method: 'POST' });
+      const res  = await fetch('/api/ghl/sync', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ maxPages: 20 }) });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error || 'Sync failed');
-      setSyncState('success');
+      setGhlSyncing(false);
       setStatusMessage(`GHL sync complete — ${json.synced ?? 0} contacts updated.`);
     } catch (err: unknown) {
-      setSyncState('error');
+      setGhlSyncing(false);
       setStatusMessage(err instanceof Error ? err.message : 'GHL sync failed.');
     }
   };
@@ -276,38 +310,94 @@ export default function ChurnUploadPage() {
   return (
     <div className="max-w-2xl mx-auto py-10 px-4 space-y-8">
       <div>
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">
-          Roster Import
-        </h1>
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-white">Import Data</h1>
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Upload a carrier roster file or import directly from Google Sheets or GoHighLevel.
+          Pull clients from GoHighLevel, paste a Google Sheets link, or upload a carrier roster file.
         </p>
       </div>
 
-      {/* GHL Sync Button */}
-      <div className="flex items-center gap-3 p-4 rounded-xl border border-indigo-200 dark:border-indigo-800 bg-indigo-50 dark:bg-indigo-950">
-        <div className="flex-1">
-          <p className="text-sm font-medium text-indigo-900 dark:text-indigo-100">
-            GoHighLevel CRM
-          </p>
-          <p className="text-xs text-indigo-600 dark:text-indigo-400">
-            {ghlConnected
-              ? 'Connected — pull latest contacts into your book of business.'
-              : 'Connect your GHL account to sync contacts automatically.'}
-          </p>
+      {/* ── GHL OAuth callback banners ── */}
+      {ghlBanner === 'success' && (
+        <div className="rounded-xl border border-emerald-700/50 bg-emerald-950/40 px-4 py-3 flex items-start gap-3">
+          <span className="mt-0.5 shrink-0 text-emerald-400 text-lg">✓</span>
+          <div>
+            <p className="text-sm font-semibold text-emerald-300">GoHighLevel connected</p>
+            <p className="text-xs text-emerald-400/80">
+              {ghlSyncing ? 'Importing contacts in the background…' : 'Your contacts have been imported into your Book of Business.'}
+            </p>
+          </div>
+          <button onClick={() => setGhlBanner(null)} className="ml-auto text-emerald-600 hover:text-emerald-400 text-xs">✕</button>
         </div>
-        <button
-          type="button"
-          onClick={handleGhlSync}
-          disabled={isLoading}
-          className="shrink-0 px-4 py-2 text-sm font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50 transition-colors"
-        >
-          {syncState === 'syncing'
-            ? 'Syncing...'
-            : ghlConnected
-            ? 'SYNC WITH GOHIGHLEVEL'
-            : 'CONNECT GOHIGHLEVEL'}
-        </button>
+      )}
+      {ghlBanner === 'error' && (
+        <div className="rounded-xl border border-red-700/50 bg-red-950/40 px-4 py-3 flex items-start gap-3">
+          <span className="mt-0.5 shrink-0 text-red-400 text-lg">✕</span>
+          <div>
+            <p className="text-sm font-semibold text-red-300">GHL connection failed</p>
+            <p className="text-xs text-red-400/80">Please try connecting again. Make sure you approve the AegisSage app in your GHL account.</p>
+          </div>
+          <button onClick={() => setGhlBanner(null)} className="ml-auto text-red-600 hover:text-red-400 text-xs">✕</button>
+        </div>
+      )}
+
+      {/* ── GoHighLevel data source panel ── */}
+      <div className="rounded-2xl border border-indigo-500/30 bg-indigo-950/30 p-5 space-y-3">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-9 h-9 rounded-xl bg-indigo-500/20 flex items-center justify-center shrink-0">
+              {/* GHL icon */}
+              <svg className="w-4 h-4 text-indigo-400" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z"/>
+              </svg>
+            </div>
+            <div>
+              <p className="text-sm font-black uppercase tracking-tight text-indigo-100">GoHighLevel CRM</p>
+              <p className="text-[10px] text-indigo-400 font-medium">
+                {ghlConnected === null
+                  ? 'Checking connection…'
+                  : ghlConnected
+                  ? 'Connected · contacts sync automatically'
+                  : 'Not connected · click to authorize via OAuth'}
+              </p>
+            </div>
+          </div>
+          {ghlConnected && (
+            <span className="text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+              Live
+            </span>
+          )}
+        </div>
+
+        <div className="flex gap-2">
+          {ghlConnected ? (
+            <>
+              <button
+                type="button"
+                onClick={handleGhlSync}
+                disabled={ghlSyncing}
+                className="flex-1 px-4 py-2 text-[11px] font-black uppercase tracking-widest rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50 transition-colors"
+              >
+                {ghlSyncing ? 'Importing…' : 'Sync Contacts Now'}
+              </button>
+              <button
+                type="button"
+                onClick={handleGhlConnect}
+                className="px-4 py-2 text-[11px] font-black uppercase tracking-widest rounded-xl border border-indigo-500/30 text-indigo-400 hover:bg-indigo-500/10 transition-colors"
+              >
+                Reconnect
+              </button>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={handleGhlConnect}
+              disabled={ghlConnected === null}
+              className="flex-1 px-4 py-2 text-[11px] font-black uppercase tracking-widest rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white disabled:opacity-50 transition-colors"
+            >
+              Connect GoHighLevel →
+            </button>
+          )}
+        </div>
       </div>
 
       <div className="relative flex items-center">

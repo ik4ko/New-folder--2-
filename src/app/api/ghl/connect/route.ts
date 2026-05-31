@@ -21,15 +21,49 @@ export function createGhlState(userId: string): string {
 }
 
 export async function GET(req: NextRequest) {
-  const clientId   = process.env.GHL_CLIENT_ID
-  const redirectUri = process.env.GHL_REDIRECT_URI
+  const clientId = process.env.GHL_CLIENT_ID
 
-  if (!clientId || !redirectUri) {
+  // ── Redirect URI resolution ───────────────────────────────────────────────
+  // Rules:
+  //   1. NEXT_PUBLIC_APP_URL must be set — we never derive origin from the
+  //      incoming request because a www vs non-www mismatch causes GHL to
+  //      reject the authorization (redirect_uri must match the registered URI
+  //      exactly, including scheme and host).
+  //   2. GHL bans any registered redirect URI containing the substring "ghl".
+  //      The compliant path is /api/connect/callback.
+  //   3. If GHL_REDIRECT_URI is set and already points at the compliant path,
+  //      use it verbatim. Otherwise auto-correct and warn.
+  const appUrl = process.env.NEXT_PUBLIC_APP_URL
+  if (!appUrl) {
+    console.error('[ghl/connect] NEXT_PUBLIC_APP_URL is not set — cannot build a stable redirect URI')
+    return NextResponse.json(
+      {
+        error: 'Server misconfiguration',
+        hint:  'Set NEXT_PUBLIC_APP_URL=https://www.aegissage.com in Vercel environment variables',
+      },
+      { status: 503 }
+    )
+  }
+  const origin         = appUrl.replace(/\/$/, '') // strip trailing slash
+  const rawRedirectUri = process.env.GHL_REDIRECT_URI ?? ''
+  const isDeprecated   = rawRedirectUri.includes('/api/ghl/callback')
+  const redirectUri    = (!rawRedirectUri || isDeprecated)
+    ? `${origin}/api/connect/callback`
+    : rawRedirectUri
+
+  if (isDeprecated) {
+    console.warn(
+      '[ghl/connect] GHL_REDIRECT_URI still points at the deprecated /api/ghl/callback path.' +
+      ` Auto-corrected to "${redirectUri}". Set GHL_REDIRECT_URI=${redirectUri} to suppress this warning.`
+    )
+  }
+
+  if (!clientId) {
     return NextResponse.json(
       {
         error: 'GHL OAuth not configured',
-        hint: 'Set GHL_CLIENT_ID and GHL_REDIRECT_URI in Vercel environment variables',
-        redirect_uri_configured: redirectUri ?? 'NOT SET — must be https://www.aegissage.com/api/ghl/callback',
+        hint:  'Set GHL_CLIENT_ID in Vercel environment variables',
+        redirect_uri_in_use: redirectUri,
       },
       { status: 503 }
     )

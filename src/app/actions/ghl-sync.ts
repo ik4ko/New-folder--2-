@@ -43,7 +43,8 @@ export async function syncContactsFromGHL(brokerId?: string): Promise<SyncResult
   const { data: brokerRow } = await supabase
     .from('brokers').select('id, agency_id, role').eq('user_id', user.id).maybeSingle()
 
-  const agencyId = agencyRow?.id ?? brokerRow?.agency_id ?? null
+  const agencyId      = agencyRow?.id ?? brokerRow?.agency_id ?? null
+  const resolvedBrokerId = brokerId ?? brokerRow?.id ?? null
   if (!agencyId) return { synced: 0, updated: 0, errors: 0, error: 'No agency found' }
 
   // Only principals can sync
@@ -75,22 +76,23 @@ export async function syncContactsFromGHL(brokerId?: string): Promise<SyncResult
 
     if (contacts.length === 0) break
 
-    // Build upsert batch
+    // Build upsert batch — broker_id enforces row-level isolation per sync owner
     const upsertRows = contacts.map(c => ({
-      agency_id: agencyId,
+      agency_id:      agencyId,
+      broker_id:      resolvedBrokerId,
       ghl_contact_id: c.id,
       enrollment_status: extractCustomField(c, ['enrollment_status', 'enrollment']) ?? 'unknown',
-      current_plan_id: extractCustomField(c, ['plan_name', 'plan_id', 'current_plan']) ?? null,
-      risk_level: 'low',
-      risk_score: 0,
-      source: 'ghl_sync',
-      updated_at: new Date().toISOString(),
+      current_plan_id:   extractCustomField(c, ['plan_name', 'plan_id', 'current_plan']) ?? null,
+      risk_level:  'low',
+      risk_score:  0,
+      source:      'ghl_sync',
+      updated_at:  new Date().toISOString(),
     }))
 
     const { error } = await supabaseAdmin
       .from('ghl_contacts')
       .upsert(upsertRows, {
-        onConflict: 'agency_id,ghl_contact_id',
+        onConflict: 'ghl_contact_id,agency_id',
         ignoreDuplicates: false,
       })
 

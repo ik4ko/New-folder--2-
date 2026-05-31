@@ -131,7 +131,12 @@
       "Bash(Remove-Item -Path \"extension\\\\aegissage-extension.zip\" -ErrorAction SilentlyContinue)",
       "Bash(Compress-Archive -Path \"extension\\\\*\" -DestinationPath \"aegissage-extension-new.zip\" -Force)",
       "Bash(Move-Item \"aegissage-extension-new.zip\" \"public\\\\aegissage-extension.zip\" -Force)",
-      "Bash(Write-Host \"Done\")"
+      "Bash(Write-Host \"Done\")",
+      "Bash(Get-ChildItem -Path \"c:\\\\Developer\\\\New folder \\(2\\)\" -Recurse -Directory)",
+      "Bash(cd \"/mnt/c/Developer/New folder \\(2\\)\" && pwd && ls -la)",
+      "Read(//mnt/c/Developer/**)",
+      "Bash(find /mnt/c -maxdepth 3 -type d -name \"*New folder*\" 2>/dev/null | head -5)",
+      "Read(//mnt/**)"
     ]
   },
   "enabledMcpjsonServers": [

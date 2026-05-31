@@ -41,9 +41,9 @@ exchange. Every broker who tries to connect their GHL sub-account will hit a
 | Variable | Required | Where to get it | Notes |
 |----------|----------|-----------------|-------|
 | `GHL_CLIENT_ID` | CRITICAL | GHL Marketplace → Your App → OAuth → Client ID | The public identifier for your GHL marketplace app. |
-| `GHL_CLIENT_SECRET` | CRITICAL | GHL Marketplace → Your App → OAuth → Client Secret | Server-only. Never expose client-side. Used in `/api/ghl/callback` to exchange authorization codes for tokens. |
-| `GHL_REDIRECT_URI` | CRITICAL | Must exactly match what's registered in GHL Marketplace | Format: `https://aegissage.com/api/ghl/callback`. Any mismatch causes OAuth rejection. Update this if your domain changes. |
-| `GHL_STATE_SECRET` | FEATURE | Generate: `openssl rand -hex 32` | HMAC signing key for OAuth state parameter (CSRF protection in `/api/ghl/callback`). Falls back to `NEXTAUTH_SECRET` if missing — set this independently. |
+| `GHL_CLIENT_SECRET` | CRITICAL | GHL Marketplace → Your App → OAuth → Client Secret | Server-only. Never expose client-side. Used in `/api/connect/callback` to exchange authorization codes for tokens. |
+| `GHL_REDIRECT_URI` | CRITICAL | Must exactly match what's registered in GHL Marketplace | **Correct format: `https://www.aegissage.com/api/connect/callback`** — GHL bans "ghl" in redirect URIs; the old `/api/ghl/callback` path causes OAuth rejection. The code auto-corrects a stale value at runtime, but update this env var to remove the server warning. |
+| `GHL_STATE_SECRET` | FEATURE | Generate: `openssl rand -hex 32` | HMAC signing key for OAuth state parameter (CSRF protection in `/api/connect/callback`). Falls back to `NEXTAUTH_SECRET` if missing — set this independently. |
 
 ---
 

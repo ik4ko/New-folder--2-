@@ -30,7 +30,8 @@ export default async function AlertsPage() {
       detection_source, detected_at, created_at,
       confidence_score, confidence_status,
       switch_type, previous_plan_code, new_plan_code,
-      new_plan_name, effective_date, end_date
+      new_plan_name, effective_date, end_date,
+      previous_carrier, new_carrier, estimated_revenue_at_risk
     `)
     .eq('agency_id', agencyId)
     .order('detected_at', { ascending: false })
@@ -87,6 +88,10 @@ export default async function AlertsPage() {
     new_plan_name:     a.new_plan_name ?? null,
     effective_date:    a.effective_date ?? null,
     end_date:          a.end_date ?? null,
+    // Revenue tracking columns (added by migration 20260529100000)
+    previous_carrier:           (a as Record<string, unknown>).previous_carrier as string | null ?? null,
+    new_carrier:                (a as Record<string, unknown>).new_carrier as string | null ?? null,
+    estimated_revenue_at_risk:  (a as Record<string, unknown>).estimated_revenue_at_risk as number | null ?? null,
   }))
 
   const openCritical = enriched.filter(a => a.priority === 'critical' && a.status === 'open').length

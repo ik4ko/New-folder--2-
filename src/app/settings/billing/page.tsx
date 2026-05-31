@@ -7,23 +7,39 @@ import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import {
   CreditCard, ExternalLink, CheckCircle2, AlertTriangle,
-  XCircle, RefreshCw, ArrowUpRight, Clock, Building2, Lock, Users, User, Shield,
+  XCircle, RefreshCw, ArrowUpRight, Clock, Building2, Lock, Users, User,
 } from 'lucide-react'
 import Link from 'next/link'
 import { getCancelUrl } from '@/app/actions/billing'
 
-type BillingCase = 'owner' | 'staff_non_owner' | 'agency_broker' | 'solo_broker' | null
+// ── Types ─────────────────────────────────────────────────────────────────────
+
+/**
+ * billingCase derivation (single source of truth):
+ *
+ *   'owner_agency'  → user owns an agency on agency/professional/enterprise tier
+ *                     Shows $497/mo dashboard with live seat metrics
+ *
+ *   'owner_broker'  → user owns an agency on broker/solo tier
+ *                     Shows $79/mo card with renewal date + cancel button
+ *
+ *   'sub_broker'    → user is a broker under someone else's agency
+ *                     Read-only view — billing managed by owner
+ */
+type BillingCase = 'owner_agency' | 'owner_broker' | 'sub_broker' | null
 
 interface AgencyData {
-  id?: string
-  name?: string | null
-  subscription_status?: string | null
-  subscription_tier?: string | null
-  stripe_customer_id?: string | null
+  id:                    string
+  name?:                 string | null
+  subscription_status?:  string | null
+  subscription_tier?:    string | null
+  stripe_customer_id?:   string | null
   stripe_subscription_id?: string | null
-  current_period_end?: string | null
-  is_beta?: boolean | null
+  current_period_end?:   string | null
+  is_beta?:              boolean | null
 }
+
+const AGENCY_TIERS = ['agency', 'professional', 'enterprise', 'agency_plan']
 
 const STATUS_CFG: Record<string, { label: string; icon: typeof CheckCircle2; cls: string }> = {
   active:    { label: 'Active',    icon: CheckCircle2,  cls: 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' },
@@ -38,12 +54,7 @@ function fmtDate(d: string | null | undefined) {
   return new Date(d).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
 }
 
-function planLabel(tier: string | null | undefined) {
-  if (!tier) return 'Trial'
-  if (['agency', 'professional', 'enterprise'].includes(tier)) return 'Agency Plan'
-  if (['broker', 'solo', 'starter'].includes(tier)) return 'Broker Plan'
-  return tier.charAt(0).toUpperCase() + tier.slice(1)
-}
+// ── Shared sub-components ─────────────────────────────────────────────────────
 
 function PageHeader({ subtitle }: { subtitle: string }) {
   return (
@@ -59,86 +70,103 @@ function PageHeader({ subtitle }: { subtitle: string }) {
   )
 }
 
+function CancelledBanner({ endDate }: { endDate?: string | null }) {
+  return (
+    <div className="rounded-2xl bg-amber-500/10 border border-amber-500/20 px-5 py-4">
+      <p className="text-amber-400 text-sm font-bold">Your subscription has been cancelled.</p>
+      {endDate && (
+        <p className="text-amber-300/70 text-xs mt-1">
+          Access continues until {fmtDate(endDate)}.
+        </p>
+      )}
+    </div>
+  )
+}
+
+// ── Main page ─────────────────────────────────────────────────────────────────
+
 export default function BillingPage() {
   const [billingCase, setBillingCase] = useState<BillingCase>(null)
-  const [agency, setAgency] = useState<AgencyData | null>(null)
-  const [agencyName, setAgencyName] = useState<string | null>(null)
-  const [brokerRole, setBrokerRole] = useState<string | null>(null)
-  const [brokerCount, setBrokerCount] = useState(0)
-  const [loading, setLoading] = useState(true)
-  const [portalPending, startPortal] = useTransition()
-  const [cancelPending, startCancel] = useTransition()
+  const [agency,      setAgency]      = useState<AgencyData | null>(null)
+  const [ownerAgencyName, setOwnerAgencyName] = useState<string | null>(null)
+  // live active seat count from DB (agency owners only)
+  const [activeSeats,  setActiveSeats]  = useState(0)
+  const [includedSeats, setIncludedSeats] = useState(5)
+  const [loading,      setLoading]      = useState(true)
+  const [showCancelled, setShowCancelled] = useState(false)
+
+  const [portalPending,  startPortal]  = useTransition()
+  const [cancelPending,  startCancel]  = useTransition()
   const [upgradePending, startUpgrade] = useTransition()
-  const [upgradingPlan, setUpgradingPlan] = useState<string | null>(null)
-  const [cancelledBanner, setCancelledBanner] = useState(false)
+  const [upgradingPlan,  setUpgradingPlan] = useState<string | null>(null)
 
   useEffect(() => {
     if (typeof window !== 'undefined' && window.location.search.includes('cancelled=true')) {
-      setCancelledBanner(true)
+      setShowCancelled(true)
     }
   }, [])
 
   useEffect(() => {
-    const supabase = createClient()
-    supabase.auth.getUser().then(async ({ data: { user } }) => {
+    ;(async () => {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
       const [{ data: ag }, { data: brokerRow }] = await Promise.all([
-        supabase.from('agencies')
-          .select('id, name, subscription_status, subscription_tier, stripe_customer_id, stripe_subscription_id, current_period_end, is_beta')
+        supabase
+          .from('agencies')
+          .select('id, name, subscription_status, subscription_tier, stripe_customer_id, stripe_subscription_id, current_period_end, is_beta, seat_limit, included_seats')
           .eq('owner_id', user.id)
           .maybeSingle(),
-        supabase.from('brokers')
+        supabase
+          .from('brokers')
           .select('id, role, agency_id')
           .eq('user_id', user.id)
           .maybeSingle(),
       ])
 
-      const role = brokerRow?.role ?? null
-      setBrokerRole(role)
-
-      if (role === 'solo_broker') {
-        setBillingCase('solo_broker')
-        if (ag) setAgency(ag)
-      } else if (ag) {
-        setBillingCase('owner')
+      if (ag) {
+        // ── User owns this agency ─────────────────────────────────────────
         setAgency(ag)
+        const tier = ag.subscription_tier ?? 'broker'
+        setBillingCase(AGENCY_TIERS.includes(tier) ? 'owner_agency' : 'owner_broker')
+
+        // Pull live active seat count for agency owners
         const { count } = await supabase
           .from('brokers')
           .select('id', { count: 'exact', head: true })
           .eq('agency_id', ag.id)
-        setBrokerCount(count ?? 0)
-      } else if (role === 'agency_admin' || role === 'customer_service') {
-        setBillingCase('staff_non_owner')
-        if (brokerRow?.agency_id) {
-          const { data: agData } = await supabase
-            .from('agencies')
-            .select('name, subscription_tier, subscription_status, is_beta')
-            .eq('id', brokerRow.agency_id)
-            .maybeSingle()
-          setAgencyName(agData?.name ?? null)
-          if (agData) setAgency(agData)
+          .eq('is_active', true)
+        setActiveSeats(count ?? 0)
+        // included_seats from DB (default 5 for agency, 1 for broker)
+        setIncludedSeats((ag as AgencyData & { included_seats?: number }).included_seats ?? 5)
+
+      } else if (brokerRow?.agency_id) {
+        // ── Sub-broker under someone else's agency ────────────────────────
+        setBillingCase('sub_broker')
+        const { data: parentAgency } = await supabase
+          .from('agencies')
+          .select('name, subscription_tier, subscription_status, is_beta')
+          .eq('id', brokerRow.agency_id)
+          .maybeSingle()
+        if (parentAgency) {
+          setAgency(parentAgency as AgencyData)
+          setOwnerAgencyName(parentAgency.name ?? null)
         }
       } else {
-        setBillingCase('agency_broker')
-        if (brokerRow?.agency_id) {
-          const { data: agData } = await supabase
-            .from('agencies')
-            .select('name, subscription_tier, subscription_status, is_beta')
-            .eq('id', brokerRow.agency_id)
-            .maybeSingle()
-          setAgencyName(agData?.name ?? null)
-          if (agData) setAgency(agData)
-        }
+        // No broker row and no owned agency — shouldn't happen post-provision
+        setBillingCase('owner_broker')
       }
 
       setLoading(false)
-    })
+    })()
   }, [])
+
+  // ── Action handlers ───────────────────────────────────────────────────────
 
   const handlePortal = () => {
     startPortal(async () => {
-      const res = await fetch('/api/stripe/portal', { method: 'POST' })
+      const res  = await fetch('/api/stripe/portal', { method: 'POST' })
       const data = await res.json()
       if (data.url) window.location.href = data.url
       else alert(data.error ?? 'Could not open billing portal')
@@ -146,7 +174,9 @@ export default function BillingPage() {
   }
 
   const handleCancel = () => {
-    if (!confirm('Are you sure you want to cancel your subscription? Your access continues until the end of the billing period.')) return
+    if (!confirm(
+      'Are you sure you want to cancel? Your access continues until the end of the billing period.'
+    )) return
     startCancel(async () => {
       const result = await getCancelUrl()
       if (result.url) window.location.href = result.url
@@ -158,15 +188,17 @@ export default function BillingPage() {
     setUpgradingPlan(plan)
     startUpgrade(async () => {
       const res = await fetch('/api/stripe/checkout', {
-        method: 'POST',
+        method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan }),
+        body:    JSON.stringify({ plan }),
       })
       const data = await res.json()
       if (data.url) window.location.href = data.url
       else { alert(data.error ?? 'Could not start checkout'); setUpgradingPlan(null) }
     })
   }
+
+  // ── Loading ───────────────────────────────────────────────────────────────
 
   if (loading) {
     return (
@@ -179,30 +211,29 @@ export default function BillingPage() {
     )
   }
 
-  const isBeta = agency?.is_beta ?? false
-  const status = agency?.subscription_status ?? 'trial'
-  const statusKey = isBeta ? 'beta' : status
-  const statusCfg = STATUS_CFG[statusKey] ?? STATUS_CFG.trial
-  const StatusIcon = statusCfg.icon
+  const isBeta          = agency?.is_beta ?? false
+  const status          = agency?.subscription_status ?? 'trial'
+  const statusKey       = isBeta ? 'beta' : status
+  const statusCfg       = STATUS_CFG[statusKey] ?? STATUS_CFG.trial
+  const StatusIcon      = statusCfg.icon
   const hasSubscription = !!agency?.stripe_subscription_id
 
-  // ── CASE 1: Agency Owner ─────────────────────────────────────────────────
-  if (billingCase === 'owner') {
-    const extraBrokers = Math.max(0, brokerCount - 5)
-    const extraCost = extraBrokers * 30
-    const totalCost = 497 + extraCost
+  // ═══════════════════════════════════════════════════════════════════════════
+  // CASE A: Agency Owner on Agency/Professional/Enterprise tier  →  $497/mo
+  // ═══════════════════════════════════════════════════════════════════════════
+  if (billingCase === 'owner_agency') {
+    const overageSeats = Math.max(0, activeSeats - includedSeats)
+    const overageCost  = overageSeats * 30          // $30/mo per extra seat
+    const totalCost    = 497 + overageCost
 
     return (
       <div className="flex flex-col h-full w-full">
-        <PageHeader subtitle="Agency subscription & seats" />
+        <PageHeader subtitle="Agency subscription &amp; seats" />
         <div className="flex-1 overflow-y-auto p-8 max-w-3xl mx-auto w-full space-y-6 pb-32">
-          {cancelledBanner && (
-            <div className="rounded-2xl bg-amber-500/10 border border-amber-500/20 px-5 py-4">
-              <p className="text-amber-400 text-sm font-bold">Your subscription has been cancelled.</p>
-              <p className="text-amber-300/70 text-xs mt-1">Your access continues until {fmtDate(agency?.current_period_end) ?? 'end of billing period'}.</p>
-            </div>
-          )}
 
+          {showCancelled && <CancelledBanner endDate={agency?.current_period_end} />}
+
+          {/* ── Primary plan card ── */}
           <Card className="rounded-3xl border border-border shadow-sm">
             <CardContent className="p-8 space-y-6">
               <div className="flex items-start justify-between">
@@ -213,7 +244,8 @@ export default function BillingPage() {
                   </Badge>
                   <p className="text-2xl font-black uppercase tracking-tight">Agency Plan</p>
                   <p className="text-3xl font-black">
-                    ${totalCost.toLocaleString()}<span className="text-sm text-muted-foreground font-bold">/mo</span>
+                    ${totalCost.toLocaleString()}
+                    <span className="text-sm text-muted-foreground font-bold">/mo</span>
                   </p>
                 </div>
                 <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center">
@@ -234,15 +266,20 @@ export default function BillingPage() {
                 </p>
               )}
 
+              {/* Seat cost breakdown */}
               <div className="rounded-2xl bg-muted/40 border border-border px-5 py-4 space-y-2">
                 <div className="flex justify-between items-center text-[11px]">
-                  <span className="text-muted-foreground font-bold">Base plan (5 broker seats)</span>
+                  <span className="text-muted-foreground font-bold">
+                    Base plan ({includedSeats} broker seat{includedSeats !== 1 ? 's' : ''} included)
+                  </span>
                   <span className="font-black">$497/mo</span>
                 </div>
-                {extraBrokers > 0 && (
+                {overageSeats > 0 && (
                   <div className="flex justify-between items-center text-[11px]">
-                    <span className="text-muted-foreground font-bold">+ {extraBrokers} additional broker{extraBrokers !== 1 ? 's' : ''} × $30/mo</span>
-                    <span className="text-amber-400 font-black">+${extraCost}/mo</span>
+                    <span className="text-muted-foreground font-bold">
+                      +{overageSeats} additional broker{overageSeats !== 1 ? 's' : ''} × $30/mo
+                    </span>
+                    <span className="text-amber-400 font-black">+${overageCost}/mo</span>
                   </div>
                 )}
                 <div className="border-t border-border pt-2 flex justify-between items-center">
@@ -251,36 +288,31 @@ export default function BillingPage() {
                 </div>
               </div>
 
+              {/* Actions */}
               <div className="flex gap-3 pt-1">
                 {hasSubscription && (
-                  <Button
-                    onClick={handlePortal}
-                    disabled={portalPending}
-                    variant="outline"
-                    className="flex-1 rounded-xl font-black uppercase text-[10px] tracking-widest h-10 gap-2"
-                  >
-                    {portalPending ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <ExternalLink className="w-3.5 h-3.5" />}
+                  <Button onClick={handlePortal} disabled={portalPending} variant="outline"
+                    className="flex-1 rounded-xl font-black uppercase text-[10px] tracking-widest h-10 gap-2">
+                    {portalPending
+                      ? <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      : <ExternalLink className="w-3.5 h-3.5" />}
                     Manage Billing
                   </Button>
                 )}
                 {!hasSubscription && !isBeta && (
-                  <Button
-                    onClick={() => handleUpgrade('agency')}
-                    disabled={upgradePending}
-                    className="flex-1 rounded-xl font-black uppercase text-[10px] tracking-widest h-10 gap-2"
-                  >
-                    {upgradePending ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <ArrowUpRight className="w-3.5 h-3.5" />}
-                    Upgrade to Paid
+                  <Button onClick={() => handleUpgrade('agency')} disabled={upgradePending}
+                    className="flex-1 rounded-xl font-black uppercase text-[10px] tracking-widest h-10 gap-2">
+                    {upgradePending
+                      ? <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      : <ArrowUpRight className="w-3.5 h-3.5" />}
+                    Activate Paid Plan
                   </Button>
                 )}
               </div>
               {hasSubscription && status !== 'cancelled' && (
                 <div className="flex justify-center pt-1">
-                  <button
-                    onClick={handleCancel}
-                    disabled={cancelPending}
-                    className="text-red-400/70 hover:text-red-400 text-[11px] font-bold transition-colors disabled:opacity-50"
-                  >
+                  <button onClick={handleCancel} disabled={cancelPending}
+                    className="text-red-400/70 hover:text-red-400 text-[11px] font-bold transition-colors disabled:opacity-50">
                     {cancelPending ? 'Opening portal...' : 'Cancel Subscription'}
                   </button>
                 </div>
@@ -288,39 +320,59 @@ export default function BillingPage() {
             </CardContent>
           </Card>
 
-          <div className="rounded-2xl bg-muted/20 border border-border px-5 py-4 flex items-center gap-4">
-            <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
-              <Users className="w-4 h-4 text-primary" />
-            </div>
-            <div className="flex-1">
-              <p className="text-[10px] font-black uppercase tracking-widest">
-                {brokerCount} broker{brokerCount !== 1 ? 's' : ''} on your agency
-              </p>
-              <p className="text-[9px] text-muted-foreground mt-0.5">Base plan includes 5 seats. Additional brokers are $30/mo each.</p>
-            </div>
-            <Button asChild variant="outline" size="sm"
-              className="rounded-xl font-black uppercase text-[9px] tracking-widest h-8 px-3">
-              <Link href="/dashboard/team">Manage</Link>
-            </Button>
-          </div>
+          {/* ── Live seat utilization card ── */}
+          <Card className="rounded-3xl border border-border shadow-sm">
+            <CardContent className="p-6 space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center">
+                  <Users className="w-4 h-4 text-primary" />
+                </div>
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-widest">Seat Utilization</p>
+                  <p className="text-[9px] text-muted-foreground">
+                    {activeSeats} of {includedSeats} included seats active
+                    {overageSeats > 0 && ` · ${overageSeats} overage`}
+                  </p>
+                </div>
+                <Button asChild variant="outline" size="sm"
+                  className="ml-auto rounded-xl font-black uppercase text-[9px] tracking-widest h-8 px-3">
+                  <Link href="/dashboard/team">Manage Team</Link>
+                </Button>
+              </div>
+
+              {/* Seat usage bar */}
+              <div className="space-y-1.5">
+                <div className="h-2 rounded-full bg-muted overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all ${overageSeats > 0 ? 'bg-amber-500' : 'bg-primary'}`}
+                    style={{ width: `${Math.min(100, (activeSeats / Math.max(includedSeats, 1)) * 100)}%` }}
+                  />
+                </div>
+                <div className="flex justify-between text-[9px] text-muted-foreground font-bold uppercase">
+                  <span>{activeSeats} active</span>
+                  <span>{includedSeats} included · +$30/seat overage</span>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+
         </div>
       </div>
     )
   }
 
-  // ── CASE 4: Solo Broker ──────────────────────────────────────────────────
-  if (billingCase === 'solo_broker') {
+  // ═══════════════════════════════════════════════════════════════════════════
+  // CASE B: Agency Owner on Solo/Broker tier  →  $79/mo
+  // ═══════════════════════════════════════════════════════════════════════════
+  if (billingCase === 'owner_broker') {
     return (
       <div className="flex flex-col h-full w-full">
-        <PageHeader subtitle="Your broker plan" />
+        <PageHeader subtitle="Your individual broker plan" />
         <div className="flex-1 overflow-y-auto p-8 max-w-2xl mx-auto w-full space-y-6 pb-32">
-          {cancelledBanner && (
-            <div className="rounded-2xl bg-amber-500/10 border border-amber-500/20 px-5 py-4">
-              <p className="text-amber-400 text-sm font-bold">Your subscription has been cancelled.</p>
-              <p className="text-amber-300/70 text-xs mt-1">Your access continues until {fmtDate(agency?.current_period_end) ?? 'end of billing period'}.</p>
-            </div>
-          )}
 
+          {showCancelled && <CancelledBanner endDate={agency?.current_period_end} />}
+
+          {/* ── Plan card ── */}
           <Card className="rounded-3xl border border-border shadow-sm">
             <CardContent className="p-8 space-y-5">
               <div className="flex items-start justify-between">
@@ -329,8 +381,13 @@ export default function BillingPage() {
                     <StatusIcon className="w-3 h-3" />
                     {statusCfg.label}
                   </Badge>
-                  <p className="text-2xl font-black uppercase tracking-tight">Broker Plan</p>
-                  <p className="text-3xl font-black">$79<span className="text-sm text-muted-foreground font-bold">/mo</span></p>
+                  <p className="text-2xl font-black uppercase tracking-tight">Individual Broker Plan</p>
+                  <p className="text-3xl font-black">
+                    $79<span className="text-sm text-muted-foreground font-bold">/mo</span>
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">
+                    1 seat · month-to-month · cancel any time
+                  </p>
                 </div>
                 <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center">
                   <User className="w-6 h-6 text-primary" />
@@ -346,40 +403,50 @@ export default function BillingPage() {
 
               {!isBeta && status === 'trial' && (
                 <div className="rounded-2xl bg-amber-500/5 border border-amber-500/15 px-4 py-3">
-                  <p className="text-[10px] font-black uppercase tracking-widest text-amber-400 mb-1">Free Trial Active</p>
+                  <p className="text-[10px] font-black uppercase tracking-widest text-amber-400 mb-1">Free Trial</p>
                   {agency?.current_period_end && (
-                    <p className="text-[11px] text-muted-foreground">Trial expires {fmtDate(agency.current_period_end)}</p>
+                    <p className="text-[11px] text-muted-foreground">Expires {fmtDate(agency.current_period_end)}</p>
                   )}
                 </div>
               )}
 
               {!isBeta && status === 'active' && agency?.current_period_end && (
-                <p className="text-[11px] font-bold text-muted-foreground">Next billing: {fmtDate(agency.current_period_end)}</p>
+                <div className="rounded-2xl bg-muted/40 border border-border px-4 py-3 flex items-center gap-3">
+                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                  <div>
+                    <p className="text-[10px] font-black uppercase tracking-widest text-emerald-400">Subscription Active</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Next renewal: <span className="font-black text-foreground">{fmtDate(agency.current_period_end)}</span>
+                    </p>
+                  </div>
+                </div>
               )}
 
               <div className="flex gap-3 pt-1">
                 {hasSubscription && (
                   <Button onClick={handlePortal} disabled={portalPending} variant="outline"
                     className="flex-1 rounded-xl font-black uppercase text-[10px] tracking-widest h-10 gap-2">
-                    {portalPending ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <ExternalLink className="w-3.5 h-3.5" />}
+                    {portalPending
+                      ? <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      : <ExternalLink className="w-3.5 h-3.5" />}
                     Manage Billing
                   </Button>
                 )}
                 {!hasSubscription && !isBeta && (
                   <Button onClick={() => handleUpgrade('broker')} disabled={upgradePending}
                     className="flex-1 rounded-xl font-black uppercase text-[10px] tracking-widest h-10 gap-2">
-                    {upgradePending && upgradingPlan === 'broker' ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <ArrowUpRight className="w-3.5 h-3.5" />}
-                    Upgrade to Paid
+                    {upgradePending && upgradingPlan === 'broker'
+                      ? <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                      : <ArrowUpRight className="w-3.5 h-3.5" />}
+                    Activate $79/mo Plan
                   </Button>
                 )}
               </div>
+
               {hasSubscription && status !== 'cancelled' && (
                 <div className="flex justify-center pt-1">
-                  <button
-                    onClick={handleCancel}
-                    disabled={cancelPending}
-                    className="text-red-400/70 hover:text-red-400 text-[11px] font-bold transition-colors disabled:opacity-50"
-                  >
+                  <button onClick={handleCancel} disabled={cancelPending}
+                    className="text-red-400/70 hover:text-red-400 text-[11px] font-bold transition-colors disabled:opacity-50">
                     {cancelPending ? 'Opening portal...' : 'Cancel Subscription'}
                   </button>
                 </div>
@@ -387,15 +454,21 @@ export default function BillingPage() {
             </CardContent>
           </Card>
 
+          {/* ── Upgrade pitch ── */}
           <Card className="rounded-3xl border border-primary/20 bg-primary/5 shadow-sm">
             <CardContent className="p-7 space-y-4">
               <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center">
                 <Building2 className="w-5 h-5 text-primary" />
               </div>
               <div>
-                <p className="text-sm font-black uppercase tracking-tight mb-2">Need a Team? Upgrade to Agency</p>
+                <p className="text-sm font-black uppercase tracking-tight mb-2">Scale to an Agency for $497/mo</p>
                 <ul className="space-y-1.5">
-                  {['Multi-broker management & oversight', 'Agency-wide churn monitor', 'Revenue-at-risk dashboard'].map(f => (
+                  {[
+                    '5 broker seats included, $30/mo per additional',
+                    'Agency-wide churn monitor & override alerts',
+                    'Manager Control Center & downline roster',
+                    'Revenue-at-risk dashboard',
+                  ].map(f => (
                     <li key={f} className="flex items-center gap-2">
                       <CheckCircle2 className="w-3 h-3 text-emerald-400 shrink-0" />
                       <span className="text-[11px] text-muted-foreground">{f}</span>
@@ -403,59 +476,24 @@ export default function BillingPage() {
                   ))}
                 </ul>
               </div>
-              <Button asChild className="rounded-xl font-black uppercase text-[10px] tracking-widest h-10 gap-2 w-fit">
-                <Link href="/signup?plan=agency">
-                  <ArrowUpRight className="w-3.5 h-3.5" /> Start Agency Trial
-                </Link>
+              <Button onClick={() => handleUpgrade('agency')} disabled={upgradePending}
+                className="rounded-xl font-black uppercase text-[10px] tracking-widest h-10 gap-2 w-fit">
+                {upgradePending && upgradingPlan === 'agency'
+                  ? <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                  : <ArrowUpRight className="w-3.5 h-3.5" />}
+                Upgrade to Agency Plan
               </Button>
             </CardContent>
           </Card>
+
         </div>
       </div>
     )
   }
 
-  // ── CASE 2: Staff Non-Owner ───────────────────────────────────────────────
-  if (billingCase === 'staff_non_owner') {
-    const roleLabel = brokerRole === 'customer_service' ? 'Customer Service' : 'Manager'
-    return (
-      <div className="flex flex-col h-full w-full">
-        <PageHeader subtitle="Plan information" />
-        <div className="flex-1 overflow-y-auto p-8 max-w-2xl mx-auto w-full space-y-6 pb-32">
-          <Card className="rounded-3xl border border-border shadow-sm">
-            <CardContent className="p-8 space-y-5">
-              <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center">
-                <Shield className="w-6 h-6 text-primary" />
-              </div>
-              <div className="space-y-2">
-                <p className="text-xl font-black uppercase tracking-tight">Your Plan</p>
-                <p className="text-sm font-bold text-muted-foreground">
-                  You are a <span className="text-primary">{roleLabel}</span>
-                  {agencyName ? <> under <span className="font-black">{agencyName}</span></> : ' on this agency'}.
-                </p>
-                <p className="text-[11px] text-muted-foreground leading-relaxed">
-                  Subscription is managed by your agency owner. Contact them to make billing changes.
-                </p>
-              </div>
-              {agency && (
-                <div className="rounded-2xl bg-muted/40 border border-border px-5 py-4 flex items-center justify-between">
-                  <div>
-                    <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1">Agency Plan</p>
-                    <p className="text-sm font-black">{planLabel(agency.subscription_tier)}</p>
-                  </div>
-                  <Badge className={`font-black uppercase text-[9px] px-3 h-6 border ${statusCfg.cls}`}>
-                    {statusCfg.label}
-                  </Badge>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-    )
-  }
-
-  // ── CASE 3: Broker under agency (default) ────────────────────────────────
+  // ═══════════════════════════════════════════════════════════════════════════
+  // CASE C: Sub-broker under an agency  →  read-only view
+  // ═══════════════════════════════════════════════════════════════════════════
   return (
     <div className="flex flex-col h-full w-full">
       <PageHeader subtitle="Your access" />
@@ -467,20 +505,26 @@ export default function BillingPage() {
               <Lock className="w-6 h-6 text-primary" />
             </div>
             <div className="space-y-2">
-              <p className="text-xl font-black uppercase tracking-tight">Your Access</p>
+              <p className="text-xl font-black uppercase tracking-tight">Seat Access</p>
               <p className="text-sm font-bold text-muted-foreground">
-                You are a <span className="text-primary">Broker</span>
-                {agencyName ? <> under <span className="font-black">{agencyName}</span></> : ' on this agency'}.
+                Your seat is included in{' '}
+                {ownerAgencyName
+                  ? <span className="font-black text-foreground">{ownerAgencyName}</span>
+                  : 'your agency'
+                }
+                's plan.
               </p>
               <p className="text-[11px] text-muted-foreground leading-relaxed">
-                Your access is included in your agency&apos;s plan. Contact your agency owner to make billing changes.
+                Contact your agency owner to make billing or seat changes.
               </p>
             </div>
             {agency && (
               <div className="rounded-2xl bg-muted/40 border border-border px-5 py-4 flex items-center justify-between">
                 <div>
                   <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-1">Agency Plan</p>
-                  <p className="text-sm font-black">{planLabel(agency.subscription_tier)}</p>
+                  <p className="text-sm font-black">
+                    {AGENCY_TIERS.includes(agency.subscription_tier ?? '') ? 'Agency Plan · $497/mo' : 'Individual Broker · $79/mo'}
+                  </p>
                 </div>
                 <Badge className={`font-black uppercase text-[9px] px-3 h-6 border ${statusCfg.cls}`}>
                   {statusCfg.label}
@@ -490,22 +534,6 @@ export default function BillingPage() {
           </CardContent>
         </Card>
 
-        <Card className="rounded-3xl border border-primary/20 bg-primary/5 shadow-sm">
-          <CardContent className="p-7 space-y-4">
-            <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center">
-              <Building2 className="w-5 h-5 text-primary" />
-            </div>
-            <div>
-              <p className="text-sm font-black uppercase tracking-tight mb-1">Want Your Own Agency?</p>
-              <p className="text-[11px] text-muted-foreground mt-1">Manage your own team of brokers with full agency oversight and reporting.</p>
-            </div>
-            <Button asChild className="rounded-xl font-black uppercase text-[10px] tracking-widest h-10 gap-2 w-fit">
-              <Link href="/signup?plan=agency">
-                <ArrowUpRight className="w-3.5 h-3.5" /> Start Agency Trial
-              </Link>
-            </Button>
-          </CardContent>
-        </Card>
       </div>
     </div>
   )

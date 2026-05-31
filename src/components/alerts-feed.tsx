@@ -1,12 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { CheckCircle2 } from 'lucide-react'
+import { CheckCircle2, TrendingDown, DollarSign } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/hooks/use-toast'
-import { AlertCard, type AlertRow } from '@/components/alert-card'
+import { AlertCard, type AlertRow, type AlertStatus } from '@/components/alert-card'
 
-type Filter = 'all' | 'open' | 'contacted' | 'resolved'
+type Filter     = 'all' | 'open' | 'contacted' | 'mitigating' | 'resolved'
 type TimeFilter = 'today' | 'week' | 'all'
 
 interface Props {
@@ -17,9 +17,7 @@ interface Props {
 
 function requestPushPermission() {
   if (typeof window === 'undefined' || !('Notification' in window)) return
-  if (Notification.permission === 'default') {
-    Notification.requestPermission()
-  }
+  if (Notification.permission === 'default') Notification.requestPermission()
 }
 
 function firePushNotification(title: string, body: string) {
@@ -29,45 +27,44 @@ function firePushNotification(title: string, body: string) {
 }
 
 export function AlertsFeed({ initialAlerts, agencyId, isStaff }: Props) {
-  const [alerts, setAlerts] = useState<AlertRow[]>(initialAlerts)
-  const [filter, setFilter] = useState<Filter>('open')
+  const [alerts, setAlerts]         = useState<AlertRow[]>(initialAlerts)
+  const [filter, setFilter]         = useState<Filter>('open')
   const [timeFilter, setTimeFilter] = useState<TimeFilter>('all')
-  const [search, setSearch] = useState('')
-  const { toast } = useToast()
+  const [search, setSearch]         = useState('')
+  const { toast }                   = useToast()
 
-  useEffect(() => {
-    requestPushPermission()
-  }, [])
+  useEffect(() => { requestPushPermission() }, [])
 
+  // ── Realtime subscription ───────────────────────────────────────────────────
   useEffect(() => {
     const supabase = createClient()
-    const channel = supabase
+    const channel  = supabase
       .channel('switch_alerts_realtime')
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event:  '*',
           schema: 'public',
-          table: 'switch_alerts',
+          table:  'switch_alerts',
           filter: `agency_id=eq.${agencyId}`,
         },
         (payload) => {
           if (payload.eventType === 'INSERT') {
-            const raw = payload.new as AlertRow
+            const raw      = payload.new as AlertRow
             const incoming: AlertRow = {
               ...raw,
               member_full_name: null,
-              member_plan: raw.previous_value,
-              carrier_display: raw.carrier,
+              member_plan:      raw.previous_value,
+              carrier_display:  raw.carrier,
             }
             setAlerts(prev => [incoming, ...prev])
 
-            const name = incoming.member_full_name ?? 'A member'
-            const carrier = incoming.carrier_display ?? incoming.carrier ?? 'Unknown Carrier'
+            const name    = incoming.member_full_name ?? 'A member'
+            const carrier = incoming.carrier_display  ?? incoming.carrier ?? 'Unknown Carrier'
             toast({
-              title: '⚠️ New Switch Alert',
+              title:       '⚠️ New Switch Alert',
               description: `${name} may have switched plans — ${carrier}`,
-              variant: 'destructive',
+              variant:     'destructive',
             })
             firePushNotification(
               'New Switch Alert — AegisSage',
@@ -85,7 +82,8 @@ export function AlertsFeed({ initialAlerts, agencyId, isStaff }: Props) {
     return () => { supabase.removeChannel(channel) }
   }, [agencyId, toast])
 
-  function handleStatusChange(alertId: string, status: 'contacted' | 'resolved') {
+  // ── Status handlers ─────────────────────────────────────────────────────────
+  function handleStatusChange(alertId: string, status: AlertStatus) {
     setAlerts(prev => prev.map(a => a.id === alertId ? { ...a, status } : a))
   }
 
@@ -93,14 +91,27 @@ export function AlertsFeed({ initialAlerts, agencyId, isStaff }: Props) {
     setAlerts(prev => prev.map(a => a.id === alertId ? { ...a, status: 'dismissed' } : a))
   }
 
-  const now = Date.now()
+  // ── Derived counts ──────────────────────────────────────────────────────────
+  const now     = Date.now()
   const DAY_MS  = 86_400_000
   const WEEK_MS = 7 * DAY_MS
+
+  const openAlerts      = alerts.filter(a => a.status === 'open')
+  const openCount       = openAlerts.length
+  const mitigatingCount = alerts.filter(a => a.status === 'mitigating').length
+  const contactedCount  = alerts.filter(a => a.status === 'contacted').length
+  const resolvedCount   = alerts.filter(a => a.status === 'resolved').length
+
+  // Revenue at risk: sum of estimated_revenue_at_risk for open alerts,
+  // falling back to $35/member per CMS broker compensation guidelines.
+  const revenueAtRisk = openAlerts.reduce(
+    (sum, a) => sum + (a.estimated_revenue_at_risk ?? 35), 0
+  )
 
   const filtered = alerts.filter(a => {
     if (filter !== 'all' && a.status !== filter) return false
     if (timeFilter === 'today') {
-      if (now - new Date(a.detected_at ?? 0).getTime() > DAY_MS) return false
+      if (now - new Date(a.detected_at ?? 0).getTime() > DAY_MS)  return false
     } else if (timeFilter === 'week') {
       if (now - new Date(a.detected_at ?? 0).getTime() > WEEK_MS) return false
     }
@@ -108,34 +119,79 @@ export function AlertsFeed({ initialAlerts, agencyId, isStaff }: Props) {
       const q = search.toLowerCase()
       return (
         (a.member_full_name ?? '').toLowerCase().includes(q) ||
-        (a.carrier_display ?? a.carrier ?? '').toLowerCase().includes(q) ||
-        (a.member_plan ?? '').toLowerCase().includes(q)
+        (a.carrier_display  ?? a.carrier ?? '').toLowerCase().includes(q) ||
+        (a.member_plan      ?? '').toLowerCase().includes(q)
       )
     }
     return true
   })
 
-  const openCount      = alerts.filter(a => a.status === 'open').length
-  const contactedCount = alerts.filter(a => a.status === 'contacted').length
-  const resolvedCount  = alerts.filter(a => a.status === 'resolved').length
-
+  // ── Render ──────────────────────────────────────────────────────────────────
   return (
     <div className="space-y-4">
-      {/* Filters */}
+
+      {/* ── Metric bar: Active Leakage + Revenue At Risk ────────────────────── */}
+      <div className="grid grid-cols-2 gap-3">
+        {/* Active Leakage */}
+        <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-1.5">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-lg bg-red-500/10 flex items-center justify-center">
+              <TrendingDown className="w-3.5 h-3.5 text-red-400" />
+            </div>
+            <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">
+              Active Leakage
+            </p>
+          </div>
+          <p className="text-3xl font-black text-red-400 tabular-nums leading-none">
+            {openCount}
+          </p>
+          <p className="text-[9px] text-slate-600 font-bold uppercase">
+            {openCount === 1 ? 'open switch alert' : 'open switch alerts'}
+            {mitigatingCount > 0 && (
+              <span className="text-violet-500/70 ml-1.5">
+                · {mitigatingCount} mitigating
+              </span>
+            )}
+          </p>
+        </div>
+
+        {/* Revenue At Risk */}
+        <div className="p-4 rounded-2xl bg-slate-900 border border-slate-800 space-y-1.5">
+          <div className="flex items-center gap-2">
+            <div className="w-6 h-6 rounded-lg bg-amber-500/10 flex items-center justify-center">
+              <DollarSign className="w-3.5 h-3.5 text-amber-400" />
+            </div>
+            <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">
+              Revenue At Risk
+            </p>
+          </div>
+          <p className="text-3xl font-black text-amber-400 tabular-nums leading-none">
+            ${revenueAtRisk.toLocaleString()}
+          </p>
+          <p className="text-[9px] text-slate-600 font-bold uppercase">
+            / mo at risk from open alerts
+          </p>
+        </div>
+      </div>
+
+      {/* ── Filter pills ────────────────────────────────────────────────────── */}
       <div className="flex items-center gap-2 flex-wrap">
         <div className="flex items-center gap-1 bg-slate-900 rounded-xl border border-slate-800 p-1">
           {([
-            ['all',       `All (${alerts.length})`],
-            ['open',      `Open (${openCount})`],
-            ['contacted', `Contacted (${contactedCount})`],
-            ['resolved',  `Resolved (${resolvedCount})`],
+            ['all',        `All (${alerts.length})`],
+            ['open',       `Open (${openCount})`],
+            ['mitigating', `Mitigating (${mitigatingCount})`],
+            ['contacted',  `Contacted (${contactedCount})`],
+            ['resolved',   `Resolved (${resolvedCount})`],
           ] as [Filter, string][]).map(([f, label]) => (
             <button
               key={f}
               onClick={() => setFilter(f)}
               className={`px-3 py-1.5 rounded-lg text-[9px] font-black uppercase tracking-widest transition-colors ${
                 filter === f
-                  ? 'bg-primary/20 text-primary border border-primary/30'
+                  ? f === 'mitigating'
+                    ? 'bg-violet-500/20 text-violet-400 border border-violet-500/30'
+                    : 'bg-primary/20 text-primary border border-primary/30'
                   : 'text-slate-500 hover:text-slate-300'
               }`}
             >
@@ -173,7 +229,7 @@ export function AlertsFeed({ initialAlerts, agencyId, isStaff }: Props) {
         />
       </div>
 
-      {/* Alert cards */}
+      {/* ── Alert feed ──────────────────────────────────────────────────────── */}
       {filtered.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-24 gap-3">
           <CheckCircle2 className="w-10 h-10 text-emerald-500/40" />

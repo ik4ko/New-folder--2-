@@ -12,6 +12,7 @@ import {
 import {
   DollarSign, FileText, BarChart3, AlertTriangle,
   Clock, Shield, ArrowLeft, Users, Bell, CheckCircle2,
+  Database, Activity, Key, Lock, XCircle,
 } from 'lucide-react'
 import { createServiceClient } from '@/lib/supabase/service'
 
@@ -35,7 +36,62 @@ function daysLeft(d: string) {
   return Math.ceil((new Date(d).getTime() - Date.now()) / 86400000)
 }
 
+/** Human-readable relative timestamp for the compliance ledger. */
+function relativeTime(d: string | null | undefined): string {
+  if (!d) return '—'
+  const ms   = Date.now() - new Date(d).getTime()
+  const mins = Math.floor(ms / 60_000)
+  if (mins < 1)   return 'just now'
+  if (mins < 60)  return `${mins} min${mins !== 1 ? 's' : ''} ago`
+  const hrs = Math.floor(mins / 60)
+  if (hrs < 24)   return `${hrs} hour${hrs !== 1 ? 's' : ''} ago`
+  if (hrs < 48) {
+    const t = new Date(d).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+    return `Yesterday at ${t}`
+  }
+  return new Date(d).toLocaleDateString('en-US', {
+    month: 'short', day: 'numeric',
+    hour: 'numeric', minute: '2-digit',
+  })
+}
+
 const AVG_COMMISSION = 600
+
+// ── Compliance event display configuration ────────────────────────────────────
+
+type EventType =
+  | 'CRM_EXPORT_STARTED' | 'CRM_EXPORT_COMPLETED' | 'CRM_EXPORT_FAILED'
+  | 'CRM_IMPORT_STARTED' | 'CRM_IMPORT_COMPLETED'
+  | 'PHI_ACCESS' | 'MBI_REVEAL' | 'MBI_COPY'
+  | 'ROSTER_UPLOAD' | 'ROSTER_UPLOAD_ERRORS'
+  | 'MEMBER_DELETE' | 'ALERT_ACKNOWLEDGE'
+  | 'API_KEY_GENERATED' | 'LOGIN' | 'LOGIN_FAILED'
+
+interface EventCfg {
+  icon: React.ElementType
+  label: string
+  dot: string
+}
+
+const EVENT_CONFIG: Record<EventType, EventCfg> = {
+  CRM_IMPORT_STARTED:   { icon: Database,      label: 'GHL Sync Started',    dot: 'bg-blue-400'    },
+  CRM_IMPORT_COMPLETED: { icon: CheckCircle2,  label: 'GHL Sync Complete',   dot: 'bg-emerald-400' },
+  CRM_EXPORT_STARTED:   { icon: Database,      label: 'BOB→GHL Push Started',dot: 'bg-indigo-400'  },
+  CRM_EXPORT_COMPLETED: { icon: CheckCircle2,  label: 'BOB→GHL Push Done',   dot: 'bg-indigo-400'  },
+  CRM_EXPORT_FAILED:    { icon: AlertTriangle, label: 'Push Failed',          dot: 'bg-red-400'     },
+  PHI_ACCESS:           { icon: Shield,        label: 'AI Script Generated',  dot: 'bg-violet-400'  },
+  MBI_REVEAL:           { icon: Shield,        label: 'MBI Accessed',         dot: 'bg-amber-400'   },
+  MBI_COPY:             { icon: Shield,        label: 'MBI Copied',           dot: 'bg-amber-400'   },
+  ROSTER_UPLOAD:        { icon: FileText,      label: 'Roster Uploaded',      dot: 'bg-blue-400'    },
+  ROSTER_UPLOAD_ERRORS: { icon: AlertTriangle, label: 'Upload Errors',        dot: 'bg-red-400'     },
+  MEMBER_DELETE:        { icon: XCircle,       label: 'Member Removed',       dot: 'bg-red-400'     },
+  ALERT_ACKNOWLEDGE:    { icon: Bell,          label: 'Alert Acknowledged',   dot: 'bg-emerald-400' },
+  API_KEY_GENERATED:    { icon: Key,           label: 'API Key Generated',    dot: 'bg-slate-400'   },
+  LOGIN:                { icon: Lock,          label: 'Login',                dot: 'bg-slate-400'   },
+  LOGIN_FAILED:         { icon: AlertTriangle, label: 'Login Failed',         dot: 'bg-red-400'     },
+}
+
+const DEFAULT_EVENT_CFG: EventCfg = { icon: Activity, label: 'System Event', dot: 'bg-slate-400' }
 
 function groupCount(rows: Array<Record<string, unknown>>, key: string): Record<string, number> {
   return rows.reduce<Record<string, number>>((acc, row) => {
@@ -382,6 +438,48 @@ export default async function ManagerPage({
       return a.saveRate - b.saveRate
     })
 
+  // ── Compliance ledger data ────────────────────────────────────────────────
+  const [
+    { count: totalBobCount },
+    { count: mitigatingCount },
+    { data: rawComplianceLogs },
+  ] = await Promise.all([
+    supabaseAdmin
+      .from('book_of_business')
+      .select('id', { count: 'exact', head: true })
+      .eq('agency_id', agencyId),
+    supabaseAdmin
+      .from('switch_alerts')
+      .select('id', { count: 'exact', head: true })
+      .eq('agency_id', agencyId)
+      .eq('status', 'mitigating'),
+    supabaseAdmin
+      .from('compliance_audit_logs')
+      .select('id, event_type, description, status, ip_address, created_at, broker_user_id')
+      .eq('agency_id', agencyId)
+      .order('created_at', { ascending: false })
+      .limit(50),
+  ])
+
+  const complianceLogs = rawComplianceLogs ?? []
+
+  // Enrich log rows with broker names (join via brokers.user_id)
+  const logBrokerUserIds = [
+    ...new Set(complianceLogs.map(l => l.broker_user_id).filter(Boolean))
+  ] as string[]
+  const { data: logBrokers } = logBrokerUserIds.length > 0
+    ? await supabaseAdmin
+        .from('brokers')
+        .select('user_id, first_name, last_name')
+        .in('user_id', logBrokerUserIds)
+    : { data: [] }
+  const brokerUserMap = new Map(
+    (logBrokers ?? []).map(b => [
+      b.user_id,
+      `${b.first_name ?? ''} ${b.last_name ?? ''}`.trim() || 'System',
+    ])
+  )
+
   return (
     <div className="flex h-full w-full bg-background">
       <CollectionSidebar />
@@ -399,6 +497,57 @@ export default async function ManagerPage({
         </header>
 
         <div className="flex-1 overflow-y-auto p-8 max-w-6xl mx-auto w-full pb-32 space-y-8">
+
+          {/* ── Compliance metric snaps ───────────────────────────────────── */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Total Synchronized Members */}
+            <div className="rounded-2xl border border-border bg-card p-5 flex items-center gap-4">
+              <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+                <Users className="w-5 h-5 text-primary" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-2xl font-black text-foreground tabular-nums">
+                  {(totalBobCount ?? 0).toLocaleString()}
+                </p>
+                <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground truncate">
+                  Total Synchronized Members
+                </p>
+              </div>
+            </div>
+
+            {/* Active Mitigations */}
+            <div className="rounded-2xl border border-border bg-card p-5 flex items-center gap-4">
+              <div className="w-10 h-10 rounded-xl bg-violet-500/10 flex items-center justify-center shrink-0">
+                <Shield className="w-5 h-5 text-violet-500" />
+              </div>
+              <div className="min-w-0">
+                <p className="text-2xl font-black text-violet-500 tabular-nums">
+                  {(mitigatingCount ?? 0).toLocaleString()}
+                </p>
+                <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground truncate">
+                  Active Mitigations
+                </p>
+              </div>
+            </div>
+
+            {/* Audit Health Status */}
+            <div className="rounded-2xl border border-border bg-card p-5 flex items-center gap-4">
+              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center shrink-0">
+                <Activity className="w-5 h-5 text-emerald-500" />
+              </div>
+              <div className="min-w-0">
+                <div className="flex items-center gap-2">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse shrink-0" />
+                  <p className="text-sm font-black text-emerald-500 uppercase tracking-tight">
+                    CMS Log Active
+                  </p>
+                </div>
+                <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mt-0.5 truncate">
+                  Audit Health Status · {complianceLogs.length > 0 ? `${complianceLogs.length} events on record` : 'No events yet'}
+                </p>
+              </div>
+            </div>
+          </div>
 
           {/* -- Agency Protection Rate ------------------------------------ */}
           <Card className="rounded-3xl border border-emerald-200 bg-emerald-500/5 shadow-sm">
@@ -511,6 +660,96 @@ export default async function ManagerPage({
                     })}
                   </TableBody>
                 </Table>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* ── Compliance Audit Ledger ──────────────────────────────────── */}
+          <Card className="rounded-3xl border border-border shadow-sm overflow-hidden">
+            <CardHeader className="bg-muted/30 border-b py-4">
+              <CardTitle className="text-sm font-black uppercase tracking-tight flex items-center gap-2">
+                <Shield className="w-4 h-4 text-emerald-600" />
+                Compliance Audit Ledger
+                <span className="text-[9px] font-bold text-muted-foreground normal-case">
+                  · immutable · HIPAA §164.312(b)
+                </span>
+                <span className="ml-auto flex items-center gap-1.5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
+                  <span className="text-[9px] font-black uppercase tracking-widest text-emerald-600">
+                    Live
+                  </span>
+                </span>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="p-0">
+              {complianceLogs.length === 0 ? (
+                <div className="py-16 flex flex-col items-center justify-center gap-2 text-center">
+                  <Activity className="w-8 h-8 text-muted-foreground/20" />
+                  <p className="text-[11px] font-black uppercase tracking-widest text-muted-foreground/40">
+                    No compliance events recorded yet
+                  </p>
+                </div>
+              ) : (
+                <ul className="divide-y divide-border/50">
+                  {complianceLogs.map((log, idx) => {
+                    const cfg    = EVENT_CONFIG[log.event_type as EventType] ?? DEFAULT_EVENT_CFG
+                    const Icon   = cfg.icon
+                    const broker = log.broker_user_id ? brokerUserMap.get(log.broker_user_id) : null
+                    const isLast = idx === complianceLogs.length - 1
+
+                    return (
+                      <li key={log.id} className="flex items-start gap-3 px-5 py-3 hover:bg-muted/10 transition-colors">
+                        {/* Timeline dot + connector */}
+                        <div className="flex flex-col items-center shrink-0 mt-0.5">
+                          <div className={`w-6 h-6 rounded-lg flex items-center justify-center ${cfg.dot.replace('bg-', 'bg-').replace('-400', '-500/10')}`}>
+                            <Icon className={`w-3.5 h-3.5 ${cfg.dot.replace('bg-', 'text-')}`} />
+                          </div>
+                          {!isLast && <div className="w-px flex-1 bg-border/40 mt-1 min-h-[12px]" />}
+                        </div>
+
+                        {/* Content */}
+                        <div className="flex-1 min-w-0 space-y-0.5 pb-1">
+                          {/* Event label + status */}
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <span className="text-[10px] font-black uppercase tracking-widest text-foreground">
+                              {cfg.label}
+                            </span>
+                            <Badge className={`text-[7px] font-black uppercase px-1.5 h-4 border ${
+                              log.status === 'SUCCESS' ? 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20'
+                              : log.status === 'FAILED'  ? 'bg-red-500/10 text-red-500 border-red-500/20'
+                              : 'bg-amber-500/10 text-amber-600 border-amber-500/20'
+                            }`}>
+                              {log.status}
+                            </Badge>
+                            {broker && (
+                              <span className="text-[9px] text-muted-foreground font-medium truncate">
+                                · {broker}
+                              </span>
+                            )}
+                          </div>
+
+                          {/* Description — metadata only, no PHI per HIPAA policy */}
+                          <p className="text-[10px] text-muted-foreground font-medium leading-snug line-clamp-2">
+                            {log.description}
+                          </p>
+
+                          {/* Timestamp */}
+                          <div className="flex items-center gap-2">
+                            <Clock className="w-2.5 h-2.5 text-muted-foreground/40" />
+                            <span className="text-[9px] text-muted-foreground/60 font-medium">
+                              {relativeTime(log.created_at)}
+                            </span>
+                            {log.ip_address && (
+                              <span className="text-[8px] text-muted-foreground/30 font-mono">
+                                · {log.ip_address}
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </li>
+                    )
+                  })}
+                </ul>
               )}
             </CardContent>
           </Card>

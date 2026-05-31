@@ -11,16 +11,27 @@ export async function GET(req: NextRequest) {
 
   if (!code) {
     console.error('[GHL callback] missing code param');
-    return NextResponse.redirect(`${APP_URL}/ghl?error=missing_code`);
+    return NextResponse.redirect(`${APP_URL}/dashboard/churn/upload?ghl=error`);
   }
 
-  const clientId = process.env.GHL_CLIENT_ID;
+  const clientId     = process.env.GHL_CLIENT_ID;
   const clientSecret = process.env.GHL_CLIENT_SECRET;
-  const redirectUri = process.env.GHL_REDIRECT_URI;
 
-  if (!clientId || !clientSecret || !redirectUri) {
+  // Self-healing redirect URI: GHL bans "ghl" in registered redirect URIs.
+  // Auto-correct if GHL_REDIRECT_URI is unset or still holds the deprecated path.
+  const rawUri     = process.env.GHL_REDIRECT_URI ?? '';
+  const appOrigin  = process.env.NEXT_PUBLIC_APP_URL ?? 'https://www.aegissage.com';
+  const redirectUri = (!rawUri || rawUri.includes('/api/ghl/callback'))
+    ? `${appOrigin}/api/connect/callback`
+    : rawUri;
+
+  if (rawUri && rawUri.includes('/api/ghl/callback')) {
+    console.warn('[auth-connect/callback] GHL_REDIRECT_URI points at deprecated /api/ghl/callback — auto-corrected.');
+  }
+
+  if (!clientId || !clientSecret) {
     console.error('[GHL callback] GHL env vars not configured');
-    return NextResponse.redirect(`${APP_URL}/ghl?error=ghl_not_configured`);
+    return NextResponse.redirect(`${APP_URL}/dashboard/churn/upload?ghl=error&reason=ghl_not_configured`);
   }
 
   try {
@@ -56,7 +67,7 @@ export async function GET(req: NextRequest) {
 
     if (agencyError || !agency) {
       console.error('[GHL callback] agency lookup failed:', agencyError);
-      return NextResponse.redirect(`${APP_URL}/ghl?error=oauth_failed`);
+      return NextResponse.redirect(`${APP_URL}/dashboard/churn/upload?ghl=error&reason=oauth_failed`);
     }
 
     const agencyId = agency.id;
@@ -77,7 +88,7 @@ export async function GET(req: NextRequest) {
     if (!tokenRes.ok) {
       const errText = await tokenRes.text();
       console.error('[GHL callback] token exchange failed:', tokenRes.status, errText);
-      return NextResponse.redirect(`${APP_URL}/ghl?error=oauth_failed`);
+      return NextResponse.redirect(`${APP_URL}/dashboard/churn/upload?ghl=error&reason=oauth_failed`);
     }
 
     const tokenData = (await tokenRes.json()) as {
@@ -108,7 +119,7 @@ export async function GET(req: NextRequest) {
 
     if (upsertError) {
       console.error('[GHL callback] agency_credentials upsert failed:', upsertError);
-      return NextResponse.redirect(`${APP_URL}/ghl?error=oauth_failed`);
+      return NextResponse.redirect(`${APP_URL}/dashboard/churn/upload?ghl=error&reason=oauth_failed`);
     }
 
     // -- 4. Append-only audit entry -------------------------------------------
@@ -121,11 +132,15 @@ export async function GET(req: NextRequest) {
       metadata: { expires_at: expiresAt, location_id: locationId },
     });
 
-    // -- 5. Success -----------------------------------------------------------
-    return NextResponse.redirect(`${APP_URL}/dashboard?connected=true`);
+    // -- 5. Success: route to Book of Business with import success flag --------
+    // The /ghl standalone page is deprecated. GHL is now a data source embedded
+    // inside the unified import interface (/dashboard/churn/upload).
+    // The ?ghl=connected flag triggers a toast in the import page confirming
+    // the connection and prompting a background sync.
+    return NextResponse.redirect(`${APP_URL}/dashboard/churn/upload?ghl=connected`);
 
   } catch (err: any) {
     console.error('[GHL callback] unexpected error:', err?.message ?? err);
-    return NextResponse.redirect(`${APP_URL}/ghl?error=oauth_failed`);
+    return NextResponse.redirect(`${APP_URL}/dashboard/churn/upload?ghl=error`);
   }
 }
