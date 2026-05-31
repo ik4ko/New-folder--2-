@@ -473,9 +473,25 @@ export function BookMemberTable({ members }: Props) {
                             </Button>
                           )}
                           {!isTermed && (
+                            // VCC button available for ALL non-termed members.
+                            // Non-chronic members → Insurance Transition Notice template.
+                            // Chronic/DSNP members → standard Chronic Condition form
+                            //   (the dedicated DSNP button below handles that path too,
+                            //    but this gives a single consistent entry point).
                             <Button asChild variant="ghost" size="sm"
                               className="h-6 px-2 rounded-lg text-[9px] font-black uppercase tracking-widest text-slate-400 hover:text-white hover:bg-slate-700">
-                              <Link href={`/dashboard/vcc/new?bob=${member.id}`}>
+                              <Link
+                                href={
+                                  member.is_chronic
+                                    ? `/dashboard/vcc/new?bob=${member.id}&is_chronic=1`
+                                    : `/dashboard/vcc/new?bob=${member.id}&type=transition_notice`
+                                }
+                                title={
+                                  member.is_chronic
+                                    ? 'VCC — Chronic Condition Form'
+                                    : 'VCC — Insurance Transition Notice'
+                                }
+                              >
                                 <FileCheck className="w-3 h-3 mr-1" />VCC
                               </Link>
                             </Button>

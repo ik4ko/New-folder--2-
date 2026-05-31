@@ -133,28 +133,34 @@ function detectColumnsByContent(
 }
 
 const CARRIER_KEYWORDS: [string, string][] = [
-  ['humana', 'Humana'],
-  ['aetna', 'Aetna Medicare'],
-  ['clover', 'Clover Health'],
-  ['devoted', 'Devoted Health'],
-  ['uhc', 'UnitedHealthcare'],
-  ['united', 'UnitedHealthcare'],
-  ['wellcare', 'Wellcare'],
-  ['anthem', 'Anthem'],
-  ['wellpoint', 'Anthem'],
-  ['healthfirst', 'Healthfirst Medicare Plan'],
-  ['health first', 'Healthfirst Medicare Plan'],
-  ['bcbs', 'BCBS'],
-  ['blue cross', 'BCBS'],
-  ['cigna', 'Cigna'],
-  ['carefree', 'Cigna'],
-  ['healthspring', 'Cigna'],
-  ['kaiser', 'Kaiser Permanente'],
-  ['molina', 'Molina Healthcare'],
-  ['centene', 'Centene'],
-  ['aarp', 'UnitedHealthcare'],
-  ['silverscript', 'CVS/Silverscript'],
-  ['elevance', 'Elevance Health'],
+  // ── Explicit brand/sub-brand mappings ────────────────────────────────────
+  // Order matters: longer / more-specific phrases must precede shorter ones
+  // to prevent a shorter keyword from shadowing its parent brand match.
+  ['peoples health', 'UnitedHealthcare'],   // Peoples Health Network → UHC
+  ['carecomplete',   'Humana'],             // CareComplete → Humana
+  // ── Standard carrier keywords ────────────────────────────────────────────
+  ['humana',        'Humana'],
+  ['aetna',         'Aetna Medicare'],
+  ['clover',        'Clover Health'],
+  ['devoted',       'Devoted Health'],
+  ['uhc',           'UnitedHealthcare'],
+  ['united',        'UnitedHealthcare'],
+  ['wellcare',      'Wellcare'],
+  ['anthem',        'Anthem'],
+  ['wellpoint',     'Anthem'],
+  ['healthfirst',   'Healthfirst Medicare Plan'],
+  ['health first',  'Healthfirst Medicare Plan'],
+  ['bcbs',          'BCBS'],
+  ['blue cross',    'BCBS'],
+  ['cigna',         'Cigna'],
+  ['carefree',      'Cigna'],
+  ['healthspring',  'Cigna'],
+  ['kaiser',        'Kaiser Permanente'],
+  ['molina',        'Molina Healthcare'],
+  ['centene',       'Centene'],
+  ['aarp',          'UnitedHealthcare'],
+  ['silverscript',  'CVS/Silverscript'],
+  ['elevance',      'Elevance Health'],
 ]
 
 // ── Route handler ─────────────────────────────────────────────────────────────

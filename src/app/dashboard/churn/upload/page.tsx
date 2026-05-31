@@ -217,9 +217,26 @@ export default function ChurnUploadPage() {
   }, []);
 
   // ── Handle OAuth callback return ──────────────────────────────────────────
+  // Two paths:
+  //   A. Popup flow — this page loaded inside the OAuth popup window.
+  //      Notify the parent tab via postMessage then self-close. The parent's
+  //      message handler (wired in handleGhlConnect) takes over from there.
+  //   B. Direct-navigation fallback — no popup (e.g. popup was blocked).
+  //      Handle the success/error state inline, same as before.
   useEffect(() => {
     const ghlParam = searchParams?.get('ghl');
+    if (!ghlParam) return;
+
+    const isPopup = typeof window !== 'undefined' && !!window.opener && !window.opener.closed;
+
     if (ghlParam === 'connected') {
+      if (isPopup) {
+        // Path A — relay to parent then close popup
+        try { window.opener.postMessage({ type: 'GHL_OAUTH_SUCCESS' }, window.location.origin); } catch {}
+        window.close();
+        return;
+      }
+      // Path B — direct navigation
       setGhlConnected(true);
       setGhlBanner('success');
       setGhlSyncing(true);
@@ -239,7 +256,13 @@ export default function ChurnUploadPage() {
         })
         .catch(() => setGhlSyncing(false));
       router.replace('/dashboard/churn/upload', { scroll: false });
+
     } else if (ghlParam === 'error') {
+      if (isPopup) {
+        try { window.opener.postMessage({ type: 'GHL_OAUTH_ERROR' }, window.location.origin); } catch {}
+        window.close();
+        return;
+      }
       setGhlBanner('error');
       router.replace('/dashboard/churn/upload', { scroll: false });
     }
@@ -269,7 +292,59 @@ export default function ChurnUploadPage() {
   };
 
   // ── GHL handlers ──────────────────────────────────────────────────────────
-  const handleGhlConnect = () => { window.location.href = '/api/ghl/connect'; };
+  const handleGhlConnect = () => {
+    // Open the OAuth flow in a centred popup so the parent dashboard tab
+    // stays fully undisturbed. After the OAuth dance completes the callback
+    // route redirects the popup to this same page with ?ghl=connected, which
+    // detects window.opener, posts GHL_OAUTH_SUCCESS, and calls window.close().
+    // The message listener below receives that and handles state + sync.
+    const W    = 600;
+    const H    = 700;
+    const left = Math.round(window.screen.width  / 2 - W / 2);
+    const top  = Math.round(window.screen.height / 2 - H / 2);
+    const popup = window.open(
+      '/api/ghl/connect',
+      'ghl_oauth',
+      `width=${W},height=${H},left=${left},top=${top},scrollbars=yes,resizable=yes,popup=1`
+    );
+
+    if (!popup) {
+      // Popup was blocked by the browser — fall back to same-tab navigation
+      window.location.href = '/api/ghl/connect';
+      return;
+    }
+
+    // Listen for postMessage from the popup once OAuth completes
+    const handleOAuthMessage = (e: MessageEvent) => {
+      if (e.origin !== window.location.origin) return;
+      if (e.data?.type === 'GHL_OAUTH_SUCCESS') {
+        window.removeEventListener('message', handleOAuthMessage);
+        setGhlConnected(true);
+        setGhlBanner('success');
+        setGhlSyncing(true);
+        fetch('/api/ghl/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ force: true, maxPages: 20 }),
+        })
+          .then(r => r.json())
+          .then(json => {
+            setGhlSyncing(false);
+            if (json.synced > 0) {
+              setStatusMessage(
+                `GHL import complete — ${json.synced.toLocaleString()} contacts added to your Book of Business.`
+              );
+            }
+          })
+          .catch(() => setGhlSyncing(false));
+      }
+      if (e.data?.type === 'GHL_OAUTH_ERROR') {
+        window.removeEventListener('message', handleOAuthMessage);
+        setGhlBanner('error');
+      }
+    };
+    window.addEventListener('message', handleOAuthMessage);
+  };
 
   const handleGhlSync = async () => {
     if (!ghlConnected) { handleGhlConnect(); return; }

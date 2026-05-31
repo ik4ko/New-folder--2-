@@ -193,6 +193,11 @@ export async function POST(req: NextRequest) {
   // ── Carrier normalization ─────────────────────────────────────────────────────
   function canonicalCarrier(name: string): string {
     const s = name.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim()
+    // ── Sub-brand / branded-network mappings ──────────────────────────────
+    // Must be checked before parent brand keywords to avoid false matches.
+    if (s.includes('peoples health'))                                                      return 'uhc'
+    if (s.includes('carecomplete'))                                                        return 'humana'
+    // ── Standard carrier normalisation ────────────────────────────────────
     if (s.includes('cigna') || s.includes('healthspring') || s.includes('health spring')) return 'cigna'
     if (s.includes('aetna') || s.includes('cvs aetna'))                                   return 'aetna'
     if (s.includes('humana'))                                                              return 'humana'

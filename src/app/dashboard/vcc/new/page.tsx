@@ -61,10 +61,13 @@ export default function VCCNewPage() {
 
   const bobId      = searchParams?.get('bob')        ?? ''
   const contactId  = searchParams?.get('contact_id') ?? ''
-  // is_chronic=1 is appended by the DSNP action button in book-member-table.
-  // Pre-checking the chronic flag here eliminates the need to manually tick it
-  // when coming from a C-SNP / DSNP member row.
+  // is_chronic=1 → pre-check the Chronic Condition Plan flag (from DSNP button)
   const isChronicParam = searchParams?.get('is_chronic') === '1'
+  // type=transition_notice → member is on a standard plan (non-chronic).
+  // Routes to the Insurance Transition Notice template instead of the
+  // Chronic Condition form. Passed by the VCC button in book-member-table
+  // for any non-DSNP member row.
+  const isTransitionNotice = searchParams?.get('type') === 'transition_notice'
 
   const [form, setForm] = useState<FormState>({
     carrier_id:     '',
@@ -129,16 +132,20 @@ export default function VCCNewPage() {
     startTransition(async () => {
       try {
         const result = await submitVCC({
-          ghl_contact_id: form.ghl_contact_id || form.bob_member_id || 'n/a',
-          carrier:        selectedCarrier?.carrier ?? form.carrier_id,
+          ghl_contact_id:   form.ghl_contact_id || form.bob_member_id || 'n/a',
+          carrier:          selectedCarrier?.carrier ?? form.carrier_id,
           form_template_id: form.carrier_id,
-          client_name:    form.client_name,
-          client_dob:     form.client_dob    || undefined,
-          medicare_id:    form.medicare_id   || undefined,
-          doctor_name:    form.doctor_name   || undefined,
-          doctor_fax:     form.doctor_fax    || undefined,
-          broker_npn:     form.broker_npn    || undefined,
-          send_fax:       form.send_fax,
+          // form_type routes the PDF engine to the correct template:
+          //   'transition_notice' → New Insurance Transition Notice (standard plans)
+          //   'vcc'               → Vendor Certification Continuation (chronic/DSNP)
+          form_type:        isTransitionNotice ? 'transition_notice' : 'vcc',
+          client_name:      form.client_name,
+          client_dob:       form.client_dob    || undefined,
+          medicare_id:      form.medicare_id   || undefined,
+          doctor_name:      form.doctor_name   || undefined,
+          doctor_fax:       form.doctor_fax    || undefined,
+          broker_npn:       form.broker_npn    || undefined,
+          send_fax:         form.send_fax,
         })
         toast({
           title: 'VCC Form submitted',
@@ -162,7 +169,9 @@ export default function VCCNewPage() {
         </Button>
         <div className="flex items-center gap-2 text-muted-foreground">
           <FileText className="w-4 h-4" />
-          <span className="text-[11px] font-black uppercase tracking-widest">New VCC Submission</span>
+          <span className="text-[11px] font-black uppercase tracking-widest">
+            {isTransitionNotice ? 'Insurance Transition Notice' : 'New VCC Submission'}
+          </span>
         </div>
         {prefilled && (
           <Badge className="ml-auto text-[8px] font-black bg-emerald-500/10 text-emerald-400 border-emerald-500/20 border">
@@ -255,28 +264,47 @@ export default function VCCNewPage() {
                   <User2 className="w-5 h-5 text-primary" /> Client Information
                 </h2>
                 <p className="text-[10px] text-muted-foreground font-bold uppercase tracking-widest mt-0.5">
-                  Beneficiary details for the VCC form
+                  {isTransitionNotice
+                    ? 'Beneficiary details for the Insurance Transition Notice'
+                    : 'Beneficiary details for the VCC form'}
                 </p>
               </div>
 
-              {/* Chronic plan flag */}
-              <div className={`p-3 rounded-xl border cursor-pointer transition-all ${
-                form.is_chronic ? 'border-amber-500/40 bg-amber-500/10' : 'border-border hover:border-amber-500/30'
-              }`}
-                onClick={() => setForm(f => ({ ...f, is_chronic: !f.is_chronic }))}
-              >
-                <div className="flex items-center gap-3">
-                  <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
-                    form.is_chronic ? 'border-amber-500 bg-amber-500' : 'border-slate-600'
-                  }`}>
-                    {form.is_chronic && <CheckCircle2 className="w-3 h-3 text-white" />}
+              {/* Template context chip — shows which template path is active */}
+              {isTransitionNotice ? (
+                <div className="p-3 rounded-xl border border-blue-500/30 bg-blue-500/5 flex items-center gap-3">
+                  <div className="w-4 h-4 rounded border-2 border-blue-500 bg-blue-500 flex items-center justify-center">
+                    <CheckCircle2 className="w-3 h-3 text-white" />
                   </div>
                   <div>
-                    <p className="text-[11px] font-black uppercase tracking-widest text-amber-400">Chronic Condition Plan (C-SNP)</p>
-                    <p className="text-[9px] text-muted-foreground mt-0.5">Check if this is a Chronic Special Needs Plan — requires additional forms</p>
+                    <p className="text-[11px] font-black uppercase tracking-widest text-blue-400">
+                      Insurance Transition Notice
+                    </p>
+                    <p className="text-[9px] text-muted-foreground mt-0.5">
+                      Standard plan — notifying physician of insurance change
+                    </p>
                   </div>
                 </div>
-              </div>
+              ) : (
+                /* Chronic plan toggle — visible for standard VCC path only */
+                <div className={`p-3 rounded-xl border cursor-pointer transition-all ${
+                  form.is_chronic ? 'border-amber-500/40 bg-amber-500/10' : 'border-border hover:border-amber-500/30'
+                }`}
+                  onClick={() => setForm(f => ({ ...f, is_chronic: !f.is_chronic }))}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`w-4 h-4 rounded border-2 flex items-center justify-center transition-colors ${
+                      form.is_chronic ? 'border-amber-500 bg-amber-500' : 'border-slate-600'
+                    }`}>
+                      {form.is_chronic && <CheckCircle2 className="w-3 h-3 text-white" />}
+                    </div>
+                    <div>
+                      <p className="text-[11px] font-black uppercase tracking-widest text-amber-400">Chronic Condition Plan (C-SNP)</p>
+                      <p className="text-[9px] text-muted-foreground mt-0.5">Check if this is a Chronic Special Needs Plan — requires additional forms</p>
+                    </div>
+                  </div>
+                </div>
+              )}
 
               <div className="space-y-3">
                 <div className="space-y-1.5">

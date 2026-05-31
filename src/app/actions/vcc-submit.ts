@@ -7,16 +7,23 @@ import { sendFax } from '@/lib/vcc/fax-dispatcher'
 import { revalidatePath } from 'next/cache'
 
 export interface VCCSubmitInput {
-  ghl_contact_id: string
-  carrier: string
+  ghl_contact_id:   string
+  carrier:          string
   form_template_id: string
-  client_name: string
-  client_dob?: string
-  medicare_id?: string
-  doctor_name?: string
-  doctor_fax?: string
-  broker_npn?: string
-  send_fax: boolean
+  client_name:      string
+  client_dob?:      string
+  medicare_id?:     string
+  doctor_name?:     string
+  doctor_fax?:      string
+  broker_npn?:      string
+  send_fax:         boolean
+  /**
+   * Routes the PDF engine to the correct form template:
+   *   'vcc'                → Vendor Certification Continuation (chronic / DSNP plans)
+   *   'transition_notice'  → New Insurance Transition Notice (standard plans)
+   * Defaults to 'vcc' when omitted for backwards compatibility.
+   */
+  form_type?: 'vcc' | 'transition_notice'
 }
 
 export async function getVCCCarriers() {
