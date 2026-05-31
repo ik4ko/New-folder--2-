@@ -25,7 +25,7 @@ type NavItem = { href: string; icon: React.ElementType; label: string; desc: str
 // ── Route definitions ─────────────────────────────────────────────────────────
 
 /**
- * AGENCY OWNER full nav — multi-seat plan ($497/mo)
+ * AGENCY OWNER full nav — multi-seat plan ($749/mo)
  * Includes Dashboard overview, VCC Forms, and Campaigns.
  */
 const AGENCY_CORE_NAV: NavItem[] = [

@@ -22,7 +22,7 @@ const BROKER_FEATURES = [
 
 const AGENCY_FEATURES = [
   '5 seats included (owner + managers + CS + brokers)',
-  'Additional brokers: +$30/seat/month',
+  'Additional brokers: +$49/seat/month',
   'Everything in Broker tier',
   'Team management with role permissions',
   'Manager visibility dashboard',
@@ -95,7 +95,7 @@ export default function PricingPage() {
             </div>
 
             <div className="flex items-baseline gap-1 mb-2">
-              <span className="text-5xl font-black">$79</span>
+              <span className="text-5xl font-black">$149</span>
               <span className="text-white/40 font-black text-xs uppercase tracking-widest">/month</span>
             </div>
             <p className="text-white/40 text-[11px] font-medium mb-8">
@@ -143,7 +143,7 @@ export default function PricingPage() {
             </div>
 
             <div className="flex items-baseline gap-1 mb-2">
-              <span className="text-5xl font-black">$497</span>
+              <span className="text-5xl font-black">$749</span>
               <span className="text-white/40 font-black text-xs uppercase tracking-widest">/month</span>
             </div>
             <p className="text-white/40 text-[11px] font-medium mb-8">
@@ -174,7 +174,7 @@ export default function PricingPage() {
           <Plus className="w-4 h-4 text-primary shrink-0 mt-0.5" />
           <p className="text-[12px] font-medium text-white/60">
             <span className="text-white font-bold">Need more brokers?</span> Add broker seats at{' '}
-            <span className="text-white font-bold">$30/month each.</span>{' '}
+            <span className="text-white font-bold">$49/month each.</span>{' '}
             Contact us at{' '}
             <a href="mailto:growth@aegissage.com" className="text-primary underline underline-offset-2">
               growth@aegissage.com
