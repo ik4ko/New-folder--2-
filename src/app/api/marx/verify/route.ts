@@ -62,9 +62,10 @@ export async function POST(req: NextRequest) {
   }
   console.log('[MARx] broker:', broker.id, '| notif email:', notificationEmail ? 'set' : 'MISSING')
 
-  // ── Member lookup ────────────────────────────────────────────────────────────
+  // ── Member lookup ─────────────────────────────────────────────────────────────
+  // broker_id is included so we can enforce ownership BEFORE processing.
   const BOB_SELECT = [
-    'id', 'agency_id', 'full_name', 'mbi',
+    'id', 'agency_id', 'broker_id', 'full_name', 'mbi',
     'plan_id', 'plan_name', 'plan_contract', 'plan_pbp', 'plan_type',
     'carrier', 'last_known_plan_code', 'verification_status',
     'original_carrier_name', 'original_contract_id', 'original_pbp',
@@ -100,7 +101,37 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Member not found' }, { status: 404 })
   }
 
-  console.log('[MARx] member found:', member.full_name, '| id:', member.id)
+  // ── Broker ownership gate ─────────────────────────────────────────────────────
+  // Business rule: MARx lookups may ONLY be executed by the broker assigned to the
+  // member record. Agency owners and managers are explicitly blocked from running
+  // MARx on members outside their own broker_id scope — regardless of role.
+  //
+  // A null broker_id on the member row means it was imported without broker
+  // assignment (e.g. via a roster upload before any broker was linked).
+  // We allow the lookup only if the broker owns the agency that owns the record,
+  // otherwise we apply the same strict 403.
+  if (member.broker_id && member.broker_id !== broker.id) {
+    console.warn(
+      '[MARx] UNAUTHORIZED_MARX_SCOPE — broker', broker.id,
+      'attempted verify on member owned by broker', member.broker_id,
+    )
+    return NextResponse.json(
+      { error: 'UNAUTHORIZED_MARX_SCOPE', message: 'MARx lookups are restricted to the assigned broker for this member.' },
+      { status: 403 }
+    )
+  }
+
+  // Secondary ownership check: even if broker_id is null on the member,
+  // the member must belong to the same agency as the requesting broker.
+  if (member.agency_id && member.agency_id !== broker.agency_id) {
+    console.warn('[MARx] cross-agency access attempt — broker agency:', broker.agency_id, '| member agency:', member.agency_id)
+    return NextResponse.json(
+      { error: 'UNAUTHORIZED_MARX_SCOPE', message: 'Cross-agency MARx access is not permitted.' },
+      { status: 403 }
+    )
+  }
+
+  console.log('[MARx] ownership verified — broker:', broker.id, '| member:', member.id)
 
   // ── Plan code helpers ────────────────────────────────────────────────────────
   const isValidPlanCode = (code: string | null | undefined): boolean =>
