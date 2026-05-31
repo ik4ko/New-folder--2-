@@ -15,7 +15,7 @@ import {
   Users, FileCheck,
   CheckCircle2, XCircle, Clock, Bell, KeyRound, AlertTriangle,
   Trash2, Download, Activity, X, Copy, Check as CheckIcon,
-  ChevronLeft, ChevronRight,
+  ChevronLeft, ChevronRight, Stethoscope,
 } from 'lucide-react'
 
 interface MemberRow {
@@ -41,6 +41,13 @@ interface MemberRow {
   last_marx_check: string | null
   future_plan_name: string | null
   future_effective_date: string | null
+  /** True when the member is enrolled in a Chronic Special Needs Plan (C-SNP / DSNP).
+   *  Triggers the inline VCC Doctor Fax action button (Pillar 2 entry point). */
+  is_chronic: boolean | null
+  /** Physician name stored from GHL sync or manual entry — pre-fills VCC form */
+  doctor_name: string | null
+  /** Physician fax number — pre-fills VCC fax dispatch */
+  doctor_fax: string | null
 }
 
 interface Props {
@@ -456,7 +463,7 @@ export function BookMemberTable({ members }: Props) {
                         {fmtDate(member.last_verified_at)}
                       </TableCell>
                       <TableCell className="px-4">
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1.5 flex-wrap">
                           {needsAction && (
                             <Button asChild variant="ghost" size="sm"
                               className="h-6 px-2 rounded-lg text-[9px] font-black uppercase tracking-widest text-red-400 hover:text-white hover:bg-red-500/20">
@@ -470,6 +477,26 @@ export function BookMemberTable({ members }: Props) {
                               className="h-6 px-2 rounded-lg text-[9px] font-black uppercase tracking-widest text-slate-400 hover:text-white hover:bg-slate-700">
                               <Link href={`/dashboard/vcc/new?bob=${member.id}`}>
                                 <FileCheck className="w-3 h-3 mr-1" />VCC
+                              </Link>
+                            </Button>
+                          )}
+                          {/* ── Pillar 2: Chronic SNP / DSNP VCC Doctor Fax ──────────────
+                               Surfaces only when is_chronic = true. Clicking opens the
+                               VCC new-form pre-tagged with is_chronic=1 and the member ID
+                               so the physician name + fax fields are pre-populated from
+                               doctor_name / doctor_fax stored in book_of_business. */}
+                          {member.is_chronic && !isTermed && (
+                            <Button asChild variant="ghost" size="sm"
+                              className="h-6 px-2 rounded-lg text-[9px] font-black uppercase tracking-widest text-violet-400 hover:text-white hover:bg-violet-500/20 gap-0.5"
+                              title={
+                                member.doctor_name
+                                  ? `DSNP VCC — Dr. ${member.doctor_name}${member.doctor_fax ? ` · Fax: ${member.doctor_fax}` : ''}`
+                                  : 'DSNP VCC — add physician fax to dispatch'
+                              }
+                            >
+                              <Link href={`/dashboard/vcc/new?bob=${member.id}&is_chronic=1`}>
+                                <Stethoscope className="w-3 h-3 mr-1" />
+                                DSNP
                               </Link>
                             </Button>
                           )}

@@ -59,8 +59,12 @@ export default function VCCNewPage() {
   const [prefilled, setPrefilled]   = useState(false)
   const [errors, setErrors]     = useState<Partial<Record<keyof FormState, string>>>({})
 
-  const bobId     = searchParams?.get('bob')     ?? ''
-  const contactId = searchParams?.get('contact_id') ?? ''
+  const bobId      = searchParams?.get('bob')        ?? ''
+  const contactId  = searchParams?.get('contact_id') ?? ''
+  // is_chronic=1 is appended by the DSNP action button in book-member-table.
+  // Pre-checking the chronic flag here eliminates the need to manually tick it
+  // when coming from a C-SNP / DSNP member row.
+  const isChronicParam = searchParams?.get('is_chronic') === '1'
 
   const [form, setForm] = useState<FormState>({
     carrier_id:     '',
@@ -73,7 +77,7 @@ export default function VCCNewPage() {
     bob_member_id:  bobId,
     ghl_contact_id: contactId,
     send_fax:       true,
-    is_chronic:     false,
+    is_chronic:     isChronicParam,
   })
 
   // ── Load carriers ────────────────────────────────────────────────────────────

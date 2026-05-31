@@ -34,7 +34,7 @@ export default async function BookPage() {
   const [{ data: members }, { data: carrierLogins }, { count: openAlertsCount }] = await Promise.all([
     supabaseAdmin
       .from('book_of_business')
-      .select('id, mbi, carrier, carrier_display_name, original_carrier_name, member_id, full_name, plan_name, detected_plan_name, detected_carrier_name, status, verification_status, last_verified_at, first_seen_at, enrollment_status, has_mbi, last_marx_check, future_plan_name, future_effective_date')
+      .select('id, mbi, carrier, carrier_display_name, original_carrier_name, member_id, full_name, plan_name, detected_plan_name, detected_carrier_name, status, verification_status, last_verified_at, first_seen_at, enrollment_status, has_mbi, last_marx_check, future_plan_name, future_effective_date, is_chronic, doctor_name, doctor_fax')
       .eq('agency_id', agencyId)
       .order('full_name', { ascending: true, nullsFirst: false })
       .limit(500),
@@ -162,7 +162,7 @@ export default async function BookPage() {
             </div>
             <Button asChild size="sm"
               className="rounded-xl font-black uppercase text-[9px] tracking-widest bg-red-500 hover:bg-red-600 text-white shrink-0">
-              <Link href="/dashboard/churn">View Alerts</Link>
+              <Link href="/dashboard/alerts">View Alerts</Link>
             </Button>
           </div>
         )}

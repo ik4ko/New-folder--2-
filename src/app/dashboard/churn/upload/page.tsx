@@ -767,8 +767,10 @@ export default function ChurnUploadPage() {
                 </div>
                 <Button asChild variant="outline" size="sm"
                   className="shrink-0 rounded-xl font-black uppercase text-[9px] tracking-widest h-8 gap-1.5">
+                  {/* Full navigation (not client-side) ensures the server component
+                      re-fetches from DB — newly imported records visible immediately */}
                   <a href="/dashboard/book">
-                    View Book
+                    View Book of Business
                     <ExternalLink className="w-3 h-3" />
                   </a>
                 </Button>
