@@ -78,8 +78,15 @@ const GHL_FIELD_MAP: Record<string, string> = {
 }
 
 function extractGhlFields(contact: Record<string, unknown>): Record<string, string> {
-  const customFields = (contact.customFields ?? contact.custom_fields ?? []) as
-    Array<{ key?: string; id?: string; field_key?: string; value?: unknown }>
+  // GHL API returns customFields as an array in the standard case, but can
+  // return null, an empty object {}, or omit the key entirely on malformed
+  // or partially-provisioned sub-accounts. The `as Array<...>` cast is not a
+  // runtime check — guard explicitly so a bad payload never throws in the loop.
+  const raw = contact.customFields ?? contact.custom_fields
+  const customFields = Array.isArray(raw)
+    ? (raw as Array<{ key?: string; id?: string; field_key?: string; value?: unknown }>)
+    : []
+
   const extracted: Record<string, string> = {}
   for (const field of customFields) {
     const rawKey = field.field_key ?? field.key ?? field.id ?? ''
@@ -214,10 +221,18 @@ function mapContacts(
       String(contact.lastName ?? ''),
     ].filter(Boolean).join(' ') || String(contact.name ?? '') || null
 
+    // GHL guarantees `id` on well-formed contacts, but malformed payloads can
+    // omit it. String(undefined) produces the literal "undefined" which passes
+    // the truthy filter below and collides on the unique constraint — skip
+    // any contact without a valid non-empty string ID instead.
+    const contactId = contact.id != null && String(contact.id).trim()
+      ? String(contact.id).trim()
+      : null
+
     return {
       agency_id:           agencyId,
       broker_id:           brokerId,
-      ghl_contact_id:      String(contact.id),
+      ghl_contact_id:      contactId,
       full_name:           fullName,
       email:               contact.email ? String(contact.email) : null,
       phone:               contact.phone ? String(contact.phone) : null,

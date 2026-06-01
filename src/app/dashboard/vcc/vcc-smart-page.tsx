@@ -187,7 +187,11 @@ export function VCCSmartPage({ submissions: initialSubmissions, isPrincipal, bro
           const deadline = new Date()
           deadline.setDate(deadline.getDate() + 60)
 
-          await supabase.from('vcc_submissions').insert({
+          // Destructure the error — Supabase client never throws, it returns
+          // errors in the result object. Without this check a failed insert
+          // (e.g. RLS rejection or constraint violation) would silently fire
+          // the success toast and leave the user with a phantom confirmation.
+          const { error: insertErr } = await supabase.from('vcc_submissions').insert({
             agency_id: broker.agency_id,
             ghl_contact_id: selectedContact.ghl_contact_id,
             broker_id: broker.id,
@@ -203,6 +207,7 @@ export function VCCSmartPage({ submissions: initialSubmissions, isPrincipal, bro
             send_scheduled_at: new Date(scheduleDate).toISOString(),
             plan_effective_date: planEffectiveDate || null,
           })
+          if (insertErr) throw new Error(insertErr.message)
 
           toast({ title: 'VCC scheduled', description: `Will fax on ${new Date(scheduleDate).toLocaleDateString()}` })
         } else {
