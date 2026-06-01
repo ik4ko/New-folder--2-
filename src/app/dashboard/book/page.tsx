@@ -45,17 +45,26 @@ export default async function BookPage() {
     membersQuery = membersQuery.eq('broker_id', brokerRow.id) as typeof membersQuery
   }
 
+  // Scope the open-alert count to the broker's own alerts when not staff.
+  // Without this, another broker's open alerts suppress the broker's own
+  // "Baseline established" confirmation even when their own book is clean.
+  let alertsCountQuery = supabaseAdmin
+    .from('switch_alerts')
+    .select('id', { count: 'exact', head: true })
+    .eq('agency_id', agencyId)
+    .eq('status', 'open')
+
+  if (!isStaff && brokerRow?.id) {
+    alertsCountQuery = alertsCountQuery.eq('broker_id', brokerRow.id) as typeof alertsCountQuery
+  }
+
   const [{ data: members }, { data: carrierLogins }, { count: openAlertsCount }] = await Promise.all([
     membersQuery,
     supabaseAdmin
       .from('carrier_logins')
       .select('carrier, status, last_checked_at')
       .eq('agency_id', agencyId),
-    supabaseAdmin
-      .from('switch_alerts')
-      .select('id', { count: 'exact', head: true })
-      .eq('agency_id', agencyId)
-      .eq('status', 'open'),
+    alertsCountQuery,
   ])
 
   const memberList    = members ?? []

@@ -34,18 +34,6 @@ import { ClientDirectory, type DirectoryMember } from './client-directory'
 
 const BROKER_TIERS = ['broker', 'solo', 'starter']
 
-type FaxStatus = 'pending' | 'sent' | 'failed' | 'signed' | 'expired' | 'no_fax' | 'scheduled'
-
-const FAX_STATUS_CFG: Record<FaxStatus, { label: string; cls: string; icon: React.ElementType }> = {
-  pending:   { label: 'Pending',   cls: 'bg-gray-500/10 text-gray-500 border-gray-500/20',         icon: Clock },
-  scheduled: { label: 'Scheduled', cls: 'bg-violet-500/10 text-violet-500 border-violet-500/20',   icon: Clock },
-  sent:      { label: 'Faxed',     cls: 'bg-blue-500/10 text-blue-600 border-blue-500/20',          icon: Send },
-  signed:    { label: 'Signed',    cls: 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20', icon: CheckCircle2 },
-  failed:    { label: 'Failed',    cls: 'bg-red-500/10 text-red-600 border-red-500/20',             icon: XCircle },
-  expired:   { label: 'Expired',   cls: 'bg-red-500/10 text-red-600 border-red-500/20',             icon: XCircle },
-  no_fax:    { label: 'No Fax',    cls: 'bg-yellow-500/10 text-yellow-700 border-yellow-500/20',    icon: AlertTriangle },
-}
-
 function fmt(d: string | null | undefined) {
   if (!d) return '--'
   return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: '2-digit' })
@@ -200,11 +188,13 @@ export default async function AdminDirectoryPage({
       .eq('agency_id', agencyId),
   ])
 
-  const rawMembers    = membersRes.data    ?? []
-  const allBrokers    = brokersRes.data    ?? []
-  const rawSubmissions = submissionsRes.data ?? []
-  const activeCampaigns = (campaignCountRes as { count: number | null }).count ?? 0
-  const aepEnrolled     = (aepCountRes     as { count: number | null }).count ?? 0
+  const rawMembers      = membersRes.data     ?? []
+  const allBrokers      = brokersRes.data     ?? []
+  const rawSubmissions  = submissionsRes.data ?? []
+  // Supabase { count: 'exact', head: true } responses expose .count directly;
+  // no cast needed — using the result as-is preserves type safety.
+  const activeCampaigns = campaignCountRes.count ?? 0
+  const aepEnrolled     = aepCountRes.count     ?? 0
 
   // ── Build broker name map for directory join ───────────────────────────────
   const brokerNameMap = new Map(
