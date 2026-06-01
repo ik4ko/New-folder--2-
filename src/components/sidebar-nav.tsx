@@ -56,13 +56,15 @@ const STAFF_MGMT_NAV: NavItem[] = [
 
 /**
  * SOLO BROKER nav — stripped to the three features they pay for.
- * No Dashboard overview (no agency-wide stats), no VCC, no Campaigns,
- * no Team management, no Agency View.
+ * No Dashboard overview (no agency-wide stats), no Team management, no Agency View.
+ * VCC Forms and Campaigns are available to all authenticated roles.
  */
 const BROKER_CORE_NAV: NavItem[] = [
-  { href: '/dashboard/book',         icon: Users,  label: 'My Clients',    desc: 'Your monitored book' },
-  { href: '/dashboard/alerts',       icon: Bell,   label: 'Active Alerts', desc: 'Switch & plan change alerts' },
-  { href: '/dashboard/churn/upload', icon: Radar,  label: 'Import Data',   desc: 'CSV, Sheets, or GHL import' },
+  { href: '/dashboard/book',         icon: Users,      label: 'My Clients',    desc: 'Your monitored book' },
+  { href: '/dashboard/alerts',       icon: Bell,       label: 'Active Alerts', desc: 'Switch & plan change alerts' },
+  { href: '/dashboard/churn/upload', icon: Radar,      label: 'Import Data',   desc: 'CSV, Sheets, or GHL import' },
+  { href: '/dashboard/vcc',          icon: FileCheck,  label: 'VCC Forms',     desc: 'Doctor-signed carrier forms' },
+  { href: '/dashboard/campaigns',    icon: Megaphone,  label: 'Campaigns',     desc: 'Maya AI outreach campaigns' },
 ]
 
 const FOOTER_NAV: NavItem[] = [

@@ -136,7 +136,8 @@
       "Bash(cd \"/mnt/c/Developer/New folder \\(2\\)\" && pwd && ls -la)",
       "Read(//mnt/c/Developer/**)",
       "Bash(find /mnt/c -maxdepth 3 -type d -name \"*New folder*\" 2>/dev/null | head -5)",
-      "Read(//mnt/**)"
+      "Read(//mnt/**)",
+      "Bash(xargs grep -l \"current_period_end\")"
     ]
   },
   "enabledMcpjsonServers": [
