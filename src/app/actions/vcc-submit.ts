@@ -175,11 +175,23 @@ export async function getMemberForVCC(memberId: string) {
 
 export async function markVCCSigned(submissionId: string) {
   const supabase = await createClient()
-  const supabaseAdmin = createServiceClient()
 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Unauthorized')
 
+  // Use the auth client to verify the caller has RLS access to this submission.
+  // This enforces both tenant isolation (wrong agency → null) and, once the
+  // broker-isolated RLS policy is applied, cross-broker isolation (wrong broker
+  // within the same agency → null). Service-role writes never happen without
+  // this gate passing first.
+  const { data: accessCheck } = await supabase
+    .from('vcc_submissions')
+    .select('id')
+    .eq('id', submissionId)
+    .maybeSingle()
+  if (!accessCheck) throw new Error('Submission not found or access denied')
+
+  const supabaseAdmin = createServiceClient()
   await supabaseAdmin
     .from('vcc_submissions')
     .update({ fax_status: 'signed', signed_at: new Date().toISOString() })
@@ -191,11 +203,19 @@ export async function markVCCSigned(submissionId: string) {
 
 export async function resendVCCFax(submissionId: string) {
   const supabase = await createClient()
-  const supabaseAdmin = createServiceClient()
 
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) throw new Error('Unauthorized')
 
+  // Gate: auth-client check enforces RLS before any service-role operations.
+  const { data: accessCheck } = await supabase
+    .from('vcc_submissions')
+    .select('id')
+    .eq('id', submissionId)
+    .maybeSingle()
+  if (!accessCheck) throw new Error('Submission not found or access denied')
+
+  const supabaseAdmin = createServiceClient()
   const { data: submission } = await supabaseAdmin
     .from('vcc_submissions')
     .select('*, vcc_form_templates(*)')

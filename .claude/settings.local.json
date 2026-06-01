@@ -137,7 +137,8 @@
       "Read(//mnt/c/Developer/**)",
       "Bash(find /mnt/c -maxdepth 3 -type d -name \"*New folder*\" 2>/dev/null | head -5)",
       "Read(//mnt/**)",
-      "Bash(xargs grep -l \"current_period_end\")"
+      "Bash(xargs grep -l \"current_period_end\")",
+      "Bash(Get-ChildItem -Path \"c:\\\\Developer\\\\New folder \\(2\\)\\\\src\\\\app\\\\api\\\\ghl\\\\\" -File -Recurse | Select-Object FullName)"
     ]
   },
   "enabledMcpjsonServers": [

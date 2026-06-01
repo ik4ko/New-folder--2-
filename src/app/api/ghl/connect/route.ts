@@ -69,18 +69,21 @@ export async function GET(req: NextRequest) {
     )
   }
 
-  // Resolve the logged-in user — needed to embed userId in state
+  // Resolve the logged-in user — needed to embed userId in state.
+  // getUser() validates the JWT server-side with Supabase Auth.
+  // getSession() only reads the cookie without server verification and is
+  // vulnerable to replayed or tampered tokens — consistent with all other routes.
   const supabase = await createClient()
-  const { data: { session } } = await supabase.auth.getSession()
-  if (!session) {
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
     return NextResponse.redirect(new URL('/login', req.url))
   }
 
-  const state = createGhlState(session.user.id)
+  const state = createGhlState(user.id)
 
   console.log('[ghl/connect] initiating OAuth', {
     redirectUri,
-    userId: session.user.id.slice(0, 8) + '…',
+    userId: user.id.slice(0, 8) + '…',
   })
 
   const authUrl = new URL('https://marketplace.gohighlevel.com/oauth/chooselocation')
