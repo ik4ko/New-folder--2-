@@ -3,23 +3,68 @@
 import { usePathname, useRouter } from "next/navigation"
 import { useIsMobile } from "@/hooks/use-mobile"
 import { Button } from "./ui/button"
-import { Menu, Users } from "lucide-react"
+import { Menu, Users, PauseCircle } from "lucide-react"
 import { useAppStore } from "@/lib/store"
 import { Sheet, SheetContent, SheetTitle } from "./ui/sheet"
 import { CollectionSidebar } from "./collection-sidebar"
 import { Logo } from "./logo"
 import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
+import Link from "next/link"
 
 const PROTECTED_PREFIXES = [
   '/dashboard', '/settings', '/vault', '/members',
   '/clients', '/ai', '/accounting', '/check-ins', '/ghl',
 ]
 
+// ── Account-paused overlay ────────────────────────────────────────────────────
+// Rendered in place of all /dashboard/* content when subscription_status = 'paused'.
+// Settings routes remain accessible so the owner can reach /settings/billing.
+function AccountPausedOverlay() {
+  return (
+    <div className="flex-1 flex items-center justify-center bg-background p-8">
+      <div className="max-w-md w-full space-y-6 text-center">
+        <div className="w-16 h-16 rounded-3xl bg-amber-500/10 flex items-center justify-center mx-auto">
+          <PauseCircle className="w-8 h-8 text-amber-400" />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-lg font-black uppercase tracking-widest text-white">
+            Account Paused
+          </h2>
+          <p className="text-[11px] font-medium text-slate-400 leading-relaxed">
+            Your subscription is currently paused. All data is fully retained
+            but broker access is suspended until billing is resumed.
+          </p>
+        </div>
+        <div className="rounded-2xl bg-amber-500/5 border border-amber-500/20 px-5 py-4 text-left space-y-1">
+          <p className="text-[10px] font-black uppercase tracking-widest text-amber-400">
+            To resume access
+          </p>
+          <p className="text-[10px] font-medium text-slate-500">
+            Contact{' '}
+            <a href="mailto:support@aegissage.com" className="text-amber-400 hover:text-amber-300 font-bold">
+              support@aegissage.com
+            </a>
+            {' '}to reactivate your subscription.
+          </p>
+        </div>
+        <Link
+          href="/settings/billing"
+          className="inline-block text-[10px] font-black uppercase tracking-widest text-slate-500 hover:text-slate-300 transition-colors"
+        >
+          View Billing Settings →
+        </Link>
+      </div>
+    </div>
+  )
+}
+
 export function AppShell({ children, sidebar }: { children: React.ReactNode; sidebar?: React.ReactNode }) {
-  const pathname = usePathname() ?? ''
-  const router = useRouter()
-  const [isCheckingAuth, setIsCheckingAuth] = useState(true)
+  const pathname  = usePathname() ?? ''
+  const router    = useRouter()
+  const [isCheckingAuth,  setIsCheckingAuth]  = useState(true)
+  // null = not yet resolved; string = resolved status
+  const [accountStatus, setAccountStatus] = useState<string | null>(null)
 
   const isProtectedRoute = PROTECTED_PREFIXES.some(p => pathname.startsWith(p))
   const isExcluded = !isProtectedRoute
@@ -47,23 +92,57 @@ export function AppShell({ children, sidebar }: { children: React.ReactNode; sid
         return
       }
 
-      // Load agency profile for Zustand store
+      // ── Owner path: full agency row for Zustand store ─────────────────────
+      // maybeSingle() is safe for non-owners (returns null, no error).
       const { data: agency } = await supabase
         .from('agencies')
         .select('*')
         .eq('owner_id', user.id)
-        .single()
+        .maybeSingle()
+
+      let resolvedStatus: string | null = agency?.subscription_status ?? null
 
       if (agency && mounted) {
-        updateAgencyProfile(agency as any)
+        updateAgencyProfile(agency as Parameters<typeof updateAgencyProfile>[0])
       }
 
-      if (mounted) setIsCheckingAuth(false)
+      // ── Broker path: resolve parent agency status for non-owners ──────────
+      // Sub-brokers don't own an agency row. We look up their broker record
+      // to find their parent agency, then check that agency's status.
+      // This ensures deleted/paused states block broker sessions too.
+      if (!agency) {
+        const { data: brokerRow } = await supabase
+          .from('brokers')
+          .select('agency_id')
+          .eq('user_id', user.id)
+          .maybeSingle()
+
+        if (brokerRow?.agency_id) {
+          const { data: parentAgency } = await supabase
+            .from('agencies')
+            .select('subscription_status')
+            .eq('id', brokerRow.agency_id)
+            .maybeSingle()
+          resolvedStatus = parentAgency?.subscription_status ?? null
+        }
+      }
+
+      if (!mounted) return
+
+      // ── Lifecycle gate ────────────────────────────────────────────────────
+      // deleted → redirect to /account-deleted (sign-out happens on that page)
+      if (resolvedStatus === 'deleted') {
+        router.replace('/account-deleted')
+        return
+      }
+
+      setAccountStatus(resolvedStatus)
+      setIsCheckingAuth(false)
     }
 
     loadUser()
 
-    // Keep session state in sync -- redirect on sign-out
+    // Keep session state in sync — redirect on sign-out
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
       if (event === 'SIGNED_OUT') {
         router.push('/login')
@@ -134,7 +213,12 @@ export function AppShell({ children, sidebar }: { children: React.ReactNode; sid
       )}
 
       <main className="flex-1 flex overflow-hidden relative">
-        {children}
+        {/* Paused overlay — covers /dashboard/* only; /settings/* stays accessible */}
+        {accountStatus === 'paused' && pathname.startsWith('/dashboard') ? (
+          <AccountPausedOverlay />
+        ) : (
+          children
+        )}
       </main>
     </div>
   )
