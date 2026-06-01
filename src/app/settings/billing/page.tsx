@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 import Link from 'next/link'
 import { getCancelUrl } from '@/app/actions/billing'
+import { BillingLifecyclePanel } from '@/components/settings/BillingLifecyclePanel'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -356,6 +357,19 @@ export default function BillingPage() {
             </CardContent>
           </Card>
 
+          {/* ── Subscription lifecycle controls ── */}
+          <div className="border-t border-border/50 pt-2">
+            <Card className="rounded-3xl border border-red-500/10 bg-red-500/[0.02] shadow-sm">
+              <CardContent className="p-7">
+                <BillingLifecyclePanel
+                  currentStatus={agency?.subscription_status ?? 'active'}
+                  currentPeriodEnd={agency?.current_period_end ?? null}
+                  agencyName={agency?.name ?? 'Your Agency'}
+                />
+              </CardContent>
+            </Card>
+          </div>
+
         </div>
       </div>
     )
@@ -485,6 +499,19 @@ export default function BillingPage() {
               </Button>
             </CardContent>
           </Card>
+
+          {/* ── Subscription lifecycle controls ── */}
+          <div className="border-t border-border/50 pt-2">
+            <Card className="rounded-3xl border border-red-500/10 bg-red-500/[0.02] shadow-sm">
+              <CardContent className="p-7">
+                <BillingLifecyclePanel
+                  currentStatus={agency?.subscription_status ?? 'active'}
+                  currentPeriodEnd={agency?.current_period_end ?? null}
+                  agencyName={agency?.name ?? 'Your Account'}
+                />
+              </CardContent>
+            </Card>
+          </div>
 
         </div>
       </div>
