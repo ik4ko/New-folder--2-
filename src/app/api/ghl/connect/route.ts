@@ -21,7 +21,13 @@ export function createGhlState(userId: string): string {
 }
 
 export async function GET(req: NextRequest) {
-  const clientId = process.env.GHL_CLIENT_ID
+  // ── Client ID guard ───────────────────────────────────────────────────────
+  // Accept GHL_CLIENT_ID or the NEXT_PUBLIC_ variant (used in some setups).
+  // Trim to catch " " whitespace-only values that pass !clientId but are
+  // invalid — GHL rejects those with "appId must be a valid app id".
+  const clientId = (
+    process.env.GHL_CLIENT_ID ?? process.env.NEXT_PUBLIC_GHL_CLIENT_ID ?? ''
+  ).trim()
 
   // ── Redirect URI resolution ───────────────────────────────────────────────
   // Rules:
@@ -61,8 +67,12 @@ export async function GET(req: NextRequest) {
   if (!clientId) {
     return NextResponse.json(
       {
-        error: 'GHL OAuth not configured',
-        hint:  'Set GHL_CLIENT_ID in Vercel environment variables',
+        error: 'GHL_CLIENT_ID is not configured — GHL OAuth cannot proceed.',
+        hint:  [
+          'Set GHL_CLIENT_ID in Vercel Environment Variables (Settings → Environment Variables).',
+          'The variable must be named GHL_CLIENT_ID, not GHL_APP_ID or NEXT_PUBLIC_GHL_CLIENT_ID.',
+          'After adding the variable, redeploy the project for it to take effect.',
+        ].join(' '),
         redirect_uri_in_use: redirectUri,
       },
       { status: 503 }
@@ -81,17 +91,21 @@ export async function GET(req: NextRequest) {
 
   const state = createGhlState(user.id)
 
-  console.log('[ghl/connect] initiating OAuth', {
-    redirectUri,
-    userId: user.id.slice(0, 8) + '…',
-  })
-
   const authUrl = new URL('https://marketplace.gohighlevel.com/oauth/chooselocation')
   authUrl.searchParams.set('response_type', 'code')
   authUrl.searchParams.set('client_id', clientId)
   authUrl.searchParams.set('redirect_uri', redirectUri)
   authUrl.searchParams.set('scope', 'contacts.readonly contacts.write locations.readonly')
   authUrl.searchParams.set('state', state)
+
+  // Log the full OAuth URL so the client_id param can be verified before the
+  // redirect fires. In production this appears in Vercel Function logs.
+  console.log('[ghl/connect] initiating OAuth', {
+    redirectUri,
+    userId:   user.id.slice(0, 8) + '…',
+    clientId: clientId.slice(0, 8) + '…',  // partial — never log full secret
+    oauthUrl: authUrl.toString(),
+  })
 
   const response = NextResponse.redirect(authUrl.toString())
 

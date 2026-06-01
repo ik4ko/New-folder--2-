@@ -208,12 +208,29 @@ export default function ChurnUploadPage() {
   const [marxOpened,    setMarxOpened]    = useState(false);
 
   // ── Check GHL connection ──────────────────────────────────────────────────
+  // Selects access_token AND expires_at so an expired-but-present token is
+  // treated as disconnected, showing the Connect button rather than the
+  // stale "Live" badge. RLS (credentials_owner_only) scopes to the caller's
+  // agency automatically, so no explicit agency_id filter is needed.
   useEffect(() => {
     supabase
       .from('agency_credentials')
-      .select('agency_id, access_token')
+      .select('access_token, expires_at, location_id')
       .maybeSingle()
-      .then(({ data }) => setGhlConnected(!!data?.access_token));
+      .then(({ data }) => {
+        const hasToken  = !!data?.access_token
+        const notExpired = data?.expires_at
+          ? new Date(data.expires_at) > new Date()
+          : false
+        const isLive = hasToken && notExpired
+        console.log('[ghl] credential check:', {
+          hasToken,
+          notExpired,
+          isLive,
+          locationId: data?.location_id ?? null,
+        })
+        setGhlConnected(isLive)
+      });
   }, []);
 
   // ── Handle OAuth callback return ──────────────────────────────────────────

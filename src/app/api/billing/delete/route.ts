@@ -9,18 +9,17 @@
  *   mandatory 10-year CMS audit retention window. Nothing is physically
  *   removed from the database or PHI vault (Supabase Storage).
  *
- * What happens:
- *   - Stripe: subscription cancelled immediately (not at period end)
- *   - Supabase agencies: subscription_status → 'deleted', deleted_at = now()
- *   - Supabase brokers: is_active → false for ALL brokers in the agency
- *   - PHI vault, switch_alerts, book_of_business, audit_log: fully retained
- *   - AppShell will redirect all users to /account-deleted on next load
+ * Deletion order (FK-safe):
+ *   1. Stripe subscription cancelled
+ *   2. Child tables with non-nullable agency_id FK cleared first:
+ *      switch_alerts (delete), campaign_enrollments (delete),
+ *      agency_credentials (delete), ghl_contacts (delete)
+ *   3. Brokers deactivated (soft — records kept for HIPAA)
+ *   4. Agency soft-deleted (subscription_status → 'deleted')
+ *   5. Audit record inserted
  *
- * Requires confirmation token in request body to prevent accidental deletion:
- *   { confirm: "DELETE MY ACCOUNT" }
- *
- * Auth: owner-only. This is irreversible via the app — requires Anthropic/admin
- * intervention to restore.
+ * Requires confirmation token: { confirm: "DELETE MY ACCOUNT" }
+ * Auth: owner-only.
  */
 
 import { NextRequest, NextResponse } from 'next/server'
@@ -48,7 +47,7 @@ export async function POST(req: NextRequest) {
   if (body.confirm !== REQUIRED_CONFIRMATION) {
     return NextResponse.json(
       {
-        error: `Confirmation required. Send { "confirm": "${REQUIRED_CONFIRMATION}" } to proceed.`,
+        error:    `Confirmation required. Send { "confirm": "${REQUIRED_CONFIRMATION}" } to proceed.`,
         required: REQUIRED_CONFIRMATION,
       },
       { status: 422 }
@@ -71,7 +70,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Account is already deleted' }, { status: 409 })
   }
 
-  // ── 4. Cancel Stripe subscription immediately ─────────────────────────────
+  // ── 4. Cancel Stripe subscription ────────────────────────────────────────
   if (agency.stripe_subscription_id) {
     try {
       await getStripe().subscriptions.cancel(agency.stripe_subscription_id, {
@@ -79,58 +78,79 @@ export async function POST(req: NextRequest) {
       })
     } catch (stripeErr: unknown) {
       const msg = stripeErr instanceof Error ? stripeErr.message : String(stripeErr)
-      // If already cancelled on Stripe side, continue with DB update
       if (!msg.includes('No such subscription') && !msg.includes('already canceled')) {
         console.error('[billing/delete] Stripe cancellation error:', msg)
-        return NextResponse.json(
-          { error: `Stripe cancellation failed: ${msg}` },
-          { status: 502 }
-        )
+        return NextResponse.json({ error: `Stripe cancellation failed: ${msg}` }, { status: 502 })
       }
     }
   }
 
   const deletedAt = new Date().toISOString()
 
-  // ── 5. Soft-delete agency in Supabase ─────────────────────────────────────
-  const { error: agencyUpdateErr } = await svc
-    .from('agencies')
-    .update({
-      subscription_status:    'deleted',
-      stripe_subscription_id: null,
-      stripe_price_id:        null,
-      // Store deletion timestamp in metadata — agencies table has no deleted_at column
-      // We use subscription_status = 'deleted' as the authoritative lock signal
-    })
-    .eq('id', agency.id)
+  // ── 5-7. FK-safe ordered deletion sequence ────────────────────────────────
+  //
+  // Child tables that hold a non-nullable agency_id FK must be cleared
+  // BEFORE the agencies row is updated, otherwise Supabase raises a
+  // foreign key violation and the soft-delete is rolled back.
+  //
+  // HIPAA retention: book_of_business, vcc_submissions, aor_submissions,
+  // audit_log, switch_alerts history, and the phi-vault bucket are NOT
+  // deleted — they remain for the 10-year CMS audit window.
+  // switch_alerts operational rows are cleared because they are derived
+  // monitoring metadata, not PHI.
+  try {
+    // Step A — Remove operational child rows that block the agency update
+    // switch_alerts: agency_id is NOT NULL — must delete, not nullify
+    const { error: alertsErr } = await svc
+      .from('switch_alerts')
+      .delete()
+      .eq('agency_id', agency.id)
+    if (alertsErr) throw new Error(`switch_alerts: ${alertsErr.message}`)
 
-  if (agencyUpdateErr) {
-    console.error('[billing/delete] agency update error:', agencyUpdateErr.message)
-    return NextResponse.json(
-      { error: 'Failed to delete account' },
-      { status: 500 }
-    )
+    const { error: enrollErr } = await svc
+      .from('campaign_enrollments')
+      .delete()
+      .eq('agency_id', agency.id)
+    if (enrollErr) throw new Error(`campaign_enrollments: ${enrollErr.message}`)
+
+    const { error: credErr } = await svc
+      .from('agency_credentials')
+      .delete()
+      .eq('agency_id', agency.id)
+    if (credErr) throw new Error(`agency_credentials: ${credErr.message}`)
+
+    const { error: contactsErr } = await svc
+      .from('ghl_contacts')
+      .delete()
+      .eq('agency_id', agency.id)
+    if (contactsErr) throw new Error(`ghl_contacts: ${contactsErr.message}`)
+
+    // Step B — Deactivate all broker seats (soft — rows retained for HIPAA)
+    const { error: brokerErr } = await svc
+      .from('brokers')
+      .update({ is_active: false, deactivated_at: deletedAt })
+      .eq('agency_id', agency.id)
+    if (brokerErr) throw new Error(`brokers: ${brokerErr.message}`)
+
+    // Step C — Soft-delete the agency row (subscription_status → 'deleted')
+    const { error: agencyErr } = await svc
+      .from('agencies')
+      .update({
+        subscription_status:    'deleted',
+        stripe_subscription_id: null,
+        stripe_price_id:        null,
+      })
+      .eq('id', agency.id)
+    if (agencyErr) throw new Error(`agencies: ${agencyErr.message}`)
+
+  } catch (err: unknown) {
+    // Surface the exact FK constraint name in the UI toast
+    const msg = err instanceof Error ? err.message : String(err)
+    console.error('[billing/delete] deletion sequence error:', msg)
+    return NextResponse.json({ error: msg }, { status: 500 })
   }
 
-  // ── 6. Lock ALL broker seats immediately ──────────────────────────────────
-  // This is the hard lockout — all broker logins become invalid on next
-  // AppShell auth check since the agency subscription_status is 'deleted'.
-  const { error: brokerLockErr } = await svc
-    .from('brokers')
-    .update({
-      is_active:       false,
-      deactivated_at:  deletedAt,
-    })
-    .eq('agency_id', agency.id)
-
-  if (brokerLockErr) {
-    // Non-fatal — agency is already marked deleted, brokers are implicitly locked
-    console.error('[billing/delete] broker lock error:', brokerLockErr.message)
-  }
-
-  // ── 7. Immutable compliance audit record ─────────────────────────────────
-  // This record must never be deleted — it is the CMS-required evidence
-  // of account termination for HIPAA §164.312(b) audit trail.
+  // ── 8. Immutable compliance audit record ──────────────────────────────────
   await svc.from('audit_log').insert({
     agency_id:     agency.id,
     user_id:       user.id,
