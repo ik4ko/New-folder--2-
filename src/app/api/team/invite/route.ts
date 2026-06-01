@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase'
+import { createServiceClient } from '@/lib/supabase/service'
+import { checkSeatLimit } from '@/lib/billing/seat-guard'
 import { sendTeamInviteEmail } from '@/lib/email/send-notifications'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:9002'
@@ -66,7 +68,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'agency_owner cannot be invited -- only 1 per agency' }, { status: 400 })
     }
 
-    // Seat limit check for agency_admin invites
+    // Seat limit check for agency_admin invites (custom admin-seat cap)
     if (inviteRole === 'agency_admin') {
       const { count: adminCount } = await supabase
         .from('brokers')
@@ -78,6 +80,26 @@ export async function POST(req: NextRequest) {
         return NextResponse.json(
           { error: `Admin seat limit reached (${adminCount}/${maxAdminSeats})` },
           { status: 403 }
+        )
+      }
+    }
+
+    // Seat limit check for broker invites — enforced at the write layer so a
+    // direct API call cannot bypass the UI pre-flight gate (/api/team/seat-check).
+    // This is the authoritative enforcement point; the seat-check endpoint is
+    // purely informational for the frontend.
+    if (inviteRole !== 'agency_admin') {
+      const svc = createServiceClient()
+      const seatResult = await checkSeatLimit(agencyId!, user.id)
+      if (!seatResult.allowed) {
+        return NextResponse.json(
+          {
+            error:       seatResult.userMessage,
+            reason:      seatResult.reason,
+            tier:        seatResult.tier,
+            upgradeUrl:  '/settings/billing',
+          },
+          { status: 402 }
         )
       }
     }

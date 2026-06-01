@@ -170,11 +170,15 @@ export function SidebarNav({
   const pathname  = usePathname()
   const router    = useRouter()
   const isOpen    = true
-  const { language, setLanguage } = useAppStore()
+  const { language, setLanguage, resetStore } = useAppStore()
 
   async function handleSignOut() {
     const supabase = createClient()
     await supabase.auth.signOut()
+    // Clear all user-specific in-memory state before navigation so that a
+    // second user logging in on the same device never sees the previous
+    // user's agency profile, member data, or encryption key.
+    resetStore()
     router.push('/login')
   }
 

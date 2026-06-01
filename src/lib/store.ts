@@ -137,6 +137,8 @@ interface AppState {
   nextTutorialStep: () => void;
   closeTutorial: () => void;
   setEncryptionKey: (key: CryptoKey) => void;
+  /** Clear all user-specific state on sign-out. Prevents session crossover on shared devices. */
+  resetStore: () => void;
 }
 
 export const useAppStore = create<AppState>((set, get) => ({
@@ -236,6 +238,24 @@ export const useAppStore = create<AppState>((set, get) => ({
   closeTutorial: () => set({ activeTutorial: 'none', tutorialStep: 0 }),
 
   setEncryptionKey: (key) => set({ encryptionKey: key }),
+
+  resetStore: () => set({
+    members:        [],
+    clients:        [],
+    ledger:         [],
+    brokers:        [],
+    encryptionKey:  null,
+    agencyProfile: {
+      name:                 '',
+      email:                '',
+      billingPlan:          'entry',
+      isSubscriptionActive: false,
+      isTrialInitialized:   false,
+      isSolo:               false,
+      licenseNumber:        '',
+      tier:                 'Basic',
+    },
+  }),
 }));
 
 export const initializeStore = () => {
