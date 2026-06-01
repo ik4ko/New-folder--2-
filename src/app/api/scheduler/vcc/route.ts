@@ -35,8 +35,11 @@ export async function GET(req: NextRequest) {
   for (const sub of due ?? []) {
     try {
       if (sub.doctor_fax && sub.filled_pdf_path) {
+        // Filled PDFs are stored in the 'VCC-filled' bucket by saveFilledPDF().
+        // 'phi-vault' is a separate raw-PHI bucket — this was a bucket-name mismatch
+        // that caused every scheduled fax to silently download nothing and fail.
         const { data: fileData } = await supabase.storage
-          .from('phi-vault')
+          .from('VCC-filled')
           .download(sub.filled_pdf_path)
         if (fileData) {
           const buf = await fileData.arrayBuffer()

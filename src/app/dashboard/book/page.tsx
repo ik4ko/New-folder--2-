@@ -31,13 +31,22 @@ export default async function BookPage() {
   const agencyId    = agency?.id ?? brokerRow?.agency_id
   if (!agencyId) redirect('/login')
 
+  // Brokers see only their own clients. Staff, managers, and owners see all.
+  // supabaseAdmin bypasses RLS so the filter must be applied explicitly here
+  // to enforce the same boundary the RLS policies would otherwise provide.
+  let membersQuery = supabaseAdmin
+    .from('book_of_business')
+    .select('id, mbi, carrier, carrier_display_name, original_carrier_name, member_id, full_name, plan_name, detected_plan_name, detected_carrier_name, status, verification_status, last_verified_at, first_seen_at, enrollment_status, has_mbi, last_marx_check, future_plan_name, future_effective_date, is_chronic, doctor_name, doctor_fax')
+    .eq('agency_id', agencyId)
+    .order('full_name', { ascending: true, nullsFirst: false })
+    .limit(500)
+
+  if (!isStaff && brokerRow?.id) {
+    membersQuery = membersQuery.eq('broker_id', brokerRow.id) as typeof membersQuery
+  }
+
   const [{ data: members }, { data: carrierLogins }, { count: openAlertsCount }] = await Promise.all([
-    supabaseAdmin
-      .from('book_of_business')
-      .select('id, mbi, carrier, carrier_display_name, original_carrier_name, member_id, full_name, plan_name, detected_plan_name, detected_carrier_name, status, verification_status, last_verified_at, first_seen_at, enrollment_status, has_mbi, last_marx_check, future_plan_name, future_effective_date, is_chronic, doctor_name, doctor_fax')
-      .eq('agency_id', agencyId)
-      .order('full_name', { ascending: true, nullsFirst: false })
-      .limit(500),
+    membersQuery,
     supabaseAdmin
       .from('carrier_logins')
       .select('carrier, status, last_checked_at')

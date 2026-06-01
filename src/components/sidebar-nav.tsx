@@ -3,7 +3,7 @@
 import * as React from "react"
 import {
   LayoutDashboard, Users, FileCheck, Radar, Megaphone,
-  UserPlus, Shield, Settings, LifeBuoy, LogOut, Bell,
+  UserPlus, Shield, Settings, LifeBuoy, LogOut, Bell, Database,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
@@ -42,8 +42,9 @@ const AGENCY_CORE_NAV: NavItem[] = [
  * Team management (seat add/remove) is owner-only.
  */
 const OWNER_MGMT_NAV: NavItem[] = [
-  { href: '/dashboard/team',    icon: UserPlus, label: 'Team',        desc: 'Manage brokers & seats' },
-  { href: '/dashboard/manager', icon: Shield,   label: 'Agency View', desc: 'Agency-wide oversight' },
+  { href: '/dashboard/team',    icon: UserPlus,  label: 'Team',       desc: 'Manage brokers & seats' },
+  { href: '/dashboard/manager', icon: Shield,    label: 'Agency View',desc: 'Revenue & compliance overview' },
+  { href: '/dashboard/admin',   icon: Database,  label: 'Directory',  desc: 'Global client search & fax monitor' },
 ]
 
 /**
