@@ -13,7 +13,11 @@ import { BookMemberTable } from '@/components/book-member-table'
 import { MarxStatusBar } from '@/components/marx-status-bar'
 
 
-export default async function BookPage() {
+export default async function BookPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string>>
+}) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -27,9 +31,15 @@ export default async function BookPage() {
 
   const isPrincipal = ['agency_owner', 'agency_admin'].includes(brokerRow?.role ?? '')
   const isCS        = brokerRow?.role === 'customer_service'
-  const isStaff     = isPrincipal || isCS || !!agency
+  const isOwner     = !!agency
+  const isStaff     = isPrincipal || isCS || isOwner
   const agencyId    = agency?.id ?? brokerRow?.agency_id
   if (!agencyId) redirect('/login')
+
+  // ?view=my_book lets principals inspect their own selling pipeline
+  // without leaving the agency-wide default view (or losing staff access).
+  const sp         = await searchParams
+  const myBookMode = isStaff && sp['view'] === 'my_book' && !!brokerRow?.id
 
   // Brokers see only their own clients. Staff, managers, and owners see all.
   // supabaseAdmin bypasses RLS so the filter must be applied explicitly here
@@ -41,8 +51,10 @@ export default async function BookPage() {
     .order('full_name', { ascending: true, nullsFirst: false })
     .limit(500)
 
-  if (!isStaff && brokerRow?.id) {
-    membersQuery = membersQuery.eq('broker_id', brokerRow.id) as typeof membersQuery
+  // Non-staff brokers always see only their own clients.
+  // Staff/owners in ?view=my_book mode filter to their personal selling book.
+  if ((!isStaff && brokerRow?.id) || myBookMode) {
+    membersQuery = membersQuery.eq('broker_id', brokerRow!.id) as typeof membersQuery
   }
 
   // Scope the open-alert count to the broker's own alerts when not staff.
@@ -141,10 +153,36 @@ export default async function BookPage() {
           <div>
             <h1 className="text-lg font-black text-white uppercase tracking-tight">Book of Business</h1>
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-              {totalMembers} members · Next check: {nextCheck}
+              {totalMembers} members{myBookMode ? ' · My Book' : ''} · Next check: {nextCheck}
             </p>
           </div>
         </div>
+
+        {/* Agency ↔ My Book toggle — visible to staff/owners who also sell */}
+        {isStaff && brokerRow?.id && (
+          <div className="flex items-center rounded-xl border border-slate-700 overflow-hidden shrink-0">
+            <Link
+              href="/dashboard/book"
+              className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-widest transition-colors ${
+                !myBookMode
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-slate-400 hover:bg-slate-800'
+              }`}
+            >
+              Agency
+            </Link>
+            <Link
+              href="/dashboard/book?view=my_book"
+              className={`px-3 py-1.5 text-[10px] font-black uppercase tracking-widest transition-colors ${
+                myBookMode
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-slate-400 hover:bg-slate-800'
+              }`}
+            >
+              My Book
+            </Link>
+          </div>
+        )}
       </header>
 
       <div className="flex-1 overflow-y-auto p-6 space-y-5 pb-32">

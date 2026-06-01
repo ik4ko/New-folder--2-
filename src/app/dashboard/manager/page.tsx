@@ -377,6 +377,11 @@ export default async function ManagerPage({
     return <BrokerIsolatedView brokerId={brokerId} agencyId={agencyId} />
   }
 
+  // ── Data fetch — try/catch so unexpected DB errors return an empty state
+  //   rather than a Next.js crash page. All variable declarations live inside
+  //   the try block so they are in scope for the JSX return below.
+  try {
+
   // -- Section A: Revenue at Risk ------------------------------------------
   const { count: openSwitchCount } = await supabase
     .from('switch_alerts')
@@ -860,4 +865,20 @@ export default async function ManagerPage({
       </div>
     </div>
   )
+  } catch (err: unknown) {
+    console.error('[manager] data fetch error:', err instanceof Error ? err.message : String(err))
+    return (
+      <div className="flex h-full w-full bg-background items-center justify-center p-8">
+        <div className="max-w-sm text-center space-y-3">
+          <p className="text-sm font-black uppercase tracking-widest text-foreground">
+            Dashboard Temporarily Unavailable
+          </p>
+          <p className="text-[11px] text-muted-foreground leading-relaxed">
+            Agency data could not be loaded. Please refresh the page.
+            If this persists, contact support@aegissage.com.
+          </p>
+        </div>
+      </div>
+    )
+  }
 }

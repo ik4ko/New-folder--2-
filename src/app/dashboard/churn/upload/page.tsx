@@ -314,11 +314,31 @@ export default function ChurnUploadPage() {
       return;
     }
 
-    // Listen for postMessage from the popup once OAuth completes
-    const handleOAuthMessage = (e: MessageEvent) => {
-      if (e.origin !== window.location.origin) return;
-      if (e.data?.type === 'GHL_OAUTH_SUCCESS') {
+    // ── Closed-window detector ────────────────────────────────────────────────
+    // Polls every 500 ms to detect manual popup closure. Without this, the
+    // message listener persists indefinitely and the button never re-enables
+    // after the user closes the OAuth window without completing the flow.
+    const pollTimer = setInterval(() => {
+      if (popup.closed) {
+        clearInterval(pollTimer);
         window.removeEventListener('message', handleOAuthMessage);
+        // Only reset to idle if the connection did not already succeed
+        setGhlConnected(prev => {
+          if (!prev) setGhlBanner('error');
+          return prev;
+        });
+        setGhlSyncing(false);
+      }
+    }, 500);
+
+    // ── OAuth message listener ────────────────────────────────────────────────
+    function handleOAuthMessage(e: MessageEvent) {
+      if (e.origin !== window.location.origin) return;
+
+      if (e.data?.type === 'GHL_OAUTH_SUCCESS') {
+        clearInterval(pollTimer);
+        window.removeEventListener('message', handleOAuthMessage);
+        popup?.close();
         setGhlConnected(true);
         setGhlBanner('success');
         setGhlSyncing(true);
@@ -338,11 +358,14 @@ export default function ChurnUploadPage() {
           })
           .catch(() => setGhlSyncing(false));
       }
+
       if (e.data?.type === 'GHL_OAUTH_ERROR') {
+        clearInterval(pollTimer);
         window.removeEventListener('message', handleOAuthMessage);
+        popup?.close();
         setGhlBanner('error');
       }
-    };
+    }
     window.addEventListener('message', handleOAuthMessage);
   };
 

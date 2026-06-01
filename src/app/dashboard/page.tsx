@@ -39,7 +39,11 @@ function StatCard({
   return inner
 }
 
-export default async function Dashboard() {
+export default async function Dashboard({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string>>
+}) {
   const supabase = await createClient()
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) redirect('/login')
@@ -52,6 +56,14 @@ export default async function Dashboard() {
   const isPrincipal = ['agency_owner', 'agency_admin'].includes(brokerRow?.role ?? '')
   const isCS        = brokerRow?.role === 'customer_service'
   const isStaff     = isPrincipal || isCS || !!agency
+
+  // ── Default landing for owners and principals ──────────────────────────────
+  // Redirect to the Book of Business unless a ?view= param is present.
+  // Pass ?view=dashboard to reach the stats overview explicitly.
+  const sp = await searchParams
+  if ((!!agency || isPrincipal) && !sp['view']) {
+    redirect('/dashboard/book')
+  }
 
   // ── Agency ID resolution ─────────────────────────────────────────────────
   // Priority: brokerRow.agency_id > agency.id
