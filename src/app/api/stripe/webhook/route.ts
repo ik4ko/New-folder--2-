@@ -148,8 +148,9 @@ async function dispatchEvent(
         }
       }
 
-      const periodEnd = sub.current_period_end
-        ? new Date(sub.current_period_end * 1000).toISOString()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const periodEnd = (sub as any).current_period_end
+        ? new Date((sub as any).current_period_end * 1000).toISOString()
         : undefined
 
       await svc.from('agencies').update({
@@ -190,8 +191,9 @@ async function dispatchEvent(
       const seatRules      = getSeatRulesForTier(tier)
       const internalStatus = mapStripeStatus(sub.status)
 
-      const periodEnd = sub.current_period_end
-        ? new Date(sub.current_period_end * 1000).toISOString()
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const periodEnd = (sub as any).current_period_end
+        ? new Date((sub as any).current_period_end * 1000).toISOString()
         : undefined
 
       await svc.from('agencies').update({

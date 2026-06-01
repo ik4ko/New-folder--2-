@@ -67,12 +67,12 @@ export async function POST(req: NextRequest) {
   const browser = await playwrightChromium.launch({
     args: chromium.args,
     executablePath,
-    headless: chromium.headless,
+    headless: (chromium as any).headless ?? true,
   })
 
   try {
     const ctx = await browser.newContext({
-      viewport: chromium.defaultViewport ?? { width: 1280, height: 800 },
+      viewport: (chromium as any).defaultViewport ?? { width: 1280, height: 800 },
       userAgent: 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
     })
     const page = await ctx.newPage()

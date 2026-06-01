@@ -92,7 +92,7 @@ export async function runBrokerDetection(
         .single()
 
       const uploadId = uploadRecord?.id ?? ''
-      const diffResult = await diffRosterAgainstGHL(uploadId, agencyId, rosterRows, cred.carrier, brokerId)
+      const diffResult = await diffRosterAgainstGHL(uploadId, agencyId, rosterRows, cred.carrier, brokerId ?? '')
 
       // Mark contacts as verified
       if (rosterRows.length > 0) {

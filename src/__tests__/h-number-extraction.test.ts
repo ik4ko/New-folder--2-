@@ -52,7 +52,7 @@ describe('isValidPlanCode', () => {
 })
 
 describe('extractHNumber — embedded in plan name strings', () => {
-  const CASES: [string | null, string | null][] = [
+  const CASES: [string | null | undefined, string | null][] = [
     // Clean H-numbers
     ['H4513-083', 'H4513-083'],
     ['h4513-083', 'H4513-083'],

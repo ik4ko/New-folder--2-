@@ -535,7 +535,7 @@ async function fetchBobMembers(
     .order('id', { ascending: true }) // stable order for cursor pagination
 
   if (error) throw new Error(`BOB fetch failed: ${error.message}`)
-  return (data ?? []) as BobMember[]
+  return (data as unknown as BobMember[]) ?? []
 }
 
 /**
@@ -996,23 +996,29 @@ async function pushFromAgency(
   // ── Machine-readable audit log (enterprise_audit_logs) ────────────────────
   // Complements the compliance log above with structured JSON metadata
   // for security engineering and breach investigation tooling.
-  svc.from('enterprise_audit_logs').insert({
-    agency_id:     agencyId,
-    user_id:       userId,
-    action_type:   'CRM_SYNC',
-    resource_type: 'book_of_business',
-    phi_touched:   false,
-    metadata: {
-      direction:      'bob_to_ghl',
-      start_index:    startIndex,
-      slice_size:     slice.length,
-      total_members:  totalMembers,
-      pushed:         result.pushed,
-      created:        result.created,
-      updated:        result.updated,
-      failed:         result.failed,
-    },
-  }).catch(e => console.error('[ghl/push] enterprise audit log failed:', e))
+  void (async () => {
+    try {
+      await svc.from('audit_log').insert({
+        agency_id:     agencyId,
+        user_id:       userId,
+        action:        'CRM_SYNC',
+        resource_type: 'book_of_business',
+        resource_id:   agencyId,
+        metadata: {
+          direction:      'bob_to_ghl',
+          start_index:    startIndex,
+          slice_size:     slice.length,
+          total_members:  totalMembers,
+          pushed:         result.pushed,
+          created:        result.created,
+          updated:        result.updated,
+          failed:         result.failed,
+        },
+      })
+    } catch (e: unknown) {
+      console.error('[ghl/push] audit log failed:', e)
+    }
+  })()
 
   // ── Response ───────────────────────────────────────────────────────────────
   const isComplete = nextIndex === null

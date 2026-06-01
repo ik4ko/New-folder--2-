@@ -578,7 +578,9 @@ function InviteRow({
 
 export function TeamManagement({ brokers: initial, agencyId, isOwner, pendingInvites: initialInvites, agencyTier }: Props) {
   // Solo Broker plan ($149) has no team seats. Hide seat management UI entirely.
-  const isAgencyTier = agencyTier === 'agency' || agencyTier === 'enterprise'
+  // 'professional' is used by beta/test accounts and maps to agency-tier features.
+  const AGENCY_TIERS_SET = new Set(['agency', 'enterprise', 'professional', 'agency_plan'])
+  const isAgencyTier     = AGENCY_TIERS_SET.has(agencyTier ?? '')
   const [brokers,       setBrokers]       = useState<Broker[]>(initial)
   const [invites,       setInvites]       = useState<PendingInvite[]>(initialInvites)
   const [seatStatus,    setSeatStatus]    = useState<SeatStatus | null>(null)

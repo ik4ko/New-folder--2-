@@ -36,7 +36,7 @@ function LoginPageContent() {
 
   const router = useRouter();
   const searchParams = useSearchParams();
-  const redirectTo = searchParams.get('redirect') ?? '/dashboard';
+  const redirectTo = searchParams?.get('redirect') ?? '/dashboard';
   const { toast } = useToast();
   const { updateAgencyProfile } = useAppStore();
 

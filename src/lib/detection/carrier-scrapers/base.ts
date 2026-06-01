@@ -34,7 +34,7 @@ export abstract class CarrierScraper {
     const browser = await playwrightChromium.launch({
       args: [...chromium.args, ...LAUNCH_ARGS],
       executablePath,
-      headless: chromium.headless,
+      headless: (chromium as any).headless ?? true,
     })
     try {
       const ctx = await browser.newContext({

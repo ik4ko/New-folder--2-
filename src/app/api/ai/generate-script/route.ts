@@ -172,7 +172,8 @@ export async function POST(req: NextRequest) {
   // SELECT only the fields needed for script context.
   // MBI, doctor_name, doctor_fax, phone, email are deliberately EXCLUDED —
   // they are PHI that must never reach the AI model.
-  const { data: member, error: memberError } = await svc
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const { data: memberRaw, error: memberError } = await svc
     .from('book_of_business')
     .select([
       'id',
@@ -192,6 +193,8 @@ export async function POST(req: NextRequest) {
     .eq('id', memberId)
     .eq('agency_id', agencyId)   // ← RLS enforcement: broker can only access their agency's members
     .maybeSingle()
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const member = memberRaw as any
 
   if (memberError) {
     console.error('[generate-script] member fetch error:', memberError.message)
@@ -241,7 +244,8 @@ export async function POST(req: NextRequest) {
       console.warn('[generate-script] alert fetch warning (non-fatal):', alertError.message)
       // Alert fetch failure is non-fatal — generate without alert context
     } else {
-      alertRow = alertData
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      alertRow = alertData as any
     }
   }
 

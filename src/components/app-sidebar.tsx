@@ -75,12 +75,19 @@ export async function AppSidebar() {
   }
 
   // isBrokerTier = true  → stripped 3-item nav (solo/broker plan)
-  // isBrokerTier = false → full nav + Management section (agency plan)
+  // isBrokerTier = false → full nav (agency plan)
   const isBrokerTier = BROKER_TIERS.includes(effectiveTier) || !AGENCY_TIERS.includes(effectiveTier)
 
   // ── Step 3: Supporting data ───────────────────────────────────────────────
   const agencyId = brokerRow?.agency_id ?? agency?.id
   const role     = brokerRow?.role ?? (isOwner ? 'agency_owner' : 'broker')
+
+  // ── isStaff: non-owner members with elevated access ───────────────────────
+  // agency_admin (Manager) and customer_service (CSR) are not the agency owner
+  // but operate at the agency scope. They get the full operational nav (all
+  // core items + Agency View) but NOT Team management (owner-only).
+  const STAFF_ROLES = ['agency_admin', 'customer_service']
+  const isStaff     = !isOwner && STAFF_ROLES.includes(role)
   const name     = brokerRow
     ? `${brokerRow.first_name ?? ''} ${brokerRow.last_name ?? ''}`.trim()
       || (user.email?.split('@')[0] ?? 'User')
@@ -108,6 +115,7 @@ export async function AppSidebar() {
   return (
     <SidebarNav
       isOwner={isOwner}
+      isStaff={isStaff}
       isBrokerTier={isBrokerTier}
       role={role}
       name={name}

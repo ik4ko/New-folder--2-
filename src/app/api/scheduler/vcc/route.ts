@@ -20,7 +20,7 @@ export async function GET(req: NextRequest) {
 
   const { data: due, error } = await supabase
     .from('vcc_submissions')
-    .select('id, doctor_fax, pdf_url, carrier')
+    .select('id, doctor_fax, filled_pdf_path, carrier')
     .eq('fax_status', 'scheduled')
     .lte('send_scheduled_at', now)
 
@@ -34,13 +34,25 @@ export async function GET(req: NextRequest) {
 
   for (const sub of due ?? []) {
     try {
-      if (sub.doctor_fax && sub.pdf_url) {
-        await sendFax({ faxNumber: sub.doctor_fax, pdfUrl: sub.pdf_url, submissionId: sub.id })
-        await supabase.from('vcc_submissions').update({ fax_status: 'sent' }).eq('id', sub.id)
-        sent++
-      } else {
-        await supabase.from('vcc_submissions').update({ fax_status: 'failed' }).eq('id', sub.id)
-        failed++
+      if (sub.doctor_fax && sub.filled_pdf_path) {
+        const { data: fileData } = await supabase.storage
+          .from('phi-vault')
+          .download(sub.filled_pdf_path)
+        if (fileData) {
+          const buf = await fileData.arrayBuffer()
+          const faxResult = await sendFax(
+            new Uint8Array(buf),
+            sub.doctor_fax,
+            `VCC Form — ${sub.carrier ?? 'Unknown'} — ${sub.id}`
+          )
+          await supabase.from('vcc_submissions')
+            .update({ fax_status: faxResult.success ? 'sent' : 'failed' })
+            .eq('id', sub.id)
+          faxResult.success ? sent++ : failed++
+        } else {
+          await supabase.from('vcc_submissions').update({ fax_status: 'failed' }).eq('id', sub.id)
+          failed++
+        }
       }
     } catch (e: any) {
       console.error('[scheduler/vcc] fax error for', sub.id, e.message)

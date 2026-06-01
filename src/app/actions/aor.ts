@@ -593,7 +593,7 @@ export async function uploadSignedAOR(
   const finalPath = `${sub.agency_id}/aor/${sub.id}/final_signed.pdf`
   await saveToPHIVault(finalPdfBytes, finalPath)
 
-  let faxResult = { success: false, confirmationId: undefined as string | undefined }
+  let faxResult: import('@/lib/vcc/fax-dispatcher').FaxResult = { success: false, error: 'no_fax_number' }
   if (sub.carrier_fax) {
     faxResult = await sendFax(
       finalPdfBytes,
@@ -701,7 +701,7 @@ export async function brokerSignAndFax(
     })
     .eq('id', sub.id)
 
-  let faxResult = { success: false, confirmationId: undefined as string | undefined, error: 'no_fax_number' }
+  let faxResult: import('@/lib/vcc/fax-dispatcher').FaxResult = { success: false, error: 'no_fax_number' }
   if (sub.carrier_fax) {
     faxResult = await sendFax(pdfBytes, sub.carrier_fax, `CMS-1696 AOR -- ${sub.client_name} -- ${sub.broker_npn ?? 'no-npn'}`)
   }

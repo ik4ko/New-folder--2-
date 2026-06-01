@@ -362,7 +362,7 @@ async function getBrokerFromApiKey(req: NextRequest) {
   return broker ?? null
 }
 
-function normalizeRow(raw: Record<string, string>, _carrier: string, dynamicMapping?: Record<string, string>): RosterRow {
+function normalizeRow(raw: Record<string, string>, _carrier: string, dynamicMapping?: Record<string, string>): ExtendedRosterRow {
   // Build a normalized lookup map: lowercase + spaces/underscores collapsed.
   // This lets get('member name') find raw['Member Name'] or raw['member_name'].
   const norm: Record<string, string> = {}

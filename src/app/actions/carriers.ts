@@ -21,7 +21,7 @@ export async function getCarrierCredentials(): Promise<CarrierCredential[]> {
 
   const [{ data: agency }, { data: brokerRow }] = await Promise.all([
     supabase.from('agencies').select('id').eq('owner_id', user.id).maybeSingle(),
-    supabase.from('brokers').select('id, agency_id').eq('user_id', user.id).maybeSingle(),
+    supabase.from('brokers').select('id, agency_id, role').eq('user_id', user.id).maybeSingle(),
   ])
 
   const agencyId = agency?.id ?? brokerRow?.agency_id
@@ -59,7 +59,7 @@ export async function saveCarrierCredential(formData: FormData): Promise<{ error
 
   const [{ data: agency }, { data: brokerRow }] = await Promise.all([
     supabase.from('agencies').select('id').eq('owner_id', user.id).maybeSingle(),
-    supabase.from('brokers').select('id, agency_id').eq('user_id', user.id).maybeSingle(),
+    supabase.from('brokers').select('id, agency_id, role').eq('user_id', user.id).maybeSingle(),
   ])
 
   const agencyId = agency?.id ?? brokerRow?.agency_id

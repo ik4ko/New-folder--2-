@@ -79,23 +79,23 @@ export interface SwitchAlertEmailParams {
   dashboardUrl: string
 }
 
-export function switchAlertEmail(p: SwitchAlertEmailParams): { subject: string; html: string } {
-  const alertLabel = p.alertType === 'missing_from_roster' ? 'Missing From Roster' : 'New Enrollment'
-  const subject = p.alertType === 'missing_from_roster'
-    ? `⚠️ ${p.clientName} may have switched plans — act now`
-    : `[AegisSage] Alert: ${p.clientName} — ${alertLabel}`
+export function switchAlertEmail(params: SwitchAlertEmailParams): { subject: string; html: string } {
+  const alertLabel = params.alertType === 'missing_from_roster' ? 'Missing From Roster' : 'New Enrollment'
+  const subject = params.alertType === 'missing_from_roster'
+    ? `⚠️ ${params.clientName} may have switched plans — act now`
+    : `[AegisSage] Alert: ${params.clientName} — ${alertLabel}`
 
   const body = `
     ${badge(alertLabel, '#f59e0b')}
     <div style="margin-top:20px;">${h1('Churn Alert')}</div>
-    ${p(`Hi ${p.brokerName},`, false)}
+    ${p(`Hi ${params.brokerName},`, false)}
     ${p(`A plan change event was detected for one of your clients. Review and take action.`, true)}
     <table style="width:100%;border-collapse:collapse;margin:16px 0 24px;">
-      ${row('Client', p.clientName)}
-      ${row('Carrier', p.carrier)}
+      ${row('Client', params.clientName)}
+      ${row('Carrier', params.carrier)}
       ${row('Alert Type', alertLabel)}
     </table>
-    ${cta('View in Dashboard', p.dashboardUrl)}
+    ${cta('View in Dashboard', params.dashboardUrl)}
   `
 
   return { subject, html: base(subject, body) }
@@ -111,21 +111,21 @@ export interface VCCDeadlineEmailParams {
   dashboardUrl: string
 }
 
-export function vccDeadlineEmail(p: VCCDeadlineEmailParams): { subject: string; html: string } {
-  const urgency = p.daysRemaining <= 2 ? '#ef4444' : p.daysRemaining <= 5 ? '#f59e0b' : '#6366f1'
-  const subject = `[AegisSage] VCC Deadline: ${p.clientName} — ${p.daysRemaining} day${p.daysRemaining === 1 ? '' : 's'} left`
+export function vccDeadlineEmail(params: VCCDeadlineEmailParams): { subject: string; html: string } {
+  const urgency = params.daysRemaining <= 2 ? '#ef4444' : params.daysRemaining <= 5 ? '#f59e0b' : '#6366f1'
+  const subject = `[AegisSage] VCC Deadline: ${params.clientName} — ${params.daysRemaining} day${params.daysRemaining === 1 ? '' : 's'} left`
 
   const body = `
-    ${badge(`${p.daysRemaining} Days Remaining`, urgency)}
+    ${badge(`${params.daysRemaining} Days Remaining`, urgency)}
     <div style="margin-top:20px;">${h1('VCC Form Deadline')}</div>
-    ${p(`Hi ${p.brokerName},`, false)}
+    ${p(`Hi ${params.brokerName},`, false)}
     ${p(`A carrier form for your client is scheduled to be faxed soon. Confirm all details are correct.`, true)}
     <table style="width:100%;border-collapse:collapse;margin:16px 0 24px;">
-      ${row('Client', p.clientName)}
-      ${row('Carrier', p.carrier)}
-      ${row('Days Until Send', String(p.daysRemaining))}
+      ${row('Client', params.clientName)}
+      ${row('Carrier', params.carrier)}
+      ${row('Days Until Send', String(params.daysRemaining))}
     </table>
-    ${cta('Review VCC Form', p.dashboardUrl)}
+    ${cta('Review VCC Form', params.dashboardUrl)}
   `
 
   return { subject, html: base(subject, body) }
@@ -140,19 +140,19 @@ export interface AORSignedEmailParams {
   dashboardUrl: string
 }
 
-export function aorSignedEmail(p: AORSignedEmailParams): { subject: string; html: string } {
-  const subject = `[AegisSage] ${p.clientName} signed their AOR — counter-signature needed`
+export function aorSignedEmail(params: AORSignedEmailParams): { subject: string; html: string } {
+  const subject = `[AegisSage] ${params.clientName} signed their AOR — counter-signature needed`
 
   const body = `
     ${badge('Action Required', '#10b981')}
     <div style="margin-top:20px;">${h1('AOR Signed by Client')}</div>
-    ${p(`Hi ${p.brokerName},`, false)}
+    ${p(`Hi ${params.brokerName},`, false)}
     ${p(`Your client has completed their electronic signature on the CMS-1696 AOR. Your counter-signature is now needed to finalize.`, true)}
     <table style="width:100%;border-collapse:collapse;margin:16px 0 24px;">
-      ${row('Client', p.clientName)}
-      ${row('Signature Method', p.signatureMethod.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()))}
+      ${row('Client', params.clientName)}
+      ${row('Signature Method', params.signatureMethod.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase()))}
     </table>
-    ${cta('Sign & Fax Now', p.dashboardUrl)}
+    ${cta('Sign & Fax Now', params.dashboardUrl)}
   `
 
   return { subject, html: base(subject, body) }
@@ -168,16 +168,16 @@ export interface TeamInviteEmailParams {
   expiresIn: string
 }
 
-export function teamInviteEmail(p: TeamInviteEmailParams): { subject: string; html: string } {
-  const roleLabel = p.role === 'agency_admin' ? 'Manager' : p.role === 'customer_service' ? 'Customer Service' : 'Broker'
-  const subject = `You've been invited to join ${p.agencyName} on AegisSage`
+export function teamInviteEmail(params: TeamInviteEmailParams): { subject: string; html: string } {
+  const roleLabel = params.role === 'agency_admin' ? 'Manager' : params.role === 'customer_service' ? 'Customer Service' : 'Broker'
+  const subject = `You've been invited to join ${params.agencyName} on AegisSage`
 
   const body = `
     ${badge('Team Invitation')}
     <div style="margin-top:20px;">${h1('You\'re Invited')}</div>
-    ${p(`<strong>${p.inviterName}</strong> has invited you to join <strong>${p.agencyName}</strong> as a ${roleLabel}.`, false)}
-    ${p(`AegisSage is a Medicare retention and compliance platform. Your invite expires in ${p.expiresIn}.`, true)}
-    ${cta('Accept Invitation', p.inviteUrl)}
+    ${p(`<strong>${params.inviterName}</strong> has invited you to join <strong>${params.agencyName}</strong> as a ${roleLabel}.`, false)}
+    ${p(`AegisSage is a Medicare retention and compliance platform. Your invite expires in ${params.expiresIn}.`, true)}
+    ${cta('Accept Invitation', params.inviteUrl)}
     <p style="margin-top:20px;font-size:11px;color:${MUTED};">If you weren't expecting this invite, you can safely ignore this email.</p>
   `
 
@@ -196,8 +196,8 @@ export interface WeeklyDigestEmailParams {
   dashboardUrl: string
 }
 
-export function weeklyDigestEmail(p: WeeklyDigestEmailParams): { subject: string; html: string } {
-  const subject = `[AegisSage] Weekly Digest — ${p.agencyName}`
+export function weeklyDigestEmail(params: WeeklyDigestEmailParams): { subject: string; html: string } {
+  const subject = `[AegisSage] Weekly Digest — ${params.agencyName}`
 
   const statBlock = (label: string, value: number, color = TEXT) =>
     `<td style="text-align:center;padding:16px 20px;background:${BG};border-radius:10px;border:1px solid ${BORDER};">
@@ -208,16 +208,16 @@ export function weeklyDigestEmail(p: WeeklyDigestEmailParams): { subject: string
   const body = `
     ${badge('Weekly Digest')}
     <div style="margin-top:20px;">${h1('Your Week in Review')}</div>
-    ${p(`Hi ${p.brokerName}, here's your AegisSage summary for the week.`, false)}
+    ${p(`Hi ${params.brokerName}, here's your AegisSage summary for the week.`, false)}
     <table width="100%" cellspacing="8" style="margin:20px 0 28px;border-collapse:separate;border-spacing:8px;">
       <tr>
-        ${statBlock('Open Alerts', p.openAlerts, p.openAlerts > 0 ? '#f59e0b' : TEXT)}
-        ${statBlock('VCC Pending', p.vccPending, p.vccPending > 0 ? '#6366f1' : TEXT)}
-        ${statBlock('AOR Pending', p.aorPending, p.aorPending > 0 ? '#6366f1' : TEXT)}
-        ${statBlock('At Risk', p.clientsAtRisk, p.clientsAtRisk > 0 ? '#ef4444' : TEXT)}
+        ${statBlock('Open Alerts', params.openAlerts, params.openAlerts > 0 ? '#f59e0b' : TEXT)}
+        ${statBlock('VCC Pending', params.vccPending, params.vccPending > 0 ? '#6366f1' : TEXT)}
+        ${statBlock('AOR Pending', params.aorPending, params.aorPending > 0 ? '#6366f1' : TEXT)}
+        ${statBlock('At Risk', params.clientsAtRisk, params.clientsAtRisk > 0 ? '#ef4444' : TEXT)}
       </tr>
     </table>
-    ${cta('Open Dashboard', p.dashboardUrl)}
+    ${cta('Open Dashboard', params.dashboardUrl)}
   `
 
   return { subject, html: base(subject, body) }

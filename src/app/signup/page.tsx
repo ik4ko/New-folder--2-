@@ -76,7 +76,7 @@ function SignupFormContent() {
   const [resendSent, setResendSent] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
-  const planParam = searchParams.get('plan') || 'broker-individual';
+  const planParam = searchParams?.get('plan') || 'broker-individual';
   const { toast } = useToast();
 
   const authBg = PlaceHolderImages.find((img) => img.id === 'auth-bg');

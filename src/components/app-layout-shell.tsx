@@ -17,7 +17,7 @@ const PROTECTED_PREFIXES = [
 ]
 
 export function AppShell({ children, sidebar }: { children: React.ReactNode; sidebar?: React.ReactNode }) {
-  const pathname = usePathname()
+  const pathname = usePathname() ?? ''
   const router = useRouter()
   const [isCheckingAuth, setIsCheckingAuth] = useState(true)
 

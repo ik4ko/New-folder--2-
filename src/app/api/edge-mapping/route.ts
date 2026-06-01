@@ -156,7 +156,9 @@ export async function GET(req: NextRequest) {
     query = query.eq('carrier_slug', carrierFilter) as typeof query
   }
 
-  const { data: rows, error } = await query
+  const { data: rawRows, error } = await query
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const rows = rawRows as any[]
 
   if (error) {
     console.error('[edge-mapping] DB fetch error:', error.message)
@@ -166,7 +168,7 @@ export async function GET(req: NextRequest) {
     )
   }
 
-  if (!rows || rows.length === 0) {
+  if (!rows || (rows as any[]).length === 0) {
     return NextResponse.json(
       { error: carrierFilter ? `No active map for carrier: ${carrierFilter}` : 'No active carrier maps found' },
       { status: 404 }

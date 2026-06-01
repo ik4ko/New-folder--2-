@@ -38,12 +38,20 @@ const AGENCY_CORE_NAV: NavItem[] = [
 ]
 
 /**
- * AGENCY OWNER management nav — seat counters, team roster, agency oversight.
- * Hidden entirely from solo brokers.
+ * AGENCY OWNER management nav — full control plane.
+ * Team management (seat add/remove) is owner-only.
  */
-const AGENCY_MGMT_NAV: NavItem[] = [
+const OWNER_MGMT_NAV: NavItem[] = [
   { href: '/dashboard/team',    icon: UserPlus, label: 'Team',        desc: 'Manage brokers & seats' },
   { href: '/dashboard/manager', icon: Shield,   label: 'Agency View', desc: 'Agency-wide oversight' },
+]
+
+/**
+ * MANAGER / CSR operational support nav — agency-wide visibility, no seat control.
+ * agency_admin and customer_service see Agency View but NOT Team management.
+ */
+const STAFF_MGMT_NAV: NavItem[] = [
+  { href: '/dashboard/manager', icon: Shield, label: 'Agency View', desc: 'Agency-wide oversight' },
 ]
 
 /**
@@ -129,12 +137,17 @@ function SectionDivider({ label, isOpen }: { label: string; isOpen: boolean }) {
 export interface SidebarNavProps {
   /**
    * isOwner = user owns an agency row (owner_id = uid).
-   * Controls whether agency management tools are shown.
+   * Controls whether Team management (seat add/remove) is shown.
    */
   isOwner: boolean
   /**
+   * isStaff = user is agency_admin or customer_service (non-owner elevated role).
+   * Staff see the full operational nav including Agency View, but not Team.
+   */
+  isStaff?: boolean
+  /**
    * isBrokerTier = the agency is on the solo/broker pricing tier.
-   * Even agency owners on broker tier see the stripped nav.
+   * Broker-tier users always see the stripped 3-item nav regardless of role.
    */
   isBrokerTier: boolean
   role: string
@@ -145,6 +158,7 @@ export interface SidebarNavProps {
 
 export function SidebarNav({
   isOwner,
+  isStaff = false,
   isBrokerTier,
   role,
   name,
@@ -167,11 +181,21 @@ export function SidebarNav({
       ? pathname === '/dashboard'
       : (pathname?.startsWith(href) ?? false)
 
-  // ── Determine which nav set to render ────────────────────────────────────
-  // Agency Owner on agency/professional tier → full nav + management section
-  // Everyone else (solo broker, sub-broker, broker tier) → stripped 3-item nav
-  const showAgencyNav  = isOwner && !isBrokerTier
-  const coreNavBase    = showAgencyNav ? AGENCY_CORE_NAV : BROKER_CORE_NAV
+  // ── Three-profile nav fork ────────────────────────────────────────────────
+  //
+  //  Profile A — AGENCY OWNER (isOwner && !isBrokerTier)
+  //    Full core nav + Management section (Team + Agency View)
+  //
+  //  Profile B — MANAGER / CSR (isStaff && !isBrokerTier)
+  //    Full core nav + Agency View only (no Team / seat management)
+  //
+  //  Profile C — BROKER / BROKER-TIER (everyone else)
+  //    Stripped 3-item nav (My Clients, Alerts, Import Data)
+  //
+  const showFullNav    = !isBrokerTier && (isOwner || isStaff)
+  const showOwnerMgmt  = isOwner && !isBrokerTier   // Team + Agency View
+  const showStaffMgmt  = isStaff && !isBrokerTier   // Agency View only
+  const coreNavBase    = showFullNav ? AGENCY_CORE_NAV : BROKER_CORE_NAV
 
   // Inject alert badge
   const coreNav = coreNavBase.map(item =>
@@ -225,11 +249,21 @@ export function SidebarNav({
             <NavLink key={item.href} item={item} isActive={isActive(item.href)} isOpen={isOpen} />
           ))}
 
-          {/* Management section — Agency Owner on agency tier ONLY */}
-          {showAgencyNav && (
+          {/* Profile A — Owner: Team + Agency View */}
+          {showOwnerMgmt && (
             <>
               <SectionDivider label="Management" isOpen={isOpen} />
-              {AGENCY_MGMT_NAV.map(item => (
+              {OWNER_MGMT_NAV.map(item => (
+                <NavLink key={item.href} item={item} isActive={isActive(item.href)} isOpen={isOpen} />
+              ))}
+            </>
+          )}
+
+          {/* Profile B — Manager / CSR: Agency View only (no seat management) */}
+          {showStaffMgmt && (
+            <>
+              <SectionDivider label="Support" isOpen={isOpen} />
+              {STAFF_MGMT_NAV.map(item => (
                 <NavLink key={item.href} item={item} isActive={isActive(item.href)} isOpen={isOpen} />
               ))}
             </>

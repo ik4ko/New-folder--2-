@@ -341,8 +341,10 @@ export async function POST(req: NextRequest) {
     const duplicateCount = typedRecords.length - deduped.length
 
     const mbiCount = deduped.length
-    const planCount = deduped.filter(r => r.plan_name).length
-    const carrierCount = deduped.filter(r => r.carrier !== 'unknown').length
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const dedupedTyped = deduped as any[]
+    const planCount = dedupedTyped.filter((r: any) => r.plan_name).length
+    const carrierCount = dedupedTyped.filter((r: any) => r.carrier !== 'unknown').length
 
     const { error: upsertError } = await supabase
       .from('book_of_business')
