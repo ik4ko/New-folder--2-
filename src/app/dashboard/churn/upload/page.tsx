@@ -11,6 +11,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { useToast } from '@/hooks/use-toast';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -192,6 +193,7 @@ function StatPill({
 export default function ChurnUploadPage() {
   const router       = useRouter();
   const searchParams = useSearchParams();
+  const { toast }    = useToast();
   const supabase     = createClient();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -310,13 +312,21 @@ export default function ChurnUploadPage() {
 
   // ── GHL handlers ──────────────────────────────────────────────────────────
   const handleGhlConnect = () => {
+    // Pre-flight notice: GHL requires the user to already be logged in inside
+    // the popup. Without this prompt, users are confused by the login screen
+    // that appears instead of the OAuth consent page.
+    toast({
+      title:       'GoHighLevel Login Required',
+      description: 'Sign into your GHL account in the popup, then select your sub-account location.',
+      duration:    7000,
+    });
+
     // Open the OAuth flow in a centred popup so the parent dashboard tab
     // stays fully undisturbed. After the OAuth dance completes the callback
-    // route redirects the popup to this same page with ?ghl=connected, which
-    // detects window.opener, posts GHL_OAUTH_SUCCESS, and calls window.close().
-    // The message listener below receives that and handles state + sync.
-    const W    = 600;
-    const H    = 700;
+    // route returns an inline HTML page that posts GHL_OAUTH_SUCCESS to the
+    // parent and self-closes — no full Next.js page load required.
+    const W    = 640;
+    const H    = 720;
     const left = Math.round(window.screen.width  / 2 - W / 2);
     const top  = Math.round(window.screen.height / 2 - H / 2);
     const popup = window.open(
@@ -358,6 +368,7 @@ export default function ChurnUploadPage() {
         popup?.close();
         setGhlConnected(true);
         setGhlBanner('success');
+        router.refresh(); // re-fetch server state so credential check reflects live DB
         setGhlSyncing(true);
         fetch('/api/ghl/sync', {
           method: 'POST',

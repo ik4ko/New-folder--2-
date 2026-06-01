@@ -64,11 +64,16 @@ export async function GET(req: NextRequest) {
     )
   }
 
-  if (!clientId) {
+  // clientId.length < 10 catches placeholder values like "5" or "abc" that are
+  // truthy but not valid GHL App IDs — GHL rejects them with "appId must be a
+  // valid app id". The guard surfaces the exact value in the error response so
+  // the correct ID can be confirmed against the GHL Marketplace settings.
+  if (!clientId || clientId.length < 10) {
+    console.error('[ghl/connect] GHL_CLIENT_ID is missing or invalid:', clientId)
     return NextResponse.json(
       {
-        error: 'GHL_CLIENT_ID is not configured — GHL OAuth cannot proceed.',
-        hint:  [
+        error:   `GHL_CLIENT_ID not configured. Current value: "${clientId}"`,
+        hint:    [
           'Set GHL_CLIENT_ID in Vercel Environment Variables (Settings → Environment Variables).',
           'The variable must be named GHL_CLIENT_ID, not GHL_APP_ID or NEXT_PUBLIC_GHL_CLIENT_ID.',
           'After adding the variable, redeploy the project for it to take effect.',

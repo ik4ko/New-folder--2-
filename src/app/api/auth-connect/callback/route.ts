@@ -132,15 +132,59 @@ export async function GET(req: NextRequest) {
       metadata: { expires_at: expiresAt, location_id: locationId },
     });
 
-    // -- 5. Success: route to Book of Business with import success flag --------
-    // The /ghl standalone page is deprecated. GHL is now a data source embedded
-    // inside the unified import interface (/dashboard/churn/upload).
-    // The ?ghl=connected flag triggers a toast in the import page confirming
-    // the connection and prompting a background sync.
-    return NextResponse.redirect(`${APP_URL}/dashboard/churn/upload?ghl=connected`);
+    // -- 5. Success — return inline HTML that closes the popup cleanly ----------
+    // Redirecting the popup to the full Next.js dashboard page causes the
+    // "empty tab" UX issue: the popup has no dashboard session cookie, so the
+    // heavy page load either stalls or shows the login screen.
+    // Returning a minimal HTML page that postMessages the parent and
+    // self-closes is instant and requires no session context in the popup.
+    const fallbackUrl = `${APP_URL}/dashboard/churn/upload?ghl=connected`;
+    return new Response(
+      `<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>GoHighLevel Connected</title>
+  <style>
+    body { font-family: system-ui, sans-serif; display: flex; align-items: center;
+           justify-content: center; height: 100vh; margin: 0; background: #0f172a; color: #94a3b8; }
+    p { font-size: 13px; letter-spacing: .05em; text-transform: uppercase; font-weight: 700; }
+  </style>
+</head>
+<body>
+  <p>Connected ✓ — closing window…</p>
+  <script>
+    try {
+      if (window.opener && !window.opener.closed) {
+        window.opener.postMessage({ type: 'GHL_OAUTH_SUCCESS' }, window.location.origin);
+        window.close();
+      } else {
+        // No opener context (direct navigation / popup blocked) — redirect parent tab
+        window.location.replace(${JSON.stringify(fallbackUrl)});
+      }
+    } catch (e) {
+      window.location.replace(${JSON.stringify(fallbackUrl)});
+    }
+  </script>
+</body>
+</html>`,
+      { headers: { 'Content-Type': 'text/html; charset=utf-8' } }
+    );
 
   } catch (err: any) {
     console.error('[GHL callback] unexpected error:', err?.message ?? err);
-    return NextResponse.redirect(`${APP_URL}/dashboard/churn/upload?ghl=error`);
+    const errFallback = `${APP_URL}/dashboard/churn/upload?ghl=error`;
+    return new Response(
+      `<!DOCTYPE html><html><head><meta charset="utf-8"/></head><body>
+<script>
+  try {
+    if (window.opener && !window.opener.closed) {
+      window.opener.postMessage({ type: 'GHL_OAUTH_ERROR' }, window.location.origin);
+      window.close();
+    } else { window.location.replace(${JSON.stringify(errFallback)}); }
+  } catch(e) { window.location.replace(${JSON.stringify(errFallback)}); }
+</script></body></html>`,
+      { headers: { 'Content-Type': 'text/html; charset=utf-8' } }
+    );
   }
 }
