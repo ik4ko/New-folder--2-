@@ -474,14 +474,11 @@ export async function POST(req: NextRequest) {
 // Custom field convention:
 //   Brokers must create the following custom fields in their GHL sub-account
 //   using these exact field keys (Settings → Custom Fields):
-//     aegissage_mbi                 Medicare Beneficiary ID
-//     aegissage_carrier             Current Insurance Carrier
-//     aegissage_plan_name           Enrolled Plan Name
-//     aegissage_enrollment_status   Enrollment Status (active/termed/pending)
-//     aegissage_churn_risk          Risk Level (HIGH / MEDIUM / LOW)
-//     aegissage_future_plan         Upcoming Plan (if switch detected)
-//     aegissage_future_eff_date     Future Plan Effective Date
-//     aegissage_doctor_name         Primary Care Physician
+//     aegissage_churn_risk          Risk Level (HIGH / MEDIUM / LOW) — non-PHI
+//     aegissage_member_ref          AegisSage internal UUID — non-PHI
+//
+// REMOVED (pending GHL BAA): aegissage_mbi, aegissage_carrier,
+//   aegissage_plan_name, aegissage_enrollment_status, aegissage_doctor_name
 //
 // Retention tags applied:
 //   AegisSage-Monitored    → always (all AegisSage-managed contacts)
@@ -671,62 +668,54 @@ function buildGhlPayload(
   isChurnRisk:  boolean,
   isTermed:     boolean,
 ): Record<string, unknown> {
-  // ── Retention tags ──────────────────────────────────────────────────────────
-  // All AegisSage-managed tags use the "AegisSage-" prefix so brokers can
-  // easily filter them in GHL workflows. The full tag list REPLACES any
-  // previous AegisSage tags on the contact — this is intentional.
+  // ── HIPAA COMPLIANCE NOTE ────────────────────────────────────────────────────
+  // GHL does not have a signed BAA with AegisSage. Per HIPAA §164.502(e),
+  // PHI may ONLY be transmitted to a Business Associate with a valid BAA.
+  //
+  // This function deliberately sends ONLY:
+  //   1. The AegisSage internal member UUID (aegissage_member_ref) — not a
+  //      HIPAA identifier — it has no meaning outside AegisSage's system
+  //   2. The churn risk level (HIGH / MEDIUM / LOW) — not PHI
+  //   3. Retention tags — not PHI
+  //
+  // Fields that must NEVER be sent to GHL without a BAA:
+  //   aegissage_mbi, aegissage_carrier, aegissage_plan_name,
+  //   aegissage_enrollment_status, aegissage_doctor_name, firstName, lastName
+  //
+  // If GHL executes a BAA in the future, restore the commented fields below
+  // and update this comment with the BAA date and reference number.
+  // ─────────────────────────────────────────────────────────────────────────────
+
   const tags: string[] = ['AegisSage-Monitored']
+  if (isTermed)                tags.push('AegisSage-Termed')
+  if (isChurnRisk)             tags.push('AegisSage-Churn-Risk')
+  if (member.is_chronic)       tags.push('AegisSage-DSNP')
+  if (member.future_plan_name) tags.push('AegisSage-Switch-Pending')
 
-  if (isTermed)                  tags.push('AegisSage-Termed')
-  if (isChurnRisk)               tags.push('AegisSage-Churn-Risk')
-  if (member.is_chronic)         tags.push('AegisSage-DSNP')
-  if (member.future_plan_name)   tags.push('AegisSage-Switch-Pending')
-
-  // ── Custom fields ───────────────────────────────────────────────────────────
-  // Uses GHL V2 customFields array format.
-  // Brokers must create fields with these exact keys in their GHL sub-account
-  // (Settings → Custom Fields). The "aegissage_" prefix avoids collisions
-  // with any existing custom fields in the broker's account.
   const churnRiskLabel = isTermed ? 'HIGH' : isChurnRisk ? 'MEDIUM' : 'LOW'
 
+  // Non-PHI custom fields only
   const customFields: Array<{ key: string; field_value: string }> = [
-    // Always include risk level so GHL workflows can branch on it
-    { key: 'aegissage_churn_risk', field_value: churnRiskLabel },
+    { key: 'aegissage_churn_risk',   field_value: churnRiskLabel },
+    { key: 'aegissage_member_ref',   field_value: member.id },      // internal UUID — not PHI
   ]
 
-  if (member.mbi) {
-    customFields.push({ key: 'aegissage_mbi', field_value: member.mbi })
-  }
-  if (member.carrier) {
-    customFields.push({ key: 'aegissage_carrier', field_value: member.carrier })
-  }
-  if (member.plan_name) {
-    customFields.push({ key: 'aegissage_plan_name', field_value: member.plan_name })
-  }
-  if (member.enrollment_status) {
-    customFields.push({ key: 'aegissage_enrollment_status', field_value: member.enrollment_status })
-  }
-  if (member.future_plan_name) {
-    customFields.push({ key: 'aegissage_future_plan', field_value: member.future_plan_name })
-  }
-  if (member.future_effective_date) {
-    customFields.push({ key: 'aegissage_future_eff_date', field_value: member.future_effective_date })
-  }
-  if (member.doctor_name) {
-    customFields.push({ key: 'aegissage_doctor_name', field_value: member.doctor_name })
-  }
+  // Fields removed pending BAA with GHL:
+  // aegissage_mbi, aegissage_carrier, aegissage_plan_name,
+  // aegissage_enrollment_status, aegissage_future_plan,
+  // aegissage_future_eff_date, aegissage_doctor_name
 
-  // ── Payload shape ───────────────────────────────────────────────────────────
   if (isUpdate) {
-    // PUT: only AegisSage-controlled fields — never overwrite GHL-native data
     return { tags, customFields }
   }
 
-  // POST: include name so GHL can display the member correctly
-  const { firstName, lastName } = splitMemberName(member.full_name)
+  // POST: GHL needs a name to display the contact.
+  // full_name is PHI — send a placeholder referencing the internal UUID
+  // so the broker can identify which contact maps to which AegisSage member.
+  // If GHL executes a BAA, replace this with the real name.
   return {
-    firstName,
-    lastName,
+    firstName:  'AegisSage',
+    lastName:   `Member-${member.id.slice(0, 8)}`,
     locationId,
     tags,
     customFields,

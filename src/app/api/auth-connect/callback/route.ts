@@ -2,6 +2,31 @@ import { createServerClient } from '@supabase/ssr';
 import { cookies } from 'next/headers';
 import { NextRequest, NextResponse } from 'next/server';
 import { supabaseAdmin } from '@/lib/supabase';
+import { createHmac } from 'crypto';
+
+// ── CSRF state verification ───────────────────────────────────────────────────
+// Must match the secret and algorithm in ghl/connect/route.ts
+const STATE_SECRET = process.env.GHL_STATE_SECRET;
+
+function verifyGhlState(state: string): string | null {
+  if (!STATE_SECRET) {
+    // Hard fail — no secret means no CSRF protection at all
+    console.error('[auth-connect/callback] GHL_STATE_SECRET is not set — rejecting all OAuth callbacks');
+    return null;
+  }
+  try {
+    const decoded  = Buffer.from(state, 'base64url').toString('utf8');
+    const parts    = decoded.split('.');
+    if (parts.length !== 3) return null;
+    const [userId, nonce, receivedSig] = parts;
+    const payload  = `${userId}.${nonce}`;
+    const expected = createHmac('sha256', STATE_SECRET).update(payload).digest('hex').slice(0, 16);
+    if (receivedSig !== expected) return null;
+    return userId;
+  } catch {
+    return null;
+  }
+}
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:9002';
 
@@ -13,6 +38,32 @@ export async function GET(req: NextRequest) {
     console.error('[GHL callback] missing code param');
     return NextResponse.redirect(`${APP_URL}/dashboard/churn/upload?ghl=error`);
   }
+
+  // ── CSRF: verify state param ────────────────────────────────────────────────
+  // The state was signed with GHL_STATE_SECRET in ghl/connect/route.ts.
+  // If it's missing, tampered, or signed with a different secret, reject immediately.
+  const stateParam = searchParams.get('state');
+  if (!stateParam) {
+    console.error('[auth-connect/callback] missing state param — possible CSRF');
+    return NextResponse.redirect(`${APP_URL}/dashboard/churn/upload?ghl=error&reason=invalid_state`);
+  }
+
+  // Also verify against the cookie we set in ghl/connect/route.ts
+  const cookieStoreEarly = await cookies();
+  const cookieState = cookieStoreEarly.get('ghl_oauth_state')?.value;
+  if (!cookieState || cookieState !== stateParam) {
+    console.error('[auth-connect/callback] state cookie mismatch — possible CSRF');
+    return NextResponse.redirect(`${APP_URL}/dashboard/churn/upload?ghl=error&reason=invalid_state`);
+  }
+
+  const stateUserId = verifyGhlState(stateParam);
+  if (!stateUserId) {
+    console.error('[auth-connect/callback] state HMAC verification failed — rejecting');
+    return NextResponse.redirect(`${APP_URL}/dashboard/churn/upload?ghl=error&reason=invalid_state`);
+  }
+
+  // Clear the state cookie — single use
+  cookieStoreEarly.delete('ghl_oauth_state');
 
   const clientId     = process.env.GHL_CLIENT_ID;
   const clientSecret = process.env.GHL_CLIENT_SECRET;
@@ -59,18 +110,18 @@ export async function GET(req: NextRequest) {
       return NextResponse.redirect(`${APP_URL}/login`);
     }
 
-    const { data: agency, error: agencyError } = await supabase
-      .from('agencies')
-      .select('id')
-      .eq('owner_id', user.id)
-      .maybeSingle();
+    const { data: broker, error: brokerError } = await supabase
+      .from('brokers')
+      .select('agency_id')
+      .eq('user_id', user.id)
+      .single();
 
-    if (agencyError || !agency) {
-      console.error('[GHL callback] agency lookup failed:', agencyError);
+    if (brokerError || !broker) {
+      console.error('[GHL callback] broker lookup failed:', brokerError);
       return NextResponse.redirect(`${APP_URL}/dashboard/churn/upload?ghl=error&reason=oauth_failed`);
     }
 
-    const agencyId = agency.id;
+    const agencyId = broker.agency_id;
 
     // -- 2. Exchange code for tokens ------------------------------------------
     const tokenRes = await fetch('https://services.leadconnectorhq.com/oauth/token', {

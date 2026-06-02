@@ -346,7 +346,6 @@ export async function POST(req: NextRequest) {
 async function getBrokerFromApiKey(req: NextRequest) {
   const authHeader = req.headers.get('authorization') ?? req.headers.get('Authorization') ?? ''
   const token = authHeader.replace('Bearer ', '').trim()
-  console.log('[extension/sync] api key length:', token.length, '| prefix:', token.slice(0, 20))
   if (token.length < 32) {
     console.warn('[extension/sync] API key too short or missing')
     return null
@@ -358,7 +357,7 @@ async function getBrokerFromApiKey(req: NextRequest) {
     .eq('extension_api_key', token)
     .maybeSingle()
   if (error) console.error('[extension/sync] broker lookup error:', error.message)
-  if (!broker) console.warn('[extension/sync] no broker found for api key prefix:', token.slice(0, 20))
+  if (!broker) console.warn('[extension/sync] no broker found for provided api key')
   return broker ?? null
 }
 

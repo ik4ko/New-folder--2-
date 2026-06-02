@@ -6,10 +6,12 @@ import { OnboardingChecklist } from '@/components/onboarding-checklist'
 import { RevenueLeakageCalculator } from '@/components/revenue-leakage-calculator'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import Link from 'next/link'
 import {
   Users, TrendingDown, FileCheck, ShieldCheck,
-  AlertTriangle, ArrowUpRight, XCircle,
+  AlertTriangle, ArrowUpRight, XCircle, User,
+  Building2, Eye,
 } from 'lucide-react'
 import type { ElementType } from 'react'
 
@@ -57,10 +59,16 @@ export default async function Dashboard({
   const isCS        = brokerRow?.role === 'customer_service'
   const isStaff     = isPrincipal || isCS || !!agency
 
+  // ── Bird's-Eye View Toggle ────────────────────────────────────────────────
+  // Owners and managers can toggle between Agency Executive View and My Broker View
+  // Standard brokers always see their broker view
+  const sp = await searchParams
+  const viewMode = (sp['view_mode'] as string) ?? (isPrincipal ? 'agency' : 'broker')
+  const isAgencyView = viewMode === 'agency'
+
   // ── Default landing for owners and principals ──────────────────────────────
   // Redirect to the Book of Business unless a ?view= param is present.
   // Pass ?view=dashboard to reach the stats overview explicitly.
-  const sp = await searchParams
   if ((!!agency || isPrincipal) && !sp['view']) {
     redirect('/dashboard/book')
   }
@@ -80,7 +88,7 @@ export default async function Dashboard({
 
   // 'broker' tier = Solo $149 plan — never show agency-wide counters or revenue leakage
   const agencyTier      = agency?.subscription_tier ?? 'broker'
-  const showAgencyView  = isStaff && agencyTier !== 'broker'
+  const showAgencyView  = isStaff && agencyTier !== 'broker' && isAgencyView
 
   if (!agencyId) {
     try {
@@ -193,13 +201,42 @@ export default async function Dashboard({
                 {agencyName ? agencyName.toUpperCase() : (isStaff ? 'DASHBOARD' : 'MY DASHBOARD')}
               </h1>
               <p className="text-muted-foreground font-black text-[10px] uppercase tracking-widest">
-                {agencyName ? `${agencyName} · Agency Overview` : (isStaff ? 'Agency Overview' : 'Your Book of Business')}
+                {agencyName ? `${agencyName} · ${isAgencyView ? 'Agency Executive View' : 'My Broker View'}` : (isStaff ? 'Agency Overview' : 'Your Book of Business')}
               </p>
             </div>
-            <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 px-3 py-1 h-8 gap-2 font-black uppercase tracking-widest text-[9px]">
-              <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-              Live
-            </Badge>
+            <div className="flex items-center gap-3">
+              {/* Bird's-Eye View Toggle for Owners/Managers */}
+              {isPrincipal && (
+                <div className="flex items-center gap-2 bg-muted/30 rounded-2xl p-1 border border-border">
+                  <Button
+                    asChild
+                    variant={isAgencyView ? 'default' : 'ghost'}
+                    size="sm"
+                    className="rounded-xl h-8 px-3 font-black uppercase text-[10px] tracking-widest gap-2"
+                  >
+                    <Link href="/dashboard?view=dashboard&view_mode=agency">
+                      <Building2 className="w-3.5 h-3.5" />
+                      Agency View
+                    </Link>
+                  </Button>
+                  <Button
+                    asChild
+                    variant={!isAgencyView ? 'default' : 'ghost'}
+                    size="sm"
+                    className="rounded-xl h-8 px-3 font-black uppercase text-[10px] tracking-widest gap-2"
+                  >
+                    <Link href="/dashboard?view=dashboard&view_mode=broker">
+                      <User className="w-3.5 h-3.5" />
+                      My View
+                    </Link>
+                  </Button>
+                </div>
+              )}
+              <Badge variant="outline" className="bg-emerald-500/10 text-emerald-500 border-emerald-500/20 px-3 py-1 h-8 gap-2 font-black uppercase tracking-widest text-[9px]">
+                <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                Live
+              </Badge>
+            </div>
           </div>
 
           {/* Stat Cards */}

@@ -9,9 +9,12 @@ export const dynamic = 'force-dynamic'
 // Supabase session cookie is dropped during the GHL OAuth redirect cycle.
 // Format (base64url): <userId>.<nonce>.<hmac_first16>
 
+// Hard fail if GHL_STATE_SECRET is not set — no silent fallback.
+// Set this to a 32-byte random hex: openssl rand -hex 32
+if (!process.env.GHL_STATE_SECRET) {
+  throw new Error('[ghl/connect] GHL_STATE_SECRET env var is required but not set. Set it in Vercel Environment Variables.');
+}
 const STATE_SECRET = process.env.GHL_STATE_SECRET
-  ?? process.env.NEXTAUTH_SECRET
-  ?? 'ghl-state-aegissage-v1'
 
 export function createGhlState(userId: string): string {
   const nonce = Math.random().toString(36).slice(2, 10)
@@ -92,6 +95,36 @@ export async function GET(req: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser()
   if (!user) {
     return NextResponse.redirect(new URL('/login', req.url))
+  }
+
+  // ── Smart Login Detection ───────────────────────────────────────────────────
+  // Check if the user already has a valid GHL access token before redirecting to OAuth.
+  // This prevents unnecessary OAuth flows when the user is already connected.
+  const { data: broker } = await supabase
+    .from('brokers')
+    .select('agency_id')
+    .eq('user_id', user.id)
+    .single()
+
+  if (broker?.agency_id) {
+    const { data: credentials } = await supabase
+      .from('agency_credentials')
+      .select('access_token, expires_at')
+      .eq('agency_id', broker.agency_id)
+      .single()
+
+    if (credentials?.access_token && credentials.expires_at) {
+      const expiresAt = new Date(credentials.expires_at)
+      const now = new Date()
+
+      if (expiresAt > now) {
+        // Valid, unexpired token exists — bypass OAuth redirect
+        return NextResponse.json({
+          connected: true,
+          status: 'active_session_detected'
+        })
+      }
+    }
   }
 
   const state = createGhlState(user.id)
