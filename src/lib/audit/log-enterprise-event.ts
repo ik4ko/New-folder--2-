@@ -55,6 +55,9 @@ export type AuditActionType =
   | 'LOGIN'
   | 'LOGOUT'
   | 'LOGIN_FAILED'
+  // Session lifecycle
+  | 'SESSION_START'
+  | 'SESSION_END'
 
 export interface EnterpriseAuditEventParams {
   /** Agency the event belongs to */

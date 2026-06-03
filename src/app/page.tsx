@@ -1,547 +1,584 @@
 "use client"
 
-import { useState } from 'react'
-import { Button } from "@/components/ui/button"
+import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react"
+import Link from "next/link"
+import {
+  Activity,
+  ArrowRight,
+  BellRing,
+  CheckCircle2,
+  Chrome,
+  DatabaseZap,
+  Layers3,
+  LockKeyhole,
+  Mail,
+  ShieldCheck,
+  UploadCloud,
+  Users,
+} from "lucide-react"
+
+import { Logo } from "@/components/logo"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import {
-  CheckCircle2, Activity, Printer, ShieldPlus, Building2, Zap,
-  Shield, Lock, Users, BarChart3, ArrowRight, X, Send,
-} from "lucide-react"
-import Link from "next/link"
-import { Logo } from "@/components/logo"
-import { useTranslation } from "@/lib/i18n"
-import { LanguageSelector } from "@/components/language-selector"
-import { ComplianceShield } from "@/components/ComplianceShield"
-export const dynamic = 'force-dynamic';
-// ── Enterprise Onboarding Modal ───────────────────────────────────────────────
-function EnterpriseModal({ onClose }: { onClose: () => void }) {
-  const [submitted, setSubmitted] = useState(false)
-  const [form, setForm] = useState({ name: '', agency: '', email: '', phone: '', size: '', note: '' })
-  const [sending, setSending] = useState(false)
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setSending(true)
-    await new Promise(r => setTimeout(r, 900))
-    setSending(false)
-    setSubmitted(true)
-  }
+const SWITCH_RATE = 0.27
+const RECOVERY_RATE = 0.6
+
+const stats = [
+  { value: 27, suffix: "%", label: "of MA clients switch plans annually" },
+  { value: 1200, prefix: "$", label: "average commission lost per switched client" },
+  { value: 60, suffix: "+", label: "days before most switches are discovered" },
+]
+
+const steps = [
+  {
+    title: "Connect your book of business",
+    description: "Upload your roster or sync the clients your agency already manages.",
+    icon: UploadCloud,
+  },
+  {
+    title: "AegisSage monitors CMS MARx data",
+    description: "Automated checks compare plan status, enrollment movement, and risk signals.",
+    icon: DatabaseZap,
+  },
+  {
+    title: "Get alerted before the switch finalizes",
+    description: "Know which clients need outreach while there is still time to intervene.",
+    icon: BellRing,
+  },
+]
+
+const features = [
+  {
+    title: "Batch MARx Verification",
+    description: "Run high-volume eligibility checks across your whole Medicare book without spreadsheet triage.",
+    icon: Layers3,
+  },
+  {
+    title: "Real-time Switch Alerts",
+    description: "Surface pending plan changes, disenrollments, and carrier movement before commissions disappear.",
+    icon: Activity,
+  },
+  {
+    title: "HIPAA Audit Logging",
+    description: "Track PHI access, verification actions, and alert workflows for compliance reviews.",
+    icon: ShieldCheck,
+  },
+  {
+    title: "Chrome Extension Automation",
+    description: "Reduce manual portal work with guided browser automation for carrier and roster workflows.",
+    icon: Chrome,
+  },
+  {
+    title: "Multi-broker Agency Support",
+    description: "Give owners and managers a rollup view across downline books, seats, and revenue risk.",
+    icon: Users,
+  },
+  {
+    title: "Email Notifications via Resend",
+    description: "Route switch alerts to the right broker with clear, action-ready email notifications.",
+    icon: Mail,
+  },
+]
+
+function useInView<T extends HTMLElement>() {
+  const ref = useRef<T | null>(null)
+  const [isInView, setIsInView] = useState(false)
+
+  useEffect(() => {
+    const node = ref.current
+    if (!node) return
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIsInView(true)
+          observer.unobserve(entry.target)
+        }
+      },
+      { rootMargin: "0px 0px -12% 0px", threshold: 0.18 }
+    )
+
+    observer.observe(node)
+    return () => observer.disconnect()
+  }, [])
+
+  return { ref, isInView }
+}
+
+function Reveal({
+  children,
+  className = "",
+  delay = 0,
+}: {
+  children: ReactNode
+  className?: string
+  delay?: number
+}) {
+  const { ref, isInView } = useInView<HTMLDivElement>()
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/70 backdrop-blur-sm px-4"
-      onClick={onClose}>
-      <div className="relative w-full max-w-lg bg-slate-950 border border-white/10 rounded-3xl shadow-2xl overflow-hidden"
-        onClick={e => e.stopPropagation()}>
-        <div className="bg-gradient-to-r from-primary/30 to-violet-600/20 border-b border-white/10 px-8 py-5 flex items-center justify-between">
-          <div>
-            <p className="text-[9px] font-black uppercase tracking-[0.3em] text-primary/80">Agency &amp; Enterprise</p>
-            <p className="text-lg font-black text-white tracking-tight">Request Onboarding &amp; Security Docs</p>
-          </div>
-          <button onClick={onClose} className="text-white/40 hover:text-white transition-colors">
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-        <div className="px-8 py-6">
-          {submitted ? (
-            <div className="py-10 text-center space-y-4">
-              <div className="w-16 h-16 rounded-full bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center mx-auto">
-                <CheckCircle2 className="w-8 h-8 text-emerald-400" />
-              </div>
-              <p className="text-xl font-black text-white tracking-tight">Request Received</p>
-              <p className="text-sm text-white/50 font-medium">Our enterprise team will contact you within one business day with a security packet, BAA template, and custom onboarding schedule.</p>
-              <Button onClick={onClose} variant="outline" className="mt-4 rounded-xl font-black uppercase text-[10px] tracking-widest border-white/20 text-white hover:bg-white/10">Close</Button>
-            </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <label className="text-[9px] font-black uppercase tracking-widest text-white/40">Your Name *</label>
-                  <input required value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
-                    className="w-full h-10 rounded-xl bg-white/5 border border-white/10 text-white text-sm px-3 placeholder:text-white/20 focus:outline-none focus:border-primary"
-                    placeholder="Jane Smith" />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-[9px] font-black uppercase tracking-widest text-white/40">Agency Name *</label>
-                  <input required value={form.agency} onChange={e => setForm(f => ({ ...f, agency: e.target.value }))}
-                    className="w-full h-10 rounded-xl bg-white/5 border border-white/10 text-white text-sm px-3 placeholder:text-white/20 focus:outline-none focus:border-primary"
-                    placeholder="Smith Medicare Group" />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-3">
-                <div className="space-y-1.5">
-                  <label className="text-[9px] font-black uppercase tracking-widest text-white/40">Work Email *</label>
-                  <input required type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
-                    className="w-full h-10 rounded-xl bg-white/5 border border-white/10 text-white text-sm px-3 placeholder:text-white/20 focus:outline-none focus:border-primary"
-                    placeholder="jane@youragency.com" />
-                </div>
-                <div className="space-y-1.5">
-                  <label className="text-[9px] font-black uppercase tracking-widest text-white/40">Phone</label>
-                  <input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
-                    className="w-full h-10 rounded-xl bg-white/5 border border-white/10 text-white text-sm px-3 placeholder:text-white/20 focus:outline-none focus:border-primary"
-                    placeholder="(555) 000-0000" />
-                </div>
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-[9px] font-black uppercase tracking-widest text-white/40">Number of Brokers</label>
-                <select value={form.size} onChange={e => setForm(f => ({ ...f, size: e.target.value }))}
-                  className="w-full h-10 rounded-xl bg-white/5 border border-white/10 text-white text-sm px-3 focus:outline-none focus:border-primary">
-                  <option value="" className="bg-slate-900">Select range</option>
-                  <option value="1-5" className="bg-slate-900">1-5 brokers</option>
-                  <option value="6-15" className="bg-slate-900">6-15 brokers</option>
-                  <option value="16-50" className="bg-slate-900">16-50 brokers</option>
-                  <option value="50+" className="bg-slate-900">50+ brokers</option>
-                </select>
-              </div>
-              <div className="space-y-1.5">
-                <label className="text-[9px] font-black uppercase tracking-widest text-white/40">Anything specific? (Optional)</label>
-                <textarea value={form.note} onChange={e => setForm(f => ({ ...f, note: e.target.value }))} rows={2}
-                  className="w-full rounded-xl bg-white/5 border border-white/10 text-white text-sm px-3 py-2.5 placeholder:text-white/20 focus:outline-none focus:border-primary resize-none"
-                  placeholder="BAA, custom onboarding, data migration, SSO..." />
-              </div>
-              <div className="flex items-center gap-4 pt-1">
-                {["SOC 2 Ready", "BAA Included", "HIPAA Compliant"].map(t => (
-                  <div key={t} className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-white/30">
-                    <Shield className="w-2.5 h-2.5" />{t}
-                  </div>
-                ))}
-              </div>
-              <Button type="submit" disabled={sending}
-                className="w-full h-12 rounded-2xl font-black uppercase text-[10px] tracking-widest bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20 gap-2">
-                {sending ? "Sending..." : <><Send className="w-3.5 h-3.5 mr-1" />Send Request</>}
-              </Button>
-            </form>
-          )}
-        </div>
-      </div>
+    <div
+      ref={ref}
+      className={`${className} transition-all duration-700 ease-out ${
+        isInView ? "translate-y-0 opacity-100" : "translate-y-6 opacity-0"
+      }`}
+      style={{ transitionDelay: `${delay}ms` }}
+    >
+      {children}
     </div>
   )
 }
 
-// ── Marketing Pillars ─────────────────────────────────────────────────────────
-const FEATURES = [
-  {
-    title: "Automated Carrier Verification Engine",
-    desc: "Our Chrome Extension syncs client Name, current Plan, and Coverage in the background — silently checking each member against carrier rosters. Catches plan switches automatically without manual portal lookups or spreadsheet audits.",
-    icon: Activity,
-    demo: "Background sync complete — plan switch detected · Robert Sanchez · Humana → United.",
-    tier: "both",
-  },
-  {
-    title: "VCC Form Automation",
-    desc: "Submit CMS Vendor-Contractor-Certification chronic illness forms directly to physician offices via automated faxing on behalf of your client. VCC approval locks the benefit tier and protects your renewal stream — no manual steps required.",
-    icon: Printer,
-    demo: "VCC faxed to Dr. Patricia Smith — Humana Gold Plus H5619.",
-    tier: "both",
-  },
-  {
-    title: "Automated Retention Campaigns",
-    desc: "The moment a coverage anomaly is detected, AegisSage fires multi-channel outreach — text alerts to the client, email notifications to you, and a templated re-enrollment workflow so no switch slips through uncontested.",
-    icon: ShieldPlus,
-    demo: "Retention campaign fired — 3 text alerts sent · Linda Park · switch risk HIGH.",
-    tier: "both",
-  },
-]
-
-const BROKER_FEATURES = [
-  "Personal book-of-business protection",
-  "Plan & Coverage lookup · Chrome Extension sync",
-  "Ghost Churn Monitor — automated switch alerts", // <-- Changed from 48-hour monitoring
-  "VCC fax automation to physicians",
-  "Churn & switch alerts",
-  "GoHighLevel CRM integration",
-  "AEP Shield campaign tools",
-  "AI retention scripts",
-]
-
-const AGENCY_FEATURES = [
-  "Everything in Independent Broker",
-  "Manager Control Center dashboard",
-  "Downline roster tracking (all brokers)",
-  "Agency-wide override leak alerts",
-  "Volume license management",
-  "Role-based permissions (Owner / Manager / CS)",
-  "Revenue-at-risk monitoring",
-  "Master roster import & VCC on behalf of brokers",
-  "Priority enterprise support",
-  "BAA execution on request",
-]
-
-// ── Per-card billing toggle ───────────────────────────────────────────────────
-function BillingToggle({
-  annual,
-  onToggle,
+function AnimatedNumber({
+  value,
+  prefix = "",
+  suffix = "",
+  start,
 }: {
-  annual: boolean
-  onToggle: () => void
+  value: number
+  prefix?: string
+  suffix?: string
+  start: boolean
 }) {
+  const [current, setCurrent] = useState(0)
+
+  useEffect(() => {
+    if (!start) return
+
+    let frame = 0
+    const frames = 42
+    const id = window.setInterval(() => {
+      frame += 1
+      const progress = 1 - Math.pow(1 - frame / frames, 3)
+      setCurrent(Math.round(value * Math.min(progress, 1)))
+      if (frame >= frames) window.clearInterval(id)
+    }, 22)
+
+    return () => window.clearInterval(id)
+  }, [start, value])
+
   return (
-    <div className="flex items-center gap-3 mb-5 p-3 rounded-2xl bg-slate-50 border border-slate-100">
-      <span className={"text-[10px] font-black uppercase tracking-widest " + (!annual ? "text-slate-900" : "text-slate-400")}>
-        Monthly
-      </span>
-      <button
-        onClick={onToggle}
-        aria-label="Toggle billing period"
-        className={"relative w-12 h-6 rounded-full transition-colors " + (annual ? "bg-primary" : "bg-slate-300")}
-      >
-        <span className={"absolute top-1 w-4 h-4 rounded-full bg-white shadow transition-transform " + (annual ? "translate-x-7" : "translate-x-1")} />
-      </button>
-      <span className={"text-[10px] font-black uppercase tracking-widest " + (annual ? "text-slate-900" : "text-slate-400")}>
-        Annual <span className="text-primary">— Save 20%</span>
-      </span>
-    </div>
+    <span>
+      {prefix}
+      {current.toLocaleString()}
+      {suffix}
+    </span>
+  )
+}
+
+function WaitlistDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
+  const [form, setForm] = useState({ name: "", email: "", agency_name: "" })
+  const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle")
+  const [error, setError] = useState("")
+
+  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setStatus("sending")
+    setError("")
+
+    try {
+      const response = await fetch("/api/waitlist", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(form),
+      })
+      const payload = await response.json().catch(() => ({}))
+
+      if (!response.ok) {
+        throw new Error(payload.error ?? "Unable to join the waitlist.")
+      }
+
+      setStatus("sent")
+    } catch (err) {
+      setStatus("error")
+      setError(err instanceof Error ? err.message : "Unable to join the waitlist.")
+    }
+  }
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="border-white/10 bg-slate-950 text-white sm:rounded-2xl">
+        {status === "sent" ? (
+          <div className="space-y-5 py-8 text-center">
+            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-emerald-400/30 bg-emerald-400/10">
+              <CheckCircle2 className="h-7 w-7 text-emerald-300" />
+            </div>
+            <div className="space-y-2">
+              <DialogTitle className="text-2xl font-black tracking-tight">You're on the list</DialogTitle>
+              <DialogDescription className="text-slate-400">
+                We will reach out with early access details and onboarding availability for your agency.
+              </DialogDescription>
+            </div>
+            <Button onClick={() => onOpenChange(false)} className="bg-primary font-bold hover:bg-primary/90">
+              Close
+            </Button>
+          </div>
+        ) : (
+          <>
+            <DialogHeader>
+              <DialogTitle className="text-2xl font-black tracking-tight">Request Early Access</DialogTitle>
+              <DialogDescription className="text-slate-400">
+                Tell us where to send your onboarding details. No PHI required.
+              </DialogDescription>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="name">Name</Label>
+                <Input
+                  id="name"
+                  required
+                  value={form.name}
+                  onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
+                  placeholder="Jane Smith"
+                  className="border-white/10 bg-white/5 text-white placeholder:text-slate-600"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="email">Work email</Label>
+                <Input
+                  id="email"
+                  required
+                  type="email"
+                  value={form.email}
+                  onChange={(event) => setForm((prev) => ({ ...prev, email: event.target.value }))}
+                  placeholder="jane@agency.com"
+                  className="border-white/10 bg-white/5 text-white placeholder:text-slate-600"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="agency_name">Agency</Label>
+                <Input
+                  id="agency_name"
+                  required
+                  value={form.agency_name}
+                  onChange={(event) => setForm((prev) => ({ ...prev, agency_name: event.target.value }))}
+                  placeholder="Smith Medicare Group"
+                  className="border-white/10 bg-white/5 text-white placeholder:text-slate-600"
+                />
+              </div>
+              {status === "error" && (
+                <p className="rounded-md border border-red-400/20 bg-red-400/10 px-3 py-2 text-sm text-red-200">
+                  {error}
+                </p>
+              )}
+              <Button
+                type="submit"
+                disabled={status === "sending"}
+                className="h-12 w-full bg-primary font-black hover:bg-primary/90"
+              >
+                {status === "sending" ? "Submitting..." : "Request Early Access"}
+              </Button>
+            </form>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function RoiCalculator() {
+  const [clients, setClients] = useState(420)
+  const [commission, setCommission] = useState(1200)
+
+  const revenueAtRisk = useMemo(() => clients * commission * SWITCH_RATE, [clients, commission])
+  const recoverableRevenue = useMemo(() => revenueAtRisk * RECOVERY_RATE, [revenueAtRisk])
+
+  return (
+    <Card className="overflow-hidden border-white/10 bg-slate-950 shadow-2xl shadow-black/30">
+      <div className="grid gap-0 lg:grid-cols-[1fr_0.9fr]">
+        <div className="space-y-8 p-6 sm:p-8 lg:p-10">
+          <div className="space-y-3">
+            <Badge className="border-cyan-400/30 bg-cyan-400/10 text-cyan-200">ROI Calculator</Badge>
+            <h2 className="text-3xl font-black tracking-tight text-white sm:text-4xl">
+              See the quiet revenue leak in your book.
+            </h2>
+            <p className="max-w-2xl text-sm leading-6 text-slate-400 sm:text-base">
+              Estimate annual commission exposed by Medicare Advantage plan switches, then model how much can be
+              recovered when brokers are alerted early enough to act.
+            </p>
+          </div>
+          <div className="space-y-6">
+            <div className="space-y-3">
+              <div className="flex items-center justify-between gap-4">
+                <Label htmlFor="clients" className="text-slate-200">Number of clients</Label>
+                <span className="font-mono text-sm text-cyan-200">{clients.toLocaleString()}</span>
+              </div>
+              <input
+                id="clients"
+                type="range"
+                min={50}
+                max={2000}
+                step={10}
+                value={clients}
+                onChange={(event) => setClients(Number(event.target.value))}
+                className="h-2 w-full cursor-pointer accent-cyan-300"
+              />
+              <div className="flex justify-between text-xs font-bold uppercase tracking-widest text-slate-600">
+                <span>50</span>
+                <span>2,000</span>
+              </div>
+            </div>
+            <div className="space-y-3">
+              <Label htmlFor="commission" className="text-slate-200">Average annual commission per client</Label>
+              <div className="flex items-center rounded-lg border border-white/10 bg-white/5 px-3 focus-within:border-primary">
+                <span className="text-slate-500">$</span>
+                <input
+                  id="commission"
+                  type="number"
+                  min={800}
+                  max={2000}
+                  step={50}
+                  value={commission}
+                  onChange={(event) => setCommission(Number(event.target.value))}
+                  className="h-11 w-full bg-transparent px-2 text-white outline-none"
+                />
+              </div>
+              <p className="text-xs text-slate-500">Use $800 to $2,000 based on your renewal economics.</p>
+            </div>
+          </div>
+        </div>
+        <div className="flex flex-col justify-center gap-5 border-t border-white/10 bg-white/[0.03] p-6 sm:p-8 lg:border-l lg:border-t-0 lg:p-10">
+          <div className="rounded-lg border border-white/10 bg-black/20 p-5">
+            <p className="text-xs font-black uppercase tracking-[0.22em] text-slate-500">Annual revenue at risk</p>
+            <p className="mt-3 text-4xl font-black tracking-tight text-white sm:text-5xl">
+              {revenueAtRisk.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 })}
+            </p>
+          </div>
+          <div className="rounded-lg border border-emerald-400/20 bg-emerald-400/10 p-5">
+            <p className="text-xs font-black uppercase tracking-[0.22em] text-emerald-300/80">
+              Estimated recoverable revenue
+            </p>
+            <p className="mt-3 text-4xl font-black tracking-tight text-emerald-200 sm:text-5xl">
+              {recoverableRevenue.toLocaleString("en-US", {
+                style: "currency",
+                currency: "USD",
+                maximumFractionDigits: 0,
+              })}
+            </p>
+            <p className="mt-3 text-sm text-emerald-100/70">Assumes a 60% recovery rate after timely intervention.</p>
+          </div>
+        </div>
+      </div>
+    </Card>
   )
 }
 
 export default function LandingPage() {
-  const { t } = useTranslation()
-  const [showEnterpriseModal, setShowEnterpriseModal] = useState(false)
-  const [brokerAnnual, setBrokerAnnual] = useState(false)
-  const [agencyAnnual, setAgencyAnnual] = useState(false)
-
-  const brokerPrice = brokerAnnual ? 119 : 149
-  const agencyPrice = agencyAnnual ? 599 : 749
+  const [waitlistOpen, setWaitlistOpen] = useState(false)
+  const statReveal = useInView<HTMLDivElement>()
 
   return (
-    <div className="flex flex-col min-h-screen bg-background text-foreground selection:bg-primary/10 scroll-smooth overflow-y-auto">
-      {showEnterpriseModal && <EnterpriseModal onClose={() => setShowEnterpriseModal(false)} />}
+    <div className="min-h-screen scroll-smooth bg-slate-950 text-white selection:bg-cyan-300/20">
+      <WaitlistDialog open={waitlistOpen} onOpenChange={setWaitlistOpen} />
 
-      {/* Navigation */}
-      <header className="h-16 md:h-20 border-b border-border/50 px-4 md:px-8 flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur-xl z-50">
-        <div className="flex items-center gap-10">
-          <Link href="/"><Logo /></Link>
-          <nav className="hidden md:flex items-center gap-8">
-            <Link href="#features" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors">Features</Link>
-            <Link href="#tiers" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors">Who It's For</Link>
-            <Link href="#pricing" className="text-[10px] font-black uppercase tracking-widest text-muted-foreground hover:text-primary transition-colors">Pricing</Link>
+      <header className="sticky top-0 z-40 border-b border-white/10 bg-slate-950/82 px-4 backdrop-blur-xl sm:px-6">
+        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4">
+          <Link href="/" aria-label="AegisSage home">
+            <Logo className="[&_span]:text-white" />
+          </Link>
+          <nav className="hidden items-center gap-7 md:flex">
+            {[
+              ["How it works", "#how-it-works"],
+              ["Features", "#features"],
+              ["ROI", "#roi"],
+            ].map(([label, href]) => (
+              <Link
+                key={href}
+                href={href}
+                className="text-xs font-black uppercase tracking-widest text-slate-500 hover:text-cyan-200"
+              >
+                {label}
+              </Link>
+            ))}
           </nav>
-        </div>
-        <div className="flex items-center gap-4">
-          <LanguageSelector variant="ghost" className="hidden sm:flex" />
-          <Button variant="ghost" asChild className="text-xs font-black uppercase tracking-widest">
-            <Link href="/login">{t("common.login")}</Link>
-          </Button>
-          <Button asChild className="rounded-xl h-11 px-6 font-black uppercase tracking-widest shadow-lg shadow-primary/20 text-xs">
-            <Link href="/signup">{t("common.signup")}</Link>
+          <Button onClick={() => setWaitlistOpen(true)} className="h-10 bg-primary font-black hover:bg-primary/90">
+            Request Early Access
           </Button>
         </div>
       </header>
 
-      <main className="flex-1">
+      <main>
+        <section className="relative overflow-hidden px-4 py-16 sm:px-6 md:py-24">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(34,211,238,0.13),transparent_38%),linear-gradient(180deg,rgba(15,23,42,0),rgba(2,6,23,1))]" />
+          <div className="relative mx-auto grid max-w-7xl gap-12 lg:grid-cols-[1fr_0.78fr] lg:items-center">
+            <Reveal className="space-y-8">
+              <Badge className="border-cyan-300/30 bg-cyan-300/10 text-cyan-200">
+                Medicare Retention SaaS
+              </Badge>
+              <div className="space-y-6">
+                <h1 className="max-w-5xl text-5xl font-black leading-[0.95] tracking-tight text-white sm:text-6xl lg:text-7xl">
+                  Stop losing Medicare clients silently
+                </h1>
+                <p className="max-w-2xl text-lg leading-8 text-slate-300 sm:text-xl">
+                  AegisSage detects when Medicare Advantage clients switch plans or disenroll, so brokers can
+                  intervene before the relationship and commission are gone.
+                </p>
+              </div>
+              <div className="flex flex-col gap-3 sm:flex-row">
+                <Button
+                  onClick={() => setWaitlistOpen(true)}
+                  size="lg"
+                  className="h-14 bg-primary px-7 text-sm font-black hover:bg-primary/90"
+                >
+                  Request Early Access <ArrowRight className="ml-2 h-4 w-4" />
+                </Button>
+                <Button
+                  asChild
+                  size="lg"
+                  variant="outline"
+                  className="h-14 border-white/15 bg-white/5 px-7 text-sm font-black text-white hover:bg-white/10 hover:text-white"
+                >
+                  <Link href="#roi">Estimate revenue risk</Link>
+                </Button>
+              </div>
+            </Reveal>
 
-        {/* Hero */}
-        <section id="hero" className="relative py-12 md:py-32 px-4 md:px-8">
-          <div className="max-w-7xl mx-auto bg-slate-950 rounded-[2.5rem] md:rounded-[4rem] p-8 md:p-32 text-center space-y-8 border border-white/5 shadow-[0_40px_100px_-20px_rgba(0,0,0,0.5)]">
-            <Badge className="bg-primary/10 text-primary border border-primary/20 font-black uppercase tracking-[0.25em] text-[9px] px-4 py-1.5">
-              Medicare Retention Intelligence
-            </Badge>
-            <h1 className="text-4xl sm:text-6xl md:text-9xl font-black tracking-tighter leading-[0.9] md:leading-[0.85] text-white">
-              Stop Guessing Your Retention.<br />Real-Time Plan Verification,<br />Driven Automatically by Your CRM.
-            </h1>
-            <p className="text-base sm:text-xl md:text-2xl text-slate-300 font-medium leading-relaxed max-w-3xl mx-auto">
-              The only Medicare retention platform built for independent brokers and agency owners who refuse to lose a client to a plan switch they didn't see coming.
-            </p>
-            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-              <Button size="lg" asChild className="w-full sm:w-auto h-14 md:h-20 px-8 md:px-16 rounded-[2rem] md:rounded-[2.5rem] text-base md:text-xl font-black shadow-2xl shadow-primary/30 transition-all hover:scale-105 bg-primary hover:bg-primary/90 text-white">
-                <Link href="/signup">Get Started Now</Link>
-              </Button>
-              <Button size="lg" variant="ghost" onClick={() => setShowEnterpriseModal(true)}
-                className="w-full sm:w-auto h-14 md:h-20 px-8 md:px-16 rounded-[2rem] md:rounded-[2.5rem] text-base md:text-xl font-black text-white/60 hover:text-white hover:bg-white/5 border border-white/10 transition-all">
-                Agency Inquiry <ArrowRight className="w-5 h-5 ml-2" />
-              </Button>
-            </div>
+            <Reveal delay={140}>
+              <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 shadow-2xl shadow-black/40">
+                <div className="rounded-xl border border-white/10 bg-slate-950 p-4">
+                  <div className="mb-5 flex items-center justify-between border-b border-white/10 pb-4">
+                    <div>
+                      <p className="text-xs font-black uppercase tracking-[0.22em] text-slate-500">Live retention desk</p>
+                      <p className="mt-1 text-lg font-black text-white">Switch alerts</p>
+                    </div>
+                    <Badge className="border-emerald-400/30 bg-emerald-400/10 text-emerald-200">Monitoring</Badge>
+                  </div>
+                  <div className="space-y-3">
+                    {[
+                      ["Margaret T.", "Pending plan change", "$1,180 at risk", "Critical"],
+                      ["Robert S.", "Disenrollment signal", "$940 at risk", "Review"],
+                      ["Linda P.", "Verified unchanged", "$0 at risk", "Clear"],
+                    ].map(([name, signal, revenue, status]) => (
+                      <div key={name} className="grid grid-cols-[1fr_auto] gap-3 rounded-lg border border-white/10 bg-white/[0.03] p-4">
+                        <div>
+                          <p className="font-bold text-white">{name}</p>
+                          <p className="text-sm text-slate-500">{signal}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-mono text-sm text-cyan-200">{revenue}</p>
+                          <p className="mt-1 text-xs font-black uppercase tracking-widest text-slate-500">{status}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </Reveal>
           </div>
         </section>
 
-        <ComplianceShield />
-
-        {/* Two-Tier Experience */}
-        <section id="tiers" className="py-20 md:py-32 px-4 md:px-8">
-          <div className="max-w-7xl mx-auto space-y-16">
-            <div className="text-center space-y-4 max-w-2xl mx-auto">
-              <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter">Two Platforms. <span className="text-primary">One Mission.</span></h2>
-              <p className="text-muted-foreground font-black uppercase tracking-widest text-xs">AegisSage delivers a completely distinct experience based on your role.</p>
-            </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-
-              {/* Broker Tier */}
-              <div className="rounded-[2.5rem] border-0 ring-2 ring-slate-700 bg-slate-950 overflow-hidden shadow-2xl shadow-slate-900/50">
-                <div className="h-1.5 bg-gradient-to-r from-slate-500 to-slate-400 w-full" />
-                <div className="p-10 space-y-8">
-                  <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-2xl bg-white/10 border border-white/15 flex items-center justify-center shadow-lg">
-                      <Zap className="w-7 h-7 text-white" />
-                    </div>
-                    <div>
-                      <p className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-400">Independent Broker</p>
-                      <p className="text-2xl font-black tracking-tight text-white">Personal Speed &amp; Control</p>
-                    </div>
-                  </div>
-                  <p className="text-sm font-medium text-white/60 leading-relaxed">Your automated command center. Real-time portal sync, cross-carrier roster audits, and immediate switch alerts—safeguarding your book effortlessly.</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    {[{ label: "Coverage Lookup", sub: "Chrome Extension sync" }, { label: "Ghost Churn Monitor", sub: "Automated Switch Alerts" }, { label: "VCC Automation", sub: "Fax to physician" }, { label: "AEP Shield", sub: "Enrollment protection" }].map(({ label, sub }) => (
-                      <div key={label} className="p-3 rounded-2xl bg-white/5 border border-white/10 space-y-0.5">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-white/80">{label}</p>
-                        <p className="text-[9px] font-medium text-white/30 uppercase tracking-wide">{sub}</p>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="p-4 rounded-2xl bg-black/40 border border-white/10 font-mono text-[10px] space-y-2">
-                    <div className="flex items-center justify-between text-white/30 mb-3">
-                      <div className="flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                        <span className="text-[9px] font-black uppercase tracking-widest">My Book — Live</span>
-                      </div>
-                    </div>
-                    {[{ name: "Margaret Thompson", status: "🔴 Switched" }, { name: "Robert Sanchez", status: "✓ Verified" }, { name: "Linda Park", status: "🚨 Switching Soon" }].map(row => (
-                      <div key={row.name} className="flex items-center justify-between text-[9px]">
-                        <span className="text-white/60 font-bold">{row.name}</span>
-                        <span className="text-white/40">{row.status}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <Button asChild className="w-full h-14 rounded-2xl font-black uppercase text-[10px] tracking-widest bg-primary hover:bg-primary/90 text-white transition-all">
-                    <Link href="/signup?plan=broker">Get Started Now</Link>
-                  </Button>
-                </div>
+        <section ref={statReveal.ref} className="border-y border-white/10 bg-white/[0.03] px-4 py-8 sm:px-6">
+          <div className="mx-auto grid max-w-7xl gap-4 md:grid-cols-3">
+            {stats.map((stat) => (
+              <div key={stat.label} className="rounded-lg border border-white/10 bg-slate-950/60 p-6">
+                <p className="text-4xl font-black tracking-tight text-cyan-200">
+                  <AnimatedNumber
+                    value={stat.value}
+                    prefix={stat.prefix}
+                    suffix={stat.suffix}
+                    start={statReveal.isInView}
+                  />
+                </p>
+                <p className="mt-2 text-sm font-bold uppercase tracking-widest text-slate-500">{stat.label}</p>
               </div>
-
-              {/* Agency Owner Tier */}
-              <div className="rounded-[2.5rem] border-0 ring-2 ring-primary bg-slate-950 overflow-hidden shadow-2xl shadow-primary/10">
-                <div className="h-1.5 bg-gradient-to-r from-primary via-violet-500 to-primary w-full" />
-                <div className="p-10 space-y-8">
-                  <div className="flex items-center gap-4">
-                    <div className="w-14 h-14 rounded-2xl bg-primary/20 border border-primary/30 flex items-center justify-center">
-                      <Building2 className="w-7 h-7 text-primary" />
-                    </div>
-                    <div>
-                      <p className="text-[9px] font-black uppercase tracking-[0.3em] text-primary">Agency Owner</p>
-                      <p className="text-2xl font-black tracking-tight text-white">Manager Control Center</p>
-                    </div>
-                    <Badge className="ml-auto bg-primary/10 text-primary border border-primary/30 font-black uppercase text-[9px] tracking-widest px-3">Enterprise</Badge>
-                  </div>
-                  <p className="text-sm font-medium text-white/60 leading-relaxed">A completely separate command layer above your brokers. Monitor every downline book simultaneously, surface agency-wide override leaks, manage volume licenses, and control role permissions.</p>
-                  <div className="grid grid-cols-2 gap-2">
-                    {[{ label: "Downline Tracking", sub: "All broker books" }, { label: "Override Leak Alerts", sub: "Agency-wide view" }, { label: "Volume Licensing", sub: "Per-broker seat mgmt" }, { label: "Role Permissions", sub: "Owner / Manager / CS" }].map(({ label, sub }) => (
-                      <div key={label} className="p-3 rounded-2xl bg-white/5 border border-white/10 space-y-0.5">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-white/80">{label}</p>
-                        <p className="text-[9px] font-medium text-white/30 uppercase tracking-wide">{sub}</p>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="p-4 rounded-2xl bg-black/40 border border-white/10 font-mono text-[10px] space-y-2">
-                    <div className="flex items-center justify-between text-white/30 mb-3">
-                      <div className="flex items-center gap-2">
-                        <div className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-                        <span className="text-[9px] font-black uppercase tracking-widest">Agency Dashboard — Live</span>
-                      </div>
-                      <span className="text-[9px] text-primary/70">12 brokers · 847 members</span>
-                    </div>
-                    {[{ broker: "J. Williams", alerts: "3 critical", rev: "$2,340 at risk" }, { broker: "M. Rodriguez", alerts: "1 switch", rev: "$780 at risk" }, { broker: "S. Chen", alerts: "✓ Clear", rev: "$0 at risk" }].map(row => (
-                      <div key={row.broker} className="flex items-center justify-between text-[9px]">
-                        <span className="text-white/60 font-bold">{row.broker}</span>
-                        <span className="text-orange-400">{row.alerts}</span>
-                        <span className="text-white/30">{row.rev}</span>
-                      </div>
-                    ))}
-                  </div>
-                  <Button onClick={() => setShowEnterpriseModal(true)}
-                    className="w-full h-14 rounded-2xl font-black uppercase text-[10px] tracking-widest bg-primary hover:bg-primary/90 shadow-xl shadow-primary/30 gap-2">
-                    <Send className="w-3.5 h-3.5" />Request Onboarding
-                  </Button>
-                  <p className="text-[9px] font-bold uppercase tracking-widest text-white/20 text-center">Starting at $749/mo · BAA included</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Features */}
-        <section id="features" className="py-20 md:py-32 px-4 md:px-8 max-w-7xl mx-auto space-y-16">
-          <div className="text-center space-y-4 max-w-2xl mx-auto">
-            <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter">Retention <span className="text-primary">Intelligence</span></h2>
-            <p className="text-muted-foreground font-black uppercase tracking-widest text-xs">Three core modules designed to protect your agency's renewal revenue.</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-            {FEATURES.map((feature, i) => (
-              <Card key={i} className="p-10 rounded-[3rem] border border-border space-y-8 hover:border-primary/30 transition-all group bg-card shadow-sm relative overflow-hidden">
-                {feature.tier === "agency" && (
-                  <div className="absolute top-4 right-4">
-                    <Badge className="bg-primary/10 text-primary border border-primary/20 font-black uppercase text-[8px] tracking-widest px-2 py-0.5">Agency</Badge>
-                  </div>
-                )}
-                <div className="w-16 h-16 rounded-2xl bg-primary/5 flex items-center justify-center text-primary group-hover:bg-primary group-hover:text-white transition-all">
-                  <feature.icon className="w-8 h-8" />
-                </div>
-                <div className="space-y-3">
-                  <h3 className="text-2xl font-black uppercase tracking-tight text-black">{feature.title}</h3>
-                  <p className="text-sm font-bold text-muted-foreground uppercase leading-relaxed opacity-70">{feature.desc}</p>
-                </div>
-                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 font-mono text-[10px] font-black uppercase tracking-tighter" style={{ color: '#1A1A1A' }}>
-                  <div className="flex items-center gap-2 mb-1">
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />Live Signal
-                  </div>
-                  {feature.demo}
-                </div>
-              </Card>
             ))}
           </div>
         </section>
 
-        {/* Pricing */}
-        <section id="pricing" className="py-20 md:py-32 px-4 md:px-8 bg-slate-50 border-y border-border/50">
-          <div className="max-w-5xl mx-auto space-y-12">
-            <div className="text-center space-y-6">
-              <Badge className="bg-slate-800 text-white border border-slate-600 px-4 py-1.5 font-black uppercase tracking-widest text-[10px]">Transparent Pricing</Badge>
-              <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter" style={{ color: "#111827" }}>Two Tiers. <span className="text-primary">Zero Hidden Fees.</span></h2>
-            </div>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-
-              {/* Solo Plan */}
-              <Card className="rounded-[3.5rem] border border-border p-10 flex flex-col justify-between bg-white shadow-sm hover:border-primary/30 transition-all">
-                <div>
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="w-12 h-12 rounded-2xl bg-slate-900 flex items-center justify-center"><Zap className="w-5 h-5 text-white" /></div>
-                    <div>
-                      <p className="text-[9px] font-black uppercase tracking-[0.3em]" style={{ color: '#1A1A1A' }}>Independent Broker</p>
-                      <p className="text-xl font-black text-slate-900">Solo Plan</p>
-                    </div>
-                  </div>
-                  <BillingToggle annual={brokerAnnual} onToggle={() => setBrokerAnnual(b => !b)} />
-                  <div className="flex items-baseline gap-1 mb-1">
-                    <span className="text-6xl font-black tracking-tighter text-black">${brokerPrice}</span>
-                    <span className="text-sm font-bold text-black uppercase opacity-60">/mo</span>
-                  </div>
-                  {brokerAnnual && <p className="text-[10px] font-black text-primary uppercase tracking-widest mb-4">Billed annually · Save $360/yr</p>}
-                  <p className="text-[10px] font-bold text-slate-700 uppercase tracking-widest mb-8">One broker seat</p>
-                  <div className="space-y-3 mb-10">
-                    {BROKER_FEATURES.map((f, i) => (
-                      <div key={i} className="flex items-center gap-3 text-xs font-black text-black uppercase tracking-tight">
-                        <CheckCircle2 size={15} className="text-primary shrink-0" /><span>{f}</span>
+        <section id="how-it-works" className="px-4 py-20 sm:px-6 md:py-28">
+          <div className="mx-auto max-w-7xl space-y-10">
+            <Reveal className="max-w-3xl space-y-4">
+              <Badge className="border-white/10 bg-white/5 text-slate-300">How it works</Badge>
+              <h2 className="text-3xl font-black tracking-tight sm:text-5xl">A three-step flow built for retention teams.</h2>
+            </Reveal>
+            <div className="grid gap-4 md:grid-cols-3">
+              {steps.map((step, index) => (
+                <Reveal key={step.title} delay={index * 110}>
+                  <Card className="h-full border-white/10 bg-white/[0.04] p-6">
+                    <div className="mb-6 flex items-center justify-between">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-cyan-300/10 text-cyan-200">
+                        <step.icon className="h-6 w-6" />
                       </div>
-                    ))}
-                  </div>
-                </div>
-                <Button asChild className="w-full h-16 rounded-3xl font-black uppercase text-xs tracking-widest shadow-xl bg-slate-900 text-white hover:bg-primary transition-all">
-                  <Link href="/signup?plan=broker">Get Started Now</Link>
-                </Button>
-              </Card>
-
-              {/* Agency Plan */}
-              <Card className="rounded-[3.5rem] border-0 ring-2 ring-primary p-10 flex flex-col justify-between bg-white shadow-2xl scale-[1.02] relative overflow-hidden">
-                <div className="absolute top-5 right-5"><Badge className="bg-primary text-white font-black uppercase text-[9px] tracking-widest px-3 py-1">Enterprise</Badge></div>
-                <div>
-                  <div className="flex items-center gap-3 mb-6">
-                    <div className="w-12 h-12 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center"><Building2 className="w-5 h-5 text-primary" /></div>
-                    <div>
-                      <p className="text-[9px] font-black uppercase tracking-[0.3em]" style={{ color: '#1A1A1A' }}>Agency Owner</p>
-                      <p className="text-xl font-black text-slate-900">Agency Plan</p>
+                      <span className="font-mono text-sm text-slate-600">0{index + 1}</span>
                     </div>
-                  </div>
-                  <BillingToggle annual={agencyAnnual} onToggle={() => setAgencyAnnual(b => !b)} />
-                  <div className="flex items-baseline gap-1 mb-1">
-                    <span className="text-6xl font-black tracking-tighter text-black">${agencyPrice}</span>
-                    <span className="text-sm font-bold text-black uppercase opacity-60">/mo base</span>
-                  </div>
-                  {agencyAnnual && <p className="text-[10px] font-black text-primary uppercase tracking-widest mb-1">Billed annually · Save $1,800/yr</p>}
-                  <p className="text-[10px] font-bold text-slate-700 uppercase tracking-widest mb-8">+$49/broker seat/mo</p>
-                  <div className="space-y-3 mb-10">
-                    {AGENCY_FEATURES.map((f, i) => (
-                      <div key={i} className="flex items-center gap-3 text-xs font-black text-black uppercase tracking-tight">
-                        <CheckCircle2 size={15} className="text-primary shrink-0" /><span>{f}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-                <Button onClick={() => setShowEnterpriseModal(true)}
-                  className="w-full h-16 rounded-3xl font-black uppercase text-[10px] tracking-widest shadow-xl bg-primary text-white hover:bg-primary/90 transition-all gap-2">
-                  <Send className="w-4 h-4" />Request Onboarding
-                </Button>
-              </Card>
+                    <h3 className="text-xl font-black text-white">{step.title}</h3>
+                    <p className="mt-3 text-sm leading-6 text-slate-400">{step.description}</p>
+                  </Card>
+                </Reveal>
+              ))}
             </div>
-
           </div>
         </section>
 
-        {/* Contact */}
-        <section id="contact" className="py-20 md:py-32 px-4 md:px-8 max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-16 items-center">
-            <div className="space-y-8">
-              <div className="space-y-4">
-                <h2 className="text-4xl md:text-5xl font-black uppercase tracking-tighter text-black">Ready to <span className="text-primary">protect</span> your book?</h2>
-                <p className="text-muted-foreground font-bold text-sm uppercase tracking-widest">Individual brokers get started instantly. Agencies request an onboarding call.</p>
-              </div>
-              <div className="flex flex-col sm:flex-row gap-4">
-                <Button asChild size="lg" className="h-16 px-10 rounded-3xl font-black uppercase text-sm tracking-widest shadow-xl bg-primary text-white hover:bg-primary/90 transition-all hover:scale-105">
-                  <Link href="/signup">Get Started Now</Link>
-                </Button>
-                <Button size="lg" variant="outline" onClick={() => setShowEnterpriseModal(true)}
-                  className="h-16 px-10 rounded-3xl font-black uppercase text-[10px] tracking-widest border-slate-300 hover:border-primary hover:text-primary transition-all">
-                  Agency Inquiry
-                </Button>
-              </div>
-            </div>
-            <div className="space-y-6">
-              <div className="space-y-2">
-                <h3 className="text-2xl font-black uppercase tracking-tight text-black">Get in Touch</h3>
-                <p className="text-muted-foreground font-bold text-sm">Questions before you sign up? We'd love to hear from you.</p>
-              </div>
-              <a href="mailto:hello@aegissage.com" className="inline-block text-xl font-black text-primary hover:text-primary/80 transition-colors">hello@aegissage.com</a>
-              <p className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">We typically respond within one business day.</p>
+        <section id="features" className="border-y border-white/10 bg-slate-900/40 px-4 py-20 sm:px-6 md:py-28">
+          <div className="mx-auto max-w-7xl space-y-10">
+            <Reveal className="max-w-3xl space-y-4">
+              <Badge className="border-white/10 bg-white/5 text-slate-300">Platform</Badge>
+              <h2 className="text-3xl font-black tracking-tight sm:text-5xl">Everything brokers need to catch churn early.</h2>
+            </Reveal>
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {features.map((feature, index) => (
+                <Reveal key={feature.title} delay={index * 70}>
+                  <Card className="h-full border-white/10 bg-slate-950/80 p-6">
+                    <feature.icon className="h-7 w-7 text-cyan-200" />
+                    <h3 className="mt-5 text-lg font-black text-white">{feature.title}</h3>
+                    <p className="mt-3 text-sm leading-6 text-slate-400">{feature.description}</p>
+                  </Card>
+                </Reveal>
+              ))}
             </div>
           </div>
+        </section>
+
+        <section id="roi" className="px-4 py-20 sm:px-6 md:py-28">
+          <div className="mx-auto max-w-7xl">
+            <Reveal>
+              <RoiCalculator />
+            </Reveal>
+          </div>
+        </section>
+
+        <section className="px-4 pb-20 sm:px-6 md:pb-28">
+          <Reveal className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-6 rounded-2xl border border-white/10 bg-cyan-300/10 p-6 sm:p-8 md:flex-row md:items-center">
+            <div className="space-y-2">
+              <h2 className="text-2xl font-black tracking-tight text-white sm:text-3xl">Protect the clients you already earned.</h2>
+              <p className="max-w-2xl text-slate-300">
+                Join the early access list for Medicare agencies that want switch alerts before renewal revenue leaks.
+              </p>
+            </div>
+            <Button onClick={() => setWaitlistOpen(true)} className="h-12 bg-primary px-6 font-black hover:bg-primary/90">
+              Request Early Access
+            </Button>
+          </Reveal>
         </section>
       </main>
 
-      {/* Footer */}
-      <footer className="py-16 md:py-24 px-4 md:px-8 border-t border-border/50 bg-slate-950">
-        <div className="max-w-7xl mx-auto">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-12 md:gap-8 mb-16">
-            <div className="md:col-span-2 space-y-4">
-              <Link href="/"><Logo /></Link>
-              <p className="text-slate-400 text-sm font-bold leading-relaxed max-w-sm">The Medicare retention intelligence platform for licensed independent agents and agency owners.</p>
-              <p className="text-slate-600 text-[10px] font-bold uppercase tracking-widest leading-relaxed max-w-sm">AegisSage is not affiliated with CMS or any federal government agency. For licensed agents who are the Agent of Record only.</p>
-            </div>
-            <div className="space-y-4">
-              <p className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-500">Platform</p>
-              <div className="space-y-3">
-                {[{ label: "Independent Broker", href: "/signup?plan=broker" }, { label: "Agency Enterprise", href: "#pricing" }, { label: "Pricing", href: "#pricing" }, { label: "Sign In", href: "/login" }].map(({ label, href }) => (
-                  <Link key={label} href={href} className="block text-[11px] font-black uppercase tracking-widest text-slate-500 hover:text-primary transition-colors">{label}</Link>
-                ))}
-              </div>
-            </div>
-            <div className="space-y-4">
-              <p className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-500">Legal &amp; Compliance</p>
-              <div className="space-y-3">
-                {[{ label: "Privacy Policy", href: "/privacy-policy" }, { label: "Terms of Service", href: "/terms-of-service" }, { label: "Security & Compliance", href: "/security-compliance" }, { label: "BAA Agreement", href: "/baa" }].map(({ label, href }) => (
-                  <Link key={label} href={href} className="block text-[11px] font-black uppercase tracking-widest text-slate-500 hover:text-primary transition-colors">{label}</Link>
-                ))}
-              </div>
-            </div>
+      <footer className="border-t border-white/10 px-4 py-10 sm:px-6">
+        <div className="mx-auto flex max-w-7xl flex-col justify-between gap-8 md:flex-row md:items-center">
+          <div className="space-y-3">
+            <Logo className="[&_span]:text-white" />
+            <p className="max-w-md text-sm text-slate-500">
+              Medicare retention intelligence for brokers who cannot afford silent plan switches.
+            </p>
           </div>
-          {/* Trust badge grid — absolute bottom of page */}
-          <div className="border-t border-white/5 pt-8 space-y-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-              {[
-                { icon: Shield,       title: "HIPAA Compliant",  sub: "PHI handled under BAA" },
-                { icon: Lock,         title: "AES-256 Encrypted", sub: "Data at rest + in transit" },
-                { icon: CheckCircle2, title: "BAA Included",      sub: "Required for all agencies" },
-                { icon: BarChart3,    title: "SOC 2 Aligned",     sub: "Audit-ready infrastructure" },
-              ].map(({ icon: Icon, title, sub }) => (
-                <div key={title} className="flex items-start gap-3 p-4 rounded-2xl bg-white/5 border border-white/10">
-                  <Icon className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-                  <div>
-                    <p className="text-[10px] font-black uppercase tracking-widest text-white">{title}</p>
-                    <p className="text-[9px] font-medium text-slate-400 mt-0.5">{sub}</p>
-                  </div>
-                </div>
-              ))}
+          <div className="flex flex-col gap-3 text-sm text-slate-500 sm:flex-row sm:items-center sm:gap-5">
+            <Link href="/privacy-policy" className="font-bold hover:text-cyan-200">Privacy policy</Link>
+            <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5 font-bold text-emerald-200">
+              <LockKeyhole className="h-4 w-4" />
+              HIPAA-compliant infrastructure
             </div>
-            <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-              <p className="text-slate-600 text-[10px] font-bold uppercase tracking-widest">&copy; 2026 AegisSage Intelligence Inc. All rights reserved.</p>
-              <p className="text-slate-700 text-[9px] font-bold uppercase tracking-widest">Not affiliated with CMS · For licensed Agents of Record only</p>
-            </div>
+            <span className="text-xs">© 2026 AegisSage</span>
           </div>
         </div>
       </footer>

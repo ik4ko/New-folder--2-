@@ -1,0 +1,14 @@
+[mcp_servers.antigravity]
+command = 'C:\Users\ikan9\AppData\Local\Programs\Antigravity\bin\antigravity.cmd'
+args = [
+    "mcp",
+    "serve",
+]
+
+[mcp_servers.firebase]
+command = "npx"
+args = [
+    "-y",
+    "firebase-tools@latest",
+    "mcp",
+]

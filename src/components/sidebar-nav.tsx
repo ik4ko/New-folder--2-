@@ -16,7 +16,6 @@ import {
 import { Logo } from "./logo"
 import { useAppStore } from '@/lib/store'
 import { languages } from '@/lib/i18n'
-import { createClient } from '@/lib/supabase/client'
 
 // ── Nav item type ─────────────────────────────────────────────────────────────
 
@@ -174,8 +173,9 @@ export function SidebarNav({
   const { language, setLanguage, resetStore } = useAppStore()
 
   async function handleSignOut() {
-    const supabase = createClient()
-    await supabase.auth.signOut()
+    // POST to the logout route first: it writes the SESSION_END audit event
+    // and invalidates the Supabase session server-side before we navigate away.
+    await fetch('/api/auth/logout', { method: 'POST' })
     // Clear all user-specific in-memory state before navigation so that a
     // second user logging in on the same device never sees the previous
     // user's agency profile, member data, or encryption key.

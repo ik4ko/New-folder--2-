@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client';
 import {
   Upload, Link2, RefreshCw, CheckCircle2, AlertCircle,
   FileSpreadsheet, X, ArrowRight, Database, Zap,
-  FileText, ExternalLink, ChevronRight,
+  FileText, ExternalLink, ChevronRight, Shield, AlertTriangle,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -208,6 +208,9 @@ export default function ChurnUploadPage() {
   const [preview,       setPreview]       = useState<PreviewState | null>(null);
   const [importResult,  setImportResult]  = useState<ImportResult | null>(null);
   const [marxOpened,    setMarxOpened]    = useState(false);
+  const [hipaaCertified, setHipaaCertified] = useState(false);
+  const [showHipaaModal, setShowHipaaModal] = useState(false);
+  const [pendingAction, setPendingAction] = useState<'ghl_sync' | 'csv_upload' | 'sheets_import' | null>(null);
 
   // ── Check GHL connection ──────────────────────────────────────────────────
   // Selects access_token AND expires_at so an expired-but-present token is
@@ -399,6 +402,12 @@ export default function ChurnUploadPage() {
 
   const handleGhlSync = async () => {
     if (!ghlConnected) { handleGhlConnect(); return; }
+    // Show HIPAA certification modal before sync
+    setPendingAction('ghl_sync');
+    setShowHipaaModal(true);
+  };
+
+  const executeGhlSync = async () => {
     setGhlSyncing(true);
     setStatusMessage('');
     try {
@@ -424,6 +433,12 @@ export default function ChurnUploadPage() {
       setStatusMessage('Please drop a file or paste a Google Sheets URL.');
       return;
     }
+    // Show HIPAA certification modal before import
+    setPendingAction(file ? 'csv_upload' : 'sheets_import');
+    setShowHipaaModal(true);
+  };
+
+  const executeImport = async () => {
     setSyncState('uploading');
     setStatusMessage('');
     setPreview(null);
@@ -464,6 +479,21 @@ export default function ChurnUploadPage() {
     }
   };
 
+  const handleHipaaConfirm = () => {
+    setShowHipaaModal(false);
+    if (pendingAction === 'ghl_sync') {
+      executeGhlSync();
+    } else if (pendingAction === 'csv_upload' || pendingAction === 'sheets_import') {
+      executeImport();
+    }
+    setPendingAction(null);
+  };
+
+  const handleHipaaCancel = () => {
+    setShowHipaaModal(false);
+    setPendingAction(null);
+  };
+
   const isLoading = syncState === 'uploading' || syncState === 'syncing';
 
   // ─────────────────────────────────────────────────────────────────────────
@@ -472,6 +502,66 @@ export default function ChurnUploadPage() {
 
   return (
     <div className="flex flex-col h-full w-full bg-background">
+
+      {/* ── HIPAA Certification Modal ─────────────────────────────────────── */}
+      {showHipaaModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-background rounded-3xl border border-border shadow-2xl max-w-md w-full p-6 space-y-6">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-2xl bg-amber-500/10 flex items-center justify-center shrink-0">
+                <Shield className="w-6 h-6 text-amber-500" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-base font-black uppercase tracking-tight text-foreground">
+                  HIPAA Compliance Certification
+                </h3>
+                <p className="text-[11px] text-muted-foreground mt-2 leading-relaxed">
+                  Before importing member data, you must certify compliance with HIPAA regulations.
+                </p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <label className="flex items-start gap-3 cursor-pointer group">
+                <input
+                  type="checkbox"
+                  checked={hipaaCertified}
+                  onChange={e => setHipaaCertified(e.target.checked)}
+                  className="mt-1 w-4 h-4 rounded border-border bg-background text-primary focus:ring-primary focus:ring-offset-0"
+                />
+                <span className="text-[11px] text-foreground leading-relaxed">
+                  I certify that this data source is HIPAA-compliant and that I possess the necessary authorization/BAAs to transmit this PHI to AegisSage.
+                </span>
+              </label>
+
+              <div className="rounded-xl bg-amber-500/5 border border-amber-500/20 px-4 py-3 flex items-start gap-3">
+                <AlertTriangle className="w-4 h-4 text-amber-500 shrink-0 mt-0.5" />
+                <p className="text-[10px] text-amber-500/90 font-medium leading-relaxed">
+                  Unauthorized transmission of PHI may violate HIPAA §164.312(e) and result in civil penalties up to $1.5 million per violation.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={handleHipaaCancel}
+                className="flex-1 h-10 rounded-xl font-black uppercase text-[9px] tracking-widest"
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleHipaaConfirm}
+                disabled={!hipaaCertified}
+                className="flex-1 h-10 rounded-xl font-black uppercase text-[9px] tracking-widest gap-2"
+              >
+                <Shield className="w-3.5 h-3.5" />
+                Confirm & Proceed
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* ── Sticky page header ─────────────────────────────────────────────── */}
       <header className="h-16 border-b border-border px-6 md:px-8 flex items-center justify-between bg-background/80 backdrop-blur-md sticky top-0 z-10 shrink-0">

@@ -16,6 +16,7 @@
 
 import { createServerClient } from '@supabase/ssr'
 import { NextRequest, NextResponse } from 'next/server'
+import { logEnterpriseEvent } from '@/lib/audit/log-enterprise-event'
 
 // ── Routes that must always be publicly accessible ───────────────────────────
 const PUBLIC_PATHS = [
@@ -47,6 +48,7 @@ const PUBLIC_API_PREFIXES = [
   '/api/cron',                  // Vercel cron — CRON_SECRET Bearer
   '/api/scheduler',
   '/api/ghl/sync-status',       // polled from upload page before auth resolves
+  '/api/auth/heartbeat',        // Extension heartbeat — extends session during long jobs
 ]
 
 function isPublicPath(pathname: string): boolean {
@@ -95,7 +97,7 @@ export async function proxy(req: NextRequest) {
     },
   })
 
-  const { data: { user } } = await supabase.auth.getUser()
+  const { data: { user }, error: authError } = await supabase.auth.getUser()
 
   if (!user) {
     // Not authenticated — redirect to login with the original URL as redirect param
@@ -111,6 +113,55 @@ export async function proxy(req: NextRequest) {
       )
     }
     return NextResponse.redirect(loginUrl)
+  }
+
+  // ── Enforce 15-minute absolute session timeout ─────────────────────────────
+  // HIPAA workstation timeout: session expires after 15 minutes of inactivity
+  // However, if the Chrome extension is actively running a bulk job and sending
+  // heartbeat pings, the session is kept alive even without UI activity.
+  const now = Math.floor(Date.now() / 1000)
+  const maxAgeSeconds = 15 * 60 // 15 minutes
+
+  // Check session expiry from Supabase
+  const { data: { session } } = await supabase.auth.getSession()
+  if (session) {
+    const sessionAge = now - Math.floor(new Date(session.expires_at ?? 0).getTime() / 1000)
+    
+    // Check for recent heartbeat activity from Chrome extension
+    const lastHeartbeatCookie = req.cookies.get('last_heartbeat')?.value
+    const lastHeartbeat = lastHeartbeatCookie ? parseInt(lastHeartbeatCookie, 10) : 0
+    const heartbeatAge = now - lastHeartbeat
+    const hasRecentHeartbeat = heartbeatAge < maxAgeSeconds
+
+    // If session is expired or older than 15 minutes AND no recent heartbeat, force logout
+    if (sessionAge > maxAgeSeconds && !hasRecentHeartbeat) {
+      const sessionStartCookie = req.cookies.get('as_session_start')?.value
+      const agencyIdCookie     = req.cookies.get('as_agency_id')?.value ?? null
+      const sessionStart       = sessionStartCookie ? parseInt(sessionStartCookie, 10) : null
+      const lastHeartbeatAt    = lastHeartbeat > 0
+        ? new Date(lastHeartbeat * 1000).toISOString()
+        : null
+
+      // Await so the write completes before the redirect response is issued.
+      await logEnterpriseEvent({
+        agencyId:     agencyIdCookie,
+        userId:       user.id,
+        actionType:   'SESSION_END',
+        resourceType: 'session',
+        clientIp:     req.headers.get('x-forwarded-for') ?? undefined,
+        userAgent:    req.headers.get('user-agent') ?? undefined,
+        metadata: {
+          reason:                   'inactivity_timeout',
+          session_duration_seconds: sessionStart !== null ? now - sessionStart : null,
+          last_heartbeat_at:        lastHeartbeatAt,
+        },
+      })
+
+      const loginUrl = new URL('/login', req.url)
+      loginUrl.searchParams.set('redirect', pathname)
+      loginUrl.searchParams.set('reason', 'session_timeout')
+      return NextResponse.redirect(loginUrl)
+    }
   }
 
   // Authenticated — allow through
