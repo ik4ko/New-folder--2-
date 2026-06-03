@@ -12,6 +12,15 @@ import {
 import Link from 'next/link'
 import { getCancelUrl } from '@/app/actions/billing'
 import { BillingLifecyclePanel } from '@/components/settings/BillingLifecyclePanel'
+import { cn } from '@/lib/utils'
+
+type BillingCycle = 'monthly' | 'yearly'
+
+// Yearly pricing (17% discount)
+const AGENCY_MONTHLY  = 749
+const AGENCY_YEARLY   = 622   // per month, billed $7,464/yr
+const BROKER_MONTHLY  = 149
+const BROKER_YEARLY   = 124   // per month, billed $1,488/yr
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -96,6 +105,8 @@ export default function BillingPage() {
   const [loading,      setLoading]      = useState(true)
   const [showCancelled, setShowCancelled] = useState(false)
 
+  const [billingCycle, setBillingCycle] = useState<BillingCycle>('monthly')
+
   const [portalPending,  startPortal]  = useTransition()
   const [cancelPending,  startCancel]  = useTransition()
   const [upgradePending, startUpgrade] = useTransition()
@@ -105,6 +116,10 @@ export default function BillingPage() {
     if (typeof window !== 'undefined' && window.location.search.includes('cancelled=true')) {
       setShowCancelled(true)
     }
+    // Load billing cycle preference from localStorage (display-only; no Stripe changes)
+    // NOTE: billing_cycle column does not yet exist in agencies table — localStorage only
+    const saved = localStorage.getItem('billing_cycle') as BillingCycle | null
+    if (saved === 'monthly' || saved === 'yearly') setBillingCycle(saved)
   }, [])
 
   useEffect(() => {
@@ -212,6 +227,9 @@ export default function BillingPage() {
     )
   }
 
+  const cyclePrice = (monthly: number, yearly: number) =>
+    billingCycle === 'yearly' ? yearly : monthly
+
   const isBeta          = agency?.is_beta ?? false
   const status          = agency?.subscription_status ?? 'trial'
   const statusKey       = isBeta ? 'beta' : status
@@ -223,9 +241,10 @@ export default function BillingPage() {
   // CASE A: Agency Owner on Agency/Professional/Enterprise tier  →  $749/mo
   // ═══════════════════════════════════════════════════════════════════════════
   if (billingCase === 'owner_agency') {
+    const basePrice    = cyclePrice(AGENCY_MONTHLY, AGENCY_YEARLY)
     const overageSeats = Math.max(0, activeSeats - includedSeats)
-    const overageCost  = overageSeats * 49          // $49/mo per extra seat
-    const totalCost    = 749 + overageCost
+    const overageCost  = overageSeats * (billingCycle === 'yearly' ? 41.50 : 49)
+    const totalCost    = basePrice + overageCost
 
     return (
       <div className="flex flex-col h-full w-full">
@@ -233,6 +252,34 @@ export default function BillingPage() {
         <div className="flex-1 overflow-y-auto p-8 max-w-3xl mx-auto w-full space-y-6 pb-32">
 
           {showCancelled && <CancelledBanner endDate={agency?.current_period_end} />}
+
+          {/* ── Billing cycle toggle ── */}
+          <div className="flex items-center justify-center gap-3 py-2">
+            <span className={cn("text-xs font-black uppercase tracking-widest transition-colors", billingCycle === 'monthly' ? "text-foreground" : "text-muted-foreground")}>Monthly</span>
+            <button
+              type="button"
+              onClick={() => {
+                const next = billingCycle === 'monthly' ? 'yearly' : 'monthly'
+                setBillingCycle(next)
+                localStorage.setItem('billing_cycle', next)
+              }}
+              className={cn(
+                "relative w-12 h-6 rounded-full border transition-all duration-200",
+                billingCycle === 'yearly' ? "bg-primary border-primary" : "bg-muted border-border"
+              )}
+            >
+              <span className={cn(
+                "absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all duration-200",
+                billingCycle === 'yearly' ? "left-7" : "left-0.5"
+              )} />
+            </button>
+            <div className="flex items-center gap-2">
+              <span className={cn("text-xs font-black uppercase tracking-widest transition-colors", billingCycle === 'yearly' ? "text-foreground" : "text-muted-foreground")}>Yearly</span>
+              {billingCycle === 'yearly' && (
+                <Badge className="bg-primary/10 text-primary border-primary/20 text-[9px] font-black uppercase tracking-widest px-2 h-5">Save 17%</Badge>
+              )}
+            </div>
+          </div>
 
           {/* ── Primary plan card ── */}
           <Card className="rounded-3xl border border-border shadow-sm">
@@ -273,7 +320,7 @@ export default function BillingPage() {
                   <span className="text-muted-foreground font-bold">
                     Base plan ({includedSeats} broker seat{includedSeats !== 1 ? 's' : ''} included)
                   </span>
-                  <span className="font-black">$749/mo</span>
+                  <span className="font-black">${basePrice}/mo{billingCycle === 'yearly' ? ' · $7,464/yr' : ''}</span>
                 </div>
                 {overageSeats > 0 && (
                   <div className="flex justify-between items-center text-[11px]">
@@ -386,6 +433,34 @@ export default function BillingPage() {
 
           {showCancelled && <CancelledBanner endDate={agency?.current_period_end} />}
 
+          {/* ── Billing cycle toggle ── */}
+          <div className="flex items-center justify-center gap-3 py-2">
+            <span className={cn("text-xs font-black uppercase tracking-widest transition-colors", billingCycle === 'monthly' ? "text-foreground" : "text-muted-foreground")}>Monthly</span>
+            <button
+              type="button"
+              onClick={() => {
+                const next = billingCycle === 'monthly' ? 'yearly' : 'monthly'
+                setBillingCycle(next)
+                localStorage.setItem('billing_cycle', next)
+              }}
+              className={cn(
+                "relative w-12 h-6 rounded-full border transition-all duration-200",
+                billingCycle === 'yearly' ? "bg-primary border-primary" : "bg-muted border-border"
+              )}
+            >
+              <span className={cn(
+                "absolute top-0.5 w-4 h-4 rounded-full bg-white shadow transition-all duration-200",
+                billingCycle === 'yearly' ? "left-7" : "left-0.5"
+              )} />
+            </button>
+            <div className="flex items-center gap-2">
+              <span className={cn("text-xs font-black uppercase tracking-widest transition-colors", billingCycle === 'yearly' ? "text-foreground" : "text-muted-foreground")}>Yearly</span>
+              {billingCycle === 'yearly' && (
+                <Badge className="bg-primary/10 text-primary border-primary/20 text-[9px] font-black uppercase tracking-widest px-2 h-5">Save 17%</Badge>
+              )}
+            </div>
+          </div>
+
           {/* ── Plan card ── */}
           <Card className="rounded-3xl border border-border shadow-sm">
             <CardContent className="p-8 space-y-5">
@@ -397,10 +472,10 @@ export default function BillingPage() {
                   </Badge>
                   <p className="text-2xl font-black uppercase tracking-tight">Individual Broker Plan</p>
                   <p className="text-3xl font-black">
-                    $149<span className="text-sm text-muted-foreground font-bold">/mo</span>
+                    ${cyclePrice(BROKER_MONTHLY, BROKER_YEARLY)}<span className="text-sm text-muted-foreground font-bold">/mo</span>
                   </p>
                   <p className="text-[11px] text-muted-foreground">
-                    1 seat · month-to-month · cancel any time
+                    1 seat · {billingCycle === 'yearly' ? 'billed $1,488/yr' : 'month-to-month'} · cancel any time
                   </p>
                 </div>
                 <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center">

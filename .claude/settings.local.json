@@ -144,7 +144,8 @@
       "Bash(Get-ChildItem -Path \"C:\\\\Developer\\\\New folder \\(2\\)\\\\src\\\\app\" -Recurse -Directory)",
       "Bash(Sort-Object)",
       "Bash(Get-ChildItem -Path \"C:\\\\Developer\\\\New folder \\(2\\)\" -Recurse -File -Name)",
-      "PowerShell(cd \"C:\\\\Developer\\\\New folder \\(2\\)\"; Get-ChildItem -Recurse -File | Select-Object -First 50 | ForEach-Object { $_.FullName.Replace\\(\"C:\\\\Developer\\\\New folder \\(2\\)\\\\\", \"\"\\) })"
+      "PowerShell(cd \"C:\\\\Developer\\\\New folder \\(2\\)\"; Get-ChildItem -Recurse -File | Select-Object -First 50 | ForEach-Object { $_.FullName.Replace\\(\"C:\\\\Developer\\\\New folder \\(2\\)\\\\\", \"\"\\) })",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Developer\\\\New folder \\(2\\)\" -Recurse -Directory | Select-Object -First 20 | ForEach-Object { $_.FullName })"
     ]
   },
   "enabledMcpjsonServers": [

@@ -5,16 +5,20 @@ import Link from "next/link"
 import {
   Activity,
   BellRing,
+  Check,
   DatabaseZap,
   FileText,
   LockKeyhole,
   Megaphone,
+  ShieldCheck,
   UploadCloud,
 } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 import { Logo } from "@/components/logo"
 import { SiteNavbar } from "@/components/site-navbar"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 
 const steps = [
@@ -61,6 +65,25 @@ const stats: { value: string | null; detail: string }[] = [
   { value: "60+",   detail: "days before most switches are discovered" },
   { value: "Jan 1", detail: "AEP enrollment window closes" },
   { value: null,    detail: "One alert. One call. Client retained." },
+]
+
+const BROKER_FEATURES = [
+  "Plan switch detection for your book of business",
+  "VCC / SSBCI form routing for your clients",
+  "Broker campaign messaging",
+  "CMS enrollment monitoring",
+  "HIPAA-compliant audit logging",
+  "Email alerts on plan changes",
+]
+
+const AGENCY_EXTRA = [
+  "Up to 5 seats included",
+  "Agency-wide rollup dashboard",
+  "Owner, Manager, and Customer Service roles",
+  "Mass campaign messaging across all brokers",
+  "Centralized VCC/SSBCI form management",
+  "Full audit trail across all brokers",
+  "Additional seats available at +$50/seat/mo",
 ]
 
 function useInView<T extends HTMLElement>() {
@@ -113,6 +136,12 @@ function Reveal({
 }
 
 export default function LandingPage() {
+  const [yearly, setYearly] = useState(false)
+
+  const brokerPrice = yearly ? 124 : 149
+  const agencyPrice = yearly ? 622 : 749
+  const seatAddon   = yearly ? "+$41.50" : "+$50"
+
   return (
     <div className="min-h-screen scroll-smooth bg-[#0a0a0f] text-white selection:bg-primary/20">
       <SiteNavbar />
@@ -233,6 +262,133 @@ export default function LandingPage() {
                 </Reveal>
               ))}
             </div>
+          </div>
+        </section>
+
+        {/* ── Pricing ──────────────────────────────────────────────────────── */}
+        <section id="pricing" className="px-4 py-20 sm:px-6 md:py-28">
+          <div className="mx-auto max-w-5xl space-y-12">
+
+            <Reveal className="text-center space-y-4">
+              <Badge className="border-primary/30 bg-primary/10 text-primary">Simple Pricing</Badge>
+              <h2 className="text-4xl font-black uppercase tracking-tighter sm:text-5xl">
+                Protect Your Book
+              </h2>
+              <p className="text-white/50 font-bold text-sm max-w-xl mx-auto">
+                Plan switch detection, VCC automation, and retention intelligence — priced for Medicare professionals.
+              </p>
+            </Reveal>
+
+            {/* Monthly / Yearly toggle */}
+            <div className="flex items-center justify-center gap-4">
+              <span className={cn("text-sm font-black uppercase tracking-widest transition-colors", !yearly ? "text-white" : "text-white/40")}>
+                Monthly
+              </span>
+              <button
+                type="button"
+                aria-label="Toggle billing period"
+                onClick={() => setYearly(v => !v)}
+                className={cn(
+                  "relative w-14 h-7 rounded-full border transition-all duration-200",
+                  yearly ? "bg-primary border-primary" : "bg-white/10 border-white/20"
+                )}
+              >
+                <span className={cn(
+                  "absolute top-1 w-5 h-5 rounded-full bg-white shadow transition-all duration-200",
+                  yearly ? "left-8" : "left-1"
+                )} />
+              </button>
+              <div className="flex items-center gap-2">
+                <span className={cn("text-sm font-black uppercase tracking-widest transition-colors", yearly ? "text-white" : "text-white/40")}>
+                  Yearly
+                </span>
+                <span className={cn(
+                  "text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-full border transition-all duration-300",
+                  yearly
+                    ? "bg-primary/20 text-primary border-primary/30 opacity-100 scale-100"
+                    : "opacity-0 scale-75 pointer-events-none border-transparent text-transparent"
+                )}>
+                  Save 17%
+                </span>
+              </div>
+            </div>
+
+            {/* Pricing cards */}
+            <div className="grid md:grid-cols-2 gap-6">
+
+              {/* Broker */}
+              <Reveal>
+                <div className="rounded-3xl border border-white/10 bg-white/5 p-8 flex flex-col h-full">
+                  <div className="mb-6">
+                    <p className="font-black uppercase tracking-widest text-[11px] text-white/60 mb-1">Broker</p>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-5xl font-black tabular-nums">${brokerPrice}</span>
+                      <span className="text-white/40 font-black text-xs uppercase tracking-widest">/mo</span>
+                    </div>
+                    {yearly && <p className="text-[10px] text-primary/70 font-bold mt-1">Billed as $1,488/yr</p>}
+                    <p className="text-white/40 text-[11px] font-medium mt-2">For independent brokers managing their own book</p>
+                  </div>
+                  <ul className="space-y-3 mb-8 flex-1">
+                    {BROKER_FEATURES.map(f => (
+                      <li key={f} className="flex items-start gap-2.5 text-[12px] font-medium text-white/70">
+                        <Check className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+                  <Button asChild variant="outline" className="w-full h-14 rounded-2xl font-black uppercase text-[10px] tracking-widest border-white/20 text-white hover:bg-white hover:text-slate-950 transition-all">
+                    <Link href="/signup">Get Started</Link>
+                  </Button>
+                </div>
+              </Reveal>
+
+              {/* Agency — recommended */}
+              <Reveal delay={120}>
+                <div className="rounded-3xl border border-primary bg-primary/5 p-8 flex flex-col h-full relative overflow-hidden">
+                  <div className="absolute top-4 right-4">
+                    <Badge className="bg-primary text-white font-black uppercase text-[9px] tracking-widest px-3 py-1">
+                      Recommended
+                    </Badge>
+                  </div>
+                  <div className="mb-6">
+                    <p className="font-black uppercase tracking-widest text-[11px] text-primary/70 mb-1">Agency</p>
+                    <div className="flex items-baseline gap-1">
+                      <span className="text-5xl font-black tabular-nums">${agencyPrice}</span>
+                      <span className="text-white/40 font-black text-xs uppercase tracking-widest">/mo</span>
+                    </div>
+                    {yearly
+                      ? <p className="text-[10px] text-primary/70 font-bold mt-1">Billed as $7,464/yr · includes 5 seats</p>
+                      : <p className="text-[10px] text-primary/70 font-bold mt-1">Includes 5 seats</p>
+                    }
+                    <p className="text-white/40 text-[11px] font-medium mt-2">
+                      For agencies with brokers · additional seats {seatAddon}/seat/mo
+                    </p>
+                  </div>
+                  <ul className="space-y-2 mb-8 flex-1">
+                    <li className="text-[10px] font-black uppercase tracking-widest text-white/30 mb-1">Everything in Broker, plus:</li>
+                    {AGENCY_EXTRA.map(f => (
+                      <li key={f} className="flex items-start gap-2.5 text-[12px] font-medium text-white/70">
+                        <Check className="w-4 h-4 text-primary shrink-0 mt-0.5" />
+                        {f}
+                      </li>
+                    ))}
+                  </ul>
+                  <Button asChild className="w-full h-14 rounded-2xl font-black uppercase text-[10px] tracking-widest bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20">
+                    <Link href="/signup">Get Started</Link>
+                  </Button>
+                </div>
+              </Reveal>
+            </div>
+
+            {/* Footer notes */}
+            <Reveal className="flex flex-col items-center gap-3 text-center">
+              <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest">No refunds. All sales are final.</p>
+              <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white/30">
+                <ShieldCheck className="w-3.5 h-3.5" />
+                All plans include HIPAA-compliant infrastructure.
+              </div>
+            </Reveal>
+
           </div>
         </section>
       </main>

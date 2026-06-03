@@ -85,7 +85,7 @@ export function SiteNavbar() {
             />
           ))}
           <NavLink
-            href="/pricing"
+            href={pathname === "/" ? "#pricing" : "/#pricing"}
             label="Pricing"
             active={pathname === "/pricing"}
           />
@@ -136,7 +136,7 @@ export function SiteNavbar() {
           ))}
 
           <Link
-            href="/pricing"
+            href={pathname === "/" ? "#pricing" : "/#pricing"}
             onClick={() => setMobileOpen(false)}
             className={`rounded-xl border px-4 py-3 text-sm font-bold transition-all ${
               pathname === "/pricing"
