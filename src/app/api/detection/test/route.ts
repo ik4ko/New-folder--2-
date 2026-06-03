@@ -20,8 +20,75 @@ export async function POST(req: NextRequest) {
   const agencyId = agency?.id ?? brokerRow?.agency_id
   if (!agencyId) return NextResponse.json({ error: 'No agency found' }, { status: 400 })
 
-  const body = await req.json().catch(() => ({})) as { carrier?: string }
-  const { carrier } = body
+  const body = await req.json().catch(() => ({})) as { carrier?: string; mode?: 'carrier_test' | 'mock_marx' }
+  const { carrier, mode = 'carrier_test' } = body
+
+  // ── Mock MARX Scan Mode ─────────────────────────────────────────────────────
+  if (mode === 'mock_marx') {
+    const supabaseAdmin = createServiceClient()
+
+    // Fetch a random test member from the agency
+    const { data: members, error: fetchErr } = await supabaseAdmin
+      .from('book_of_business')
+      .select('id, full_name, plan_name, carrier')
+      .eq('agency_id', agencyId)
+      .limit(10)
+
+    if (fetchErr || !members || members.length === 0) {
+      return NextResponse.json({ error: 'No members found for mock scan' }, { status: 404 })
+    }
+
+    // Randomly select one member
+    const randomMember = members[Math.floor(Math.random() * members.length)]
+    const now = new Date()
+    const futureDate = new Date(now)
+    futureDate.setMonth(futureDate.getMonth() + 1)
+
+    // Create a mock switch_alert with FUTURE_CHURN status
+    const { error: alertErr } = await supabaseAdmin
+      .from('switch_alerts')
+      .insert({
+        agency_id: agencyId,
+        bob_member_id: randomMember.id,
+        alert_type: 'plan_change',
+        status: 'open',
+        switch_type: 'future_plan_change',
+        risk_level: 'HIGH',
+        detected_at: now.toISOString(),
+        effective_date: futureDate.toISOString(),
+        metadata: {
+          mock_scan: true,
+          current_plan: randomMember.plan_name,
+          future_plan: 'Mock Future Plan',
+        },
+        created_at: now.toISOString(),
+        updated_at: now.toISOString(),
+      })
+
+    if (alertErr) {
+      console.error('[detection/test] mock alert creation failed:', alertErr.message)
+      return NextResponse.json({ error: 'Failed to create mock alert' }, { status: 500 })
+    }
+
+    return NextResponse.json({
+      success: true,
+      mode: 'mock_marx',
+      member: {
+        id: randomMember.id,
+        full_name: randomMember.full_name,
+        plan_name: randomMember.plan_name,
+        carrier: randomMember.carrier,
+      },
+      alert: {
+        status: 'open',
+        switch_type: 'future_plan_change',
+        risk_level: 'HIGH',
+        effective_date: futureDate.toISOString(),
+      },
+    })
+  }
+
+  // ── Carrier Test Mode (existing logic) ─────────────────────────────────────
   if (!carrier) return NextResponse.json({ error: 'carrier is required' }, { status: 400 })
 
   const supabaseAdmin = createServiceClient()

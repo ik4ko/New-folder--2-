@@ -47,6 +47,7 @@ const ALLOWED_CLIENT_ACTIONS = new Set<AuditActionType>([
   'CSV_EXPORT',
   'RECORD_VIEW',
   'ALERT_ACKNOWLEDGE',
+  'PHI_ACCESS',
 ])
 
 // Keys that suggest raw PHI — strip these from client-supplied metadata
@@ -134,6 +135,25 @@ export async function POST(req: NextRequest) {
     phiTouched:   true,   // All client-side actions via this route are PHI-adjacent
     metadata:     sanitizeMetadata(metadata),
   })
+
+  // ── 6. Also write to audit_log table for PHI_ACCESS events ───────────────
+  if (actionType === 'PHI_ACCESS' && resourceId) {
+    void (async () => {
+      try {
+        await admin.from('audit_log').insert({
+          agency_id:     agencyId,
+          user_id:       user.id,
+          action:        'PHI_ACCESS',
+          resource_type: resourceType ?? 'book_of_business',
+          resource_id:   resourceId,
+          metadata:      sanitizeMetadata(metadata),
+          created_at:    new Date().toISOString(),
+        })
+      } catch (err) {
+        console.error('[audit/phi-touch] audit_log write failed:', err)
+      }
+    })()
+  }
 
   // Return 204 immediately — client doesn't wait for DB write
   return new NextResponse(null, { status: 204 })

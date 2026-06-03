@@ -44,6 +44,7 @@ export type AuditActionType =
   | 'RECORD_MODIFY'
   | 'RECORD_DELETE'
   | 'RECORD_VIEW'
+  | 'PHI_ACCESS'
   // Infrastructure events
   | 'EDGE_MAP_FETCH'
   | 'API_KEY_GENERATE'
@@ -89,6 +90,7 @@ const PHI_TOUCH_ACTIONS = new Set<AuditActionType>([
   'CSV_EXPORT',
   'RECORD_MODIFY',
   'RECORD_DELETE',
+  'PHI_ACCESS',
 ])
 
 // ── Main export ──────────────────────────────────────────────────────────────

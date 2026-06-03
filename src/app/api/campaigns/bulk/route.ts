@@ -104,9 +104,10 @@ export async function POST(req: NextRequest) {
   const svc = createServiceClient()
 
   // ── Single batched member fetch — no broker_id filter (staff scope) ───────
+  // Fetch plan_name for template injection and broker info for sender context
   const { data: members, error: fetchErr } = await svc
     .from('book_of_business')
-    .select('id, broker_id, full_name')
+    .select('id, broker_id, full_name, plan_name')
     .in('id', memberIds)
     .eq('agency_id', scope.agencyId)
 
@@ -125,7 +126,25 @@ export async function POST(req: NextRequest) {
   const now        = new Date().toISOString()
   const validMbIds = members.map(m => m.id)
 
+  // ── Fetch broker name for template injection ──────────────────────────────
+  const { data: broker } = await svc
+    .from('brokers')
+    .select('full_name')
+    .eq('id', scope.brokerId ?? '')
+    .maybeSingle()
+  const brokerName = broker?.full_name ?? 'Your Broker'
+
+  // ── Template tag replacement function ─────────────────────────────────────
+  function replaceTemplateTags(message: string, member: { full_name?: string | null; plan_name?: string | null }): string {
+    if (!message) return ''
+    return message
+      .replace(/\{member_name\}/g, member.full_name || 'Member')
+      .replace(/\{plan_name\}/g, member.plan_name || 'your plan')
+      .replace(/\{broker_name\}/g, brokerName)
+  }
+
   // ── Op 1: Batched campaign_enrollments INSERT ─────────────────────────────
+  // Apply template tag replacement to message for each member
   const enrollmentRows = members.map(m => ({
     agency_id:     scope.agencyId,
     broker_id:     m.broker_id ?? scope.brokerId,
@@ -133,7 +152,7 @@ export async function POST(req: NextRequest) {
     enrolled_by:   user.id,
     campaign_type: campaignType,
     status:        'active',
-    message:       body.message ?? null,
+    message:       body.message ? replaceTemplateTags(body.message, m) : null,
     source:        'bulk_staff',
     created_at:    now,
     updated_at:    now,
@@ -173,8 +192,28 @@ export async function POST(req: NextRequest) {
       campaign_type: campaignType,
       count:         members.length,
       role:          scope.role,
+      message_template: body.message ? 'custom' : 'default',
     },
-  }) // <-- FIXED CLOSING PARENTHESIS AND BRACKET HERE
+  })
+
+  // ── Outbound logging for dashboard tracking ────────────────────────────────
+  // Log each enrollment as a pending outbound message for dashboard display
+  const outboundLogs = members.map(m => ({
+    agency_id:     scope.agencyId,
+    user_id:       user.id,
+    action:        'CAMPAIGN_MESSAGE_QUEUED',
+    resource_type: 'campaign_enrollments',
+    resource_id:   m.id,
+    metadata: {
+      campaign_type: campaignType,
+      member_name:   m.full_name,
+      message:       body.message ? replaceTemplateTags(body.message, m) : null,
+      status:        'pending',
+    },
+    created_at:    now,
+  }))
+
+  await svc.from('audit_log').insert(outboundLogs)
 
   console.log(`[campaigns/bulk] enrolled ${members.length} members into '${campaignType}' by ${scope.role} ${user.id}`)
 

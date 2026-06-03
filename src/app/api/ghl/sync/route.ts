@@ -44,6 +44,13 @@ import {
   logCrmExportFailed,
   extractIp,
 } from '@/utils/auditLogger'
+import {
+  sanitizeMbi,
+  inferCarrier,
+  extractHCode,
+  cleanPlanName,
+  detectChronicStatus,
+} from '@/lib/data-normalization'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -97,11 +104,6 @@ function extractGhlFields(contact: Record<string, unknown>): Record<string, stri
     }
   }
   return extracted
-}
-
-function sanitizeMbi(raw: string): string | null {
-  const clean = raw.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 11)
-  return clean.length === 11 ? clean : null
 }
 
 // ── Token management ──────────────────────────────────────────────────────────
@@ -229,6 +231,16 @@ function mapContacts(
       ? String(contact.id).trim()
       : null
 
+    // Use shared utility functions for plan and carrier normalization
+    const planValue = fields.plan_name ?? ''
+    const { contract: planContract, pbp: planPbp, planId: extractedPlanId } = extractHCode(planValue)
+    const cleanedPlanName = cleanPlanName(planValue)
+    const carrierValue = fields.carrier ?? ''
+    const resolvedCarrier = inferCarrier(carrierValue, planValue)
+    
+    // Detect chronic status from plan name
+    const isChronic = detectChronicStatus(planValue, '')
+
     return {
       agency_id:           agencyId,
       broker_id:           brokerId,
@@ -236,13 +248,19 @@ function mapContacts(
       full_name:           fullName,
       email:               contact.email ? String(contact.email) : null,
       phone:               contact.phone ? String(contact.phone) : null,
-      plan_name:           fields.plan_name ?? null,
-      carrier:             fields.carrier   ?? 'unknown',
+      plan_name:           cleanedPlanName,
+      plan_id:             extractedPlanId,
+      plan_contract:       planContract,
+      plan_pbp:            planPbp,
+      carrier:             resolvedCarrier,
+      carrier_display_name: resolvedCarrier !== 'unknown' ? resolvedCarrier : null,
       mbi:                 mbi,
       dob:                 fields.dob ?? null,
       status:              'ACTIVE',
       source:              'ghl_sync',
       verification_status: 'unverified',
+      enrollment_status:    'active',
+      is_chronic:          isChronic,
       updated_at:          new Date().toISOString(),
     }
   }).filter(r => r.ghl_contact_id)

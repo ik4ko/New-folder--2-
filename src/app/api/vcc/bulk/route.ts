@@ -106,9 +106,10 @@ export async function POST(req: NextRequest) {
 
   // ── Single batched member fetch — scoped to caller's agency ───────────────
   // broker_id constraint intentionally omitted: staff operate across downline.
+  // Fetch doctor_name and doctor_fax from member record for auto-fill fallback
   const { data: members, error: fetchErr } = await svc
     .from('book_of_business')
-    .select('id, agency_id, broker_id, full_name, mbi, carrier, plan_name')
+    .select('id, agency_id, broker_id, full_name, mbi, carrier, plan_name, doctor_name, doctor_fax')
     .in('id', memberIds)
     .eq('agency_id', scope.agencyId)
 
@@ -127,18 +128,21 @@ export async function POST(req: NextRequest) {
   const now = new Date().toISOString()
 
   // ── Single batched INSERT into vcc_submissions ────────────────────────────
+  // Auto-fill mapping: use request body values first, fall back to member record data
   const rows = members.map(m => ({
     agency_id:   scope.agencyId,
     broker_id:   m.broker_id ?? scope.brokerId,   // fall back to caller's broker_id if unassigned
     initiated_by: user.id,
     bob_member_id: m.id,
+    // Golden data pillars from member record
     client_name:   m.full_name ?? null,
     medicare_id:   m.mbi       ?? null,
     carrier:       m.carrier   ?? null,
     plan_name:     m.plan_name ?? null,
     form_type:     formType,
-    doctor_name:   body.doctor_name ?? null,
-    doctor_fax:    body.doctor_fax  ?? null,
+    // Doctor info: request body takes priority, fallback to member record
+    doctor_name:   body.doctor_name ?? m.doctor_name ?? null,
+    doctor_fax:    body.doctor_fax  ?? m.doctor_fax  ?? null,
     send_fax:      sendFax,
     fax_status:    sendFax ? 'pending' : 'no_fax',
     source:        'bulk',

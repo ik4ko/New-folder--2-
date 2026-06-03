@@ -148,6 +148,12 @@ export async function POST(req: NextRequest) {
   const detectedFuturePlan  = (body.detectedFuturePlan  as string | null) ?? null
   const detectedFutureStart = (body.detectedFutureStart as string | null) ?? null
 
+  // ── New payload fields for Core Magic Detection Logic ─────────────────────────
+  const currentMarxPlan      = (body.current_marx_plan      as string | null) ?? null
+  const futureEnrollmentPlan = (body.future_enrollment_plan as string | null) ?? null
+  const futureEnrollmentDate = (body.future_enrollment_date as string | null) ?? null
+  const eligibilityStatus    = (body.eligibility_status     as string | null) ?? null
+
   // ── Stored plan code resolution ──────────────────────────────────────────────
   // Priority: last_known_plan_code → original_contract+pbp → plan_id → plan_name
   const storedHCodeDirect   = isValidPlanCode(member.last_known_plan_code) ? member.last_known_plan_code as string : null
@@ -190,6 +196,39 @@ export async function POST(req: NextRequest) {
 
   console.log('[MARx] storedCode:', storedCode, '| detectedPlanCode:', detectedPlanCode)
 
+  // ── Core Magic Detection Logic ─────────────────────────────────────────────────
+  // Check for Future Churn, Existing Churn, and Loss of Coverage based on new payload
+  let magicAlertType: string | null = null
+  let magicAlertMessage: string | null = null
+  let magicAlertPriority = 'high'
+
+  // Check for Future Churn: member scheduled to switch plans
+  if (futureEnrollmentPlan && storedCode && futureEnrollmentPlan !== storedCode) {
+    magicAlertType = 'FUTURE_CHURN'
+    magicAlertMessage = `Member scheduled to switch to ${futureEnrollmentPlan} on ${futureEnrollmentDate || 'unknown date'}`
+    magicAlertPriority = 'critical'
+    console.log('[MARx] FUTURE_CHURN detected:', magicAlertMessage)
+  }
+
+  // Check for Existing Churn: current MARX plan doesn't match saved plan
+  if (!magicAlertType && currentMarxPlan && storedCode && currentMarxPlan !== storedCode) {
+    magicAlertType = 'LOST_MEMBER'
+    magicAlertMessage = `Member already switched to ${currentMarxPlan}`
+    magicAlertPriority = 'critical'
+    console.log('[MARx] LOST_MEMBER detected:', magicAlertMessage)
+  }
+
+  // Check for Loss of Coverage: eligibility status shows inactive or lapsed
+  if (!magicAlertType && eligibilityStatus) {
+    const inactiveStatuses = ['inactive', 'lapsed', 'terminated', 'disenrolled', 'cancelled']
+    if (inactiveStatuses.some(status => eligibilityStatus.toLowerCase().includes(status))) {
+      magicAlertType = 'LAPSED_COVERAGE'
+      magicAlertMessage = `Member coverage lapsed: ${eligibilityStatus}`
+      magicAlertPriority = 'critical'
+      console.log('[MARx] LAPSED_COVERAGE detected:', magicAlertMessage)
+    }
+  }
+
   // ── Carrier normalization ─────────────────────────────────────────────────────
   function canonicalCarrier(name: string): string {
     const s = name.toLowerCase().replace(/[^a-z0-9\s]/g, ' ').replace(/\s+/g, ' ').trim()
@@ -225,6 +264,14 @@ export async function POST(req: NextRequest) {
   let alertType: string | null = null
   let alertPriority = 'high'
   let effectiveMarxResult = marxResult
+
+  // If magic detection found a critical alert, override the state machine
+  if (magicAlertType) {
+    alertType = magicAlertType
+    alertPriority = magicAlertPriority
+    finalStatus = magicAlertType === 'LAPSED_COVERAGE' ? 'termed' : 'changed'
+    console.log('[MARx] Magic detection override — alertType:', alertType, '| finalStatus:', finalStatus)
+  }
 
   if (marxResult === 'no_ma_plan') {
     finalStatus   = 'termed'
@@ -398,6 +445,23 @@ export async function POST(req: NextRequest) {
       console.log('[MARx] alert dedup — already alerted within 24h, skipping')
     } else {
       // Record alert in switch_alerts
+      const alertDetails: Record<string, any> = {
+        storedCode,
+        detectedPlanCode,
+        realPlanName,
+        realCarrierName,
+        marxResult: effectiveMarxResult,
+      }
+
+      // Add magic detection details if present
+      if (magicAlertMessage) {
+        alertDetails.magicAlertMessage = magicAlertMessage
+        alertDetails.futureEnrollmentPlan = futureEnrollmentPlan
+        alertDetails.futureEnrollmentDate = futureEnrollmentDate
+        alertDetails.currentMarxPlan = currentMarxPlan
+        alertDetails.eligibilityStatus = eligibilityStatus
+      }
+
       const { error: alertInsertErr } = await db.from('switch_alerts').insert({
         member_id:    member.id,
         agency_id:    member.agency_id,
@@ -406,13 +470,7 @@ export async function POST(req: NextRequest) {
         priority:     alertPriority,
         previous_plan: storedCode,
         detected_plan: detectedPlanCode,
-        details: JSON.stringify({
-          storedCode,
-          detectedPlanCode,
-          realPlanName,
-          realCarrierName,
-          marxResult: effectiveMarxResult,
-        }),
+        details: JSON.stringify(alertDetails),
       })
       if (alertInsertErr) console.error('[MARx] alert insert error:', JSON.stringify(alertInsertErr))
       else console.log('[MARx] alert inserted — type:', alertType)
