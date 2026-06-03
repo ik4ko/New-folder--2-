@@ -76,6 +76,7 @@ export function SiteNavbar({ onWaitlistClick }: { onWaitlistClick?: () => void }
           <Logo className="[&_span]:text-white" />
         </Link>
 
+        {/* Desktop nav links */}
         <nav className="hidden items-center gap-1 md:flex">
           {marketingLinks.map((link) => (
             <NavLink
@@ -85,8 +86,14 @@ export function SiteNavbar({ onWaitlistClick }: { onWaitlistClick?: () => void }
               active={pathname === "/" && activeSection === link.href}
             />
           ))}
+          <NavLink
+            href="/pricing"
+            label="Pricing"
+            active={pathname === "/pricing"}
+          />
         </nav>
 
+        {/* Desktop right actions */}
         <div className="hidden items-center gap-3 md:flex">
           <Link
             href="/login"
@@ -94,17 +101,21 @@ export function SiteNavbar({ onWaitlistClick }: { onWaitlistClick?: () => void }
           >
             Sign In
           </Link>
+          <Button asChild className="bg-primary font-black text-black hover:bg-primary/90">
+            <Link href="/signup">Sign Up</Link>
+          </Button>
           {showWaitlist ? (
-            <Button onClick={onWaitlistClick} className="bg-primary font-black text-black hover:bg-primary/90">
+            <Button onClick={onWaitlistClick} variant="outline" className="border-white/20 text-white font-black hover:bg-white/10">
               Request Early Access
             </Button>
           ) : (
-            <Button asChild className="bg-primary font-black text-black hover:bg-primary/90">
+            <Button asChild variant="outline" className="border-white/20 text-white font-black hover:bg-white/10">
               <Link href="/">Request Early Access</Link>
             </Button>
           )}
         </div>
 
+        {/* Mobile hamburger */}
         <button
           type="button"
           aria-label="Toggle navigation"
@@ -134,6 +145,21 @@ export function SiteNavbar({ onWaitlistClick }: { onWaitlistClick?: () => void }
               {link.label}
             </Link>
           ))}
+
+          {/* Pricing page link */}
+          <Link
+            href="/pricing"
+            onClick={() => setMobileOpen(false)}
+            className={`rounded-xl border px-4 py-3 text-sm font-bold transition-all ${
+              pathname === "/pricing"
+                ? "border-primary/30 bg-primary/10 text-primary"
+                : "border-transparent text-slate-300 hover:border-primary/30 hover:bg-primary/10 hover:text-primary"
+            }`}
+          >
+            Pricing
+          </Link>
+
+          {/* Sign In */}
           <Link
             href="/login"
             onClick={() => setMobileOpen(false)}
@@ -141,16 +167,24 @@ export function SiteNavbar({ onWaitlistClick }: { onWaitlistClick?: () => void }
           >
             Sign In
           </Link>
-          <div className="mt-2">
+
+          {/* Sign Up */}
+          <Button asChild className="w-full bg-primary font-black text-black hover:bg-primary/90">
+            <Link href="/signup" onClick={() => setMobileOpen(false)}>Sign Up</Link>
+          </Button>
+
+          {/* Request Early Access */}
+          <div>
             {showWaitlist ? (
               <Button
                 onClick={() => { setMobileOpen(false); onWaitlistClick?.() }}
-                className="w-full bg-primary font-black text-black hover:bg-primary/90"
+                variant="outline"
+                className="w-full border-white/20 text-white font-black hover:bg-white/10"
               >
                 Request Early Access
               </Button>
             ) : (
-              <Button asChild className="w-full bg-primary font-black text-black hover:bg-primary/90">
+              <Button asChild variant="outline" className="w-full border-white/20 text-white font-black hover:bg-white/10">
                 <Link href="/">Request Early Access</Link>
               </Button>
             )}

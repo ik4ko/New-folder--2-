@@ -5,70 +5,47 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Logo } from '@/components/logo'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
-import { Check, Zap, Building2, ArrowLeft, Loader2, ShieldCheck, Plus } from 'lucide-react'
+import { Check, ArrowLeft, ShieldCheck } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const BROKER_FEATURES = [
-  '1 broker seat',
-  'My Book contact management',
-  'GoHighLevel integration',
-  'VCC Form automation',
-  'Churn detection alerts',
-  'AEP Shield campaigns',
-  'AI retention scripts',
-  'Aegis Lock — CMS-1696 AOR',
+  'Plan switch detection for your book of business',
+  'VCC / SSBCI form routing for your clients',
+  'Broker campaign messaging',
+  'CMS enrollment monitoring',
+  'HIPAA-compliant audit logging',
+  'Email alerts on plan changes',
 ]
 
-const AGENCY_FEATURES = [
-  '5 seats included (owner + managers + CS + brokers)',
-  'Additional brokers: +$49/seat/month',
-  'Everything in Broker tier',
-  'Team management with role permissions',
-  'Manager visibility dashboard',
-  'Revenue-at-risk monitoring',
-  'Master roster import',
-  'Submit VCC on behalf of any broker',
-  'Priority support',
+const AGENCY_EXTRA_FEATURES = [
+  'Up to 5 seats included',
+  'Agency-wide rollup dashboard',
+  'Owner, Manager, and Customer Service roles',
+  'Mass campaign messaging across all brokers',
+  'Centralized VCC/SSBCI form management',
+  'Full audit trail across all brokers',
+  'Additional seats available at +$50/seat/mo',
 ]
 
 export default function PricingPage() {
-  const router = useRouter()
-  const [loadingPlan, setLoadingPlan] = useState<'broker' | 'agency' | null>(null)
+  const [yearly, setYearly] = useState(false)
 
-  const handleCheckout = async (plan: 'broker' | 'agency') => {
-    setLoadingPlan(plan)
-    try {
-      const res = await fetch('/api/stripe/checkout', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ plan }),
-      })
-      const data = await res.json()
-      if (data.url) {
-        window.location.href = data.url
-      } else {
-        throw new Error(data.error ?? 'Checkout failed')
-      }
-    } catch (err: any) {
-      alert(err.message)
-      setLoadingPlan(null)
-    }
-  }
+  const brokerPrice  = yearly ? 124  : 149
+  const agencyPrice  = yearly ? 622  : 749
+  const seatAddon    = yearly ? '+$41.50' : '+$50'
 
   return (
     <div className="min-h-screen bg-slate-950 text-white">
-      {/* Header */}
       <header className="h-20 px-8 flex items-center justify-between border-b border-white/10">
         <Link href="/"><Logo /></Link>
         <Button variant="ghost" size="sm" asChild className="rounded-xl font-black uppercase text-[10px] tracking-widest text-white/60 hover:text-white hover:bg-white/10">
-          <Link href="/dashboard"><ArrowLeft className="w-4 h-4 mr-2" /> Dashboard</Link>
+          <Link href="/"><ArrowLeft className="w-4 h-4 mr-2" /> Home</Link>
         </Button>
       </header>
 
       <main className="max-w-5xl mx-auto px-6 py-20">
         {/* Headline */}
-        <div className="text-center space-y-4 mb-16">
+        <div className="text-center space-y-4 mb-12">
           <Badge className="bg-primary/10 text-primary border-primary/20 font-black uppercase text-[10px] tracking-widest px-4 py-1.5">
             Simple Pricing
           </Badge>
@@ -76,31 +53,73 @@ export default function PricingPage() {
             Protect Your Book
           </h1>
           <p className="text-white/50 font-bold text-sm max-w-xl mx-auto">
-            AOR fulfillment, VCC automation, and retention intelligence — priced for Medicare agencies.
+            Plan switch detection, VCC automation, and retention intelligence —
+            priced for Medicare professionals.
           </p>
         </div>
 
-        {/* Pricing Cards */}
+        {/* Monthly / Yearly toggle */}
+        <div className="flex items-center justify-center gap-4 mb-14">
+          <span className={cn(
+            'text-sm font-black uppercase tracking-widest transition-colors',
+            !yearly ? 'text-white' : 'text-white/40',
+          )}>
+            Monthly
+          </span>
+
+          <button
+            type="button"
+            aria-label="Toggle billing period"
+            onClick={() => setYearly(v => !v)}
+            className={cn(
+              'relative w-14 h-7 rounded-full border transition-all duration-200',
+              yearly ? 'bg-primary border-primary' : 'bg-white/10 border-white/20',
+            )}
+          >
+            <span className={cn(
+              'absolute top-1 w-5 h-5 rounded-full bg-white shadow transition-all duration-200',
+              yearly ? 'left-8' : 'left-1',
+            )} />
+          </button>
+
+          <div className="flex items-center gap-2">
+            <span className={cn(
+              'text-sm font-black uppercase tracking-widest transition-colors',
+              yearly ? 'text-white' : 'text-white/40',
+            )}>
+              Yearly
+            </span>
+            <span className={cn(
+              'text-[9px] font-black uppercase tracking-widest px-2 py-1 rounded-full border transition-all duration-300',
+              yearly
+                ? 'bg-primary/20 text-primary border-primary/30 opacity-100 scale-100'
+                : 'opacity-0 scale-75 pointer-events-none border-transparent text-transparent',
+            )}>
+              Save 17%
+            </span>
+          </div>
+        </div>
+
+        {/* Pricing cards */}
         <div className="grid md:grid-cols-2 gap-6">
+
           {/* Broker */}
           <div className="rounded-3xl border border-white/10 bg-white/5 p-8 flex flex-col">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-2xl bg-white/10 flex items-center justify-center">
-                <Zap className="w-5 h-5 text-white" />
+            <div className="mb-6">
+              <p className="font-black uppercase tracking-widest text-[11px] text-white/60 mb-1">Broker</p>
+              <div className="flex items-baseline gap-1">
+                <span className="text-5xl font-black tabular-nums transition-all duration-200">
+                  ${brokerPrice}
+                </span>
+                <span className="text-white/40 font-black text-xs uppercase tracking-widest">/mo</span>
               </div>
-              <div>
-                <p className="font-black uppercase tracking-widest text-[11px] text-white/60">Broker</p>
-                <p className="font-black text-lg text-white">Solo Broker</p>
-              </div>
+              {yearly && (
+                <p className="text-[10px] text-primary/70 font-bold mt-1">Billed as $1,488/yr</p>
+              )}
+              <p className="text-white/40 text-[11px] font-medium mt-2">
+                For independent brokers managing their own book of business
+              </p>
             </div>
-
-            <div className="flex items-baseline gap-1 mb-2">
-              <span className="text-5xl font-black">$149</span>
-              <span className="text-white/40 font-black text-xs uppercase tracking-widest">/month</span>
-            </div>
-            <p className="text-white/40 text-[11px] font-medium mb-8">
-              For independent brokers managing their own book of business
-            </p>
 
             <ul className="space-y-3 mb-8 flex-1">
               {BROKER_FEATURES.map(f => (
@@ -111,47 +130,43 @@ export default function PricingPage() {
               ))}
             </ul>
 
-            <Button
-              onClick={() => handleCheckout('broker')}
-              disabled={!!loadingPlan}
-              variant="outline"
-              className="w-full h-14 rounded-2xl font-black uppercase text-[10px] tracking-widest border-white/20 text-white hover:bg-white hover:text-slate-950 transition-all"
-            >
-              {loadingPlan === 'broker' ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Get Started'}
+            <Button asChild variant="outline" className="w-full h-14 rounded-2xl font-black uppercase text-[10px] tracking-widest border-white/20 text-white hover:bg-white hover:text-slate-950 transition-all">
+              <Link href="/signup">Get Started</Link>
             </Button>
           </div>
 
-          {/* Agency */}
-          <div className={cn(
-            "rounded-3xl border p-8 flex flex-col relative overflow-hidden",
-            "border-primary bg-primary/5"
-          )}>
+          {/* Agency — recommended */}
+          <div className="rounded-3xl border border-primary bg-primary/5 p-8 flex flex-col relative overflow-hidden">
             <div className="absolute top-4 right-4">
               <Badge className="bg-primary text-white font-black uppercase text-[9px] tracking-widest px-3 py-1">
-                Most Popular
+                Recommended
               </Badge>
             </div>
 
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-10 h-10 rounded-2xl bg-primary/20 flex items-center justify-center">
-                <Building2 className="w-5 h-5 text-primary" />
+            <div className="mb-6">
+              <p className="font-black uppercase tracking-widest text-[11px] text-primary/70 mb-1">Agency</p>
+              <div className="flex items-baseline gap-1">
+                <span className="text-5xl font-black tabular-nums transition-all duration-200">
+                  ${agencyPrice}
+                </span>
+                <span className="text-white/40 font-black text-xs uppercase tracking-widest">/mo</span>
               </div>
-              <div>
-                <p className="font-black uppercase tracking-widest text-[11px] text-primary/70">Agency</p>
-                <p className="font-black text-lg text-white">Full Agency</p>
-              </div>
+              {yearly ? (
+                <p className="text-[10px] text-primary/70 font-bold mt-1">Billed as $7,464/yr · includes 5 seats</p>
+              ) : (
+                <p className="text-[10px] text-primary/70 font-bold mt-1">Includes 5 seats</p>
+              )}
+              <p className="text-white/40 text-[11px] font-medium mt-2">
+                For agencies with brokers · additional seats {seatAddon}/seat/mo
+              </p>
             </div>
 
-            <div className="flex items-baseline gap-1 mb-2">
-              <span className="text-5xl font-black">$749</span>
-              <span className="text-white/40 font-black text-xs uppercase tracking-widest">/month</span>
-            </div>
-            <p className="text-white/40 text-[11px] font-medium mb-8">
-              For agencies with brokers — includes 5 seats (owner + 4)
-            </p>
-
+            {/* Features: broker features (inherited) + agency-specific */}
             <ul className="space-y-3 mb-8 flex-1">
-              {AGENCY_FEATURES.map(f => (
+              <li className="text-[10px] font-black uppercase tracking-widest text-white/30 mb-1">
+                Everything in Broker, plus:
+              </li>
+              {AGENCY_EXTRA_FEATURES.map(f => (
                 <li key={f} className="flex items-start gap-2.5 text-[12px] font-medium text-white/70">
                   <Check className="w-4 h-4 text-primary shrink-0 mt-0.5" />
                   {f}
@@ -159,38 +174,21 @@ export default function PricingPage() {
               ))}
             </ul>
 
-            <Button
-              onClick={() => handleCheckout('agency')}
-              disabled={!!loadingPlan}
-              className="w-full h-14 rounded-2xl font-black uppercase text-[10px] tracking-widest bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20"
-            >
-              {loadingPlan === 'agency' ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Upgrade Now'}
+            <Button asChild className="w-full h-14 rounded-2xl font-black uppercase text-[10px] tracking-widest bg-primary hover:bg-primary/90 shadow-xl shadow-primary/20">
+              <Link href="/signup">Get Started</Link>
             </Button>
           </div>
         </div>
 
-        {/* Add-on seats note */}
-        <div className="mt-8 p-5 rounded-2xl border border-white/10 bg-white/5 flex items-start gap-3">
-          <Plus className="w-4 h-4 text-primary shrink-0 mt-0.5" />
-          <p className="text-[12px] font-medium text-white/60">
-            <span className="text-white font-bold">Need more brokers?</span> Add broker seats at{' '}
-            <span className="text-white font-bold">$49/month each.</span>{' '}
-            Contact us at{' '}
-            <a href="mailto:growth@aegissage.com" className="text-primary underline underline-offset-2">
-              growth@aegissage.com
-            </a>
+        {/* Footer notes */}
+        <div className="mt-12 flex flex-col items-center gap-3 text-center">
+          <p className="text-[10px] font-bold text-white/30 uppercase tracking-widest">
+            No refunds. All sales are final.
           </p>
-        </div>
-
-        {/* Trust footer */}
-        <div className="mt-16 flex flex-col items-center gap-4 text-center">
           <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-widest text-white/30">
             <ShieldCheck className="w-3.5 h-3.5" />
-            HIPAA-compliant · BAA included · Cancel anytime
+            All plans include HIPAA-compliant infrastructure.
           </div>
-          <p className="text-[10px] text-white/20 font-medium max-w-sm">
-            Not connected with or endorsed by the U.S. government or the federal Medicare program.
-          </p>
         </div>
       </main>
     </div>

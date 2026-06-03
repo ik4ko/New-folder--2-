@@ -256,7 +256,7 @@ function LoginPageContent() {
             </form>
 
             <div className="mt-8 pt-8 border-t border-white/10 flex justify-between items-center text-[10px] font-black text-white/50 uppercase tracking-widest px-2">
-              <Link href="/signup" className="hover:text-primary transition-colors">Register Agency</Link>
+              <Link href="/signup" className="hover:text-primary transition-colors">Don&apos;t have an account? Sign Up</Link>
               <Link href="/auth/reset-password" className="hover:text-primary transition-colors">Forgot Password</Link>
             </div>
 
