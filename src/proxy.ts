@@ -23,8 +23,12 @@ const PUBLIC_PATHS = [
   '/',
   '/login',
   '/signup',
+  '/pricing',
+  '/privacy',
+  '/support',
   '/auth/reset-password',
   '/auth/confirm',
+  '/auth/callback',   // PKCE email confirmation callback — no session yet
   '/sign/aor',        // public AOR signing page (token-gated, not session-gated)
   '/privacy-policy',
   '/terms-of-service',
@@ -32,6 +36,9 @@ const PUBLIC_PATHS = [
   '/baa',
   '/compliance',
   '/account-deleted',
+  '/about',
+  '/careers',
+  '/terms',
 ]
 
 // ── API routes accessible without a dashboard session ────────────────────────
@@ -56,6 +63,7 @@ function isPublicPath(pathname: string): boolean {
   if (PUBLIC_PATHS.includes(pathname)) return true
   // Prefix match for public pages
   if (pathname.startsWith('/sign/aor/')) return true
+  if (pathname.startsWith('/lp/')) return true
   // API prefix match
   if (PUBLIC_API_PREFIXES.some(p => pathname.startsWith(p))) return true
   // Static files and Next.js internals

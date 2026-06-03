@@ -36,6 +36,6 @@ export async function GET(request: NextRequest) {
   }
 
   return NextResponse.redirect(
-    new URL('/login?error=invalid_confirmation_link', request.url)
+    new URL('/login?reason=confirmation_expired', request.url)
   )
 }

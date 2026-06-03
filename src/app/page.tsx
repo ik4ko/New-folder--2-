@@ -1,12 +1,10 @@
 "use client"
 
-import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react"
+import { useEffect, useRef, useState, type ReactNode } from "react"
 import Link from "next/link"
 import {
   Activity,
-  ArrowRight,
   BellRing,
-  CheckCircle2,
   DatabaseZap,
   FileText,
   LockKeyhole,
@@ -17,17 +15,7 @@ import {
 import { Logo } from "@/components/logo"
 import { SiteNavbar } from "@/components/site-navbar"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 
 const steps = [
   {
@@ -124,122 +112,10 @@ function Reveal({
   )
 }
 
-function WaitlistDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
-  const [form, setForm] = useState({ name: "", email: "", agency_name: "" })
-  const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle")
-  const [error, setError] = useState("")
-
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    setStatus("sending")
-    setError("")
-
-    try {
-      const response = await fetch("/api/waitlist", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(form),
-      })
-      const payload = await response.json().catch(() => ({}))
-
-      if (!response.ok) {
-        throw new Error(payload.error ?? "Unable to join the waitlist.")
-      }
-
-      setStatus("sent")
-    } catch (err) {
-      setStatus("error")
-      setError(err instanceof Error ? err.message : "Unable to join the waitlist.")
-    }
-  }
-
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="border-white/10 bg-[#0a0a0f] text-white shadow-none sm:rounded-2xl">
-        {status === "sent" ? (
-          <div className="space-y-5 py-8 text-center">
-            <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-emerald-400/30 bg-emerald-400/10">
-              <CheckCircle2 className="h-7 w-7 text-emerald-300" />
-            </div>
-            <div className="space-y-2">
-              <DialogTitle className="text-2xl font-black tracking-tight">You're on the list</DialogTitle>
-              <DialogDescription className="text-slate-400">
-                We will reach out with early access details and onboarding availability for your agency.
-              </DialogDescription>
-            </div>
-            <Button onClick={() => onOpenChange(false)} className="bg-primary font-bold hover:bg-primary/90">
-              Close
-            </Button>
-          </div>
-        ) : (
-          <>
-            <DialogHeader>
-              <DialogTitle className="text-2xl font-black tracking-tight">Request Early Access</DialogTitle>
-              <DialogDescription className="text-slate-400">
-                Tell us where to send your onboarding details. No PHI required.
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <div className="space-y-2">
-                <Label htmlFor="name">Name</Label>
-                <Input
-                  id="name"
-                  required
-                  value={form.name}
-                  onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
-                  placeholder="Jane Smith"
-                  className="border-white/10 bg-white/5 text-white placeholder:text-slate-600"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="email">Work email</Label>
-                <Input
-                  id="email"
-                  required
-                  type="email"
-                  value={form.email}
-                  onChange={(event) => setForm((prev) => ({ ...prev, email: event.target.value }))}
-                  placeholder="jane@agency.com"
-                  className="border-white/10 bg-white/5 text-white placeholder:text-slate-600"
-                />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="agency_name">Agency</Label>
-                <Input
-                  id="agency_name"
-                  value={form.agency_name}
-                  onChange={(event) => setForm((prev) => ({ ...prev, agency_name: event.target.value }))}
-                  placeholder="Smith Medicare Group"
-                  className="border-white/10 bg-white/5 text-white placeholder:text-slate-600"
-                />
-              </div>
-              {status === "error" && (
-                <p className="rounded-md border border-red-400/20 bg-red-400/10 px-3 py-2 text-sm text-red-200">
-                  {error}
-                </p>
-              )}
-              <Button
-                type="submit"
-                disabled={status === "sending"}
-                className="h-12 w-full bg-primary font-black hover:bg-primary/90"
-              >
-                {status === "sending" ? "Submitting..." : "Request Early Access"}
-              </Button>
-            </form>
-          </>
-        )}
-      </DialogContent>
-    </Dialog>
-  )
-}
-
 export default function LandingPage() {
-  const [waitlistOpen, setWaitlistOpen] = useState(false)
-
   return (
     <div className="min-h-screen scroll-smooth bg-[#0a0a0f] text-white selection:bg-primary/20">
-      <WaitlistDialog open={waitlistOpen} onOpenChange={setWaitlistOpen} />
-      <SiteNavbar onWaitlistClick={() => setWaitlistOpen(true)} />
+      <SiteNavbar />
 
       <main>
         {/* ── Hero ─────────────────────────────────────────────────────────── */}
@@ -258,13 +134,6 @@ export default function LandingPage() {
                   AegisSage monitors your Medicare Advantage book and alerts you while there's still time to act.
                 </p>
               </div>
-              <Button
-                onClick={() => setWaitlistOpen(true)}
-                size="lg"
-                className="idle-pulse h-14 bg-primary px-7 text-sm font-black text-black hover:bg-primary/90"
-              >
-                Request Early Access <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
             </Reveal>
 
             <Reveal delay={140}>
@@ -364,26 +233,6 @@ export default function LandingPage() {
                 </Reveal>
               ))}
             </div>
-          </div>
-        </section>
-
-        {/* ── CTA band ─────────────────────────────────────────────────────── */}
-        <section className="px-4 py-20 sm:px-6 md:py-24">
-          <div className="mx-auto max-w-3xl space-y-6 text-center">
-            <Reveal>
-              <h2 className="text-3xl font-black tracking-tight sm:text-4xl">
-                Built for brokers who want to know first.
-              </h2>
-            </Reveal>
-            <Reveal delay={120}>
-              <Button
-                onClick={() => setWaitlistOpen(true)}
-                size="lg"
-                className="h-14 bg-primary px-7 text-sm font-black text-black hover:bg-primary/90"
-              >
-                Request Early Access <ArrowRight className="ml-2 h-4 w-4" />
-              </Button>
-            </Reveal>
           </div>
         </section>
       </main>

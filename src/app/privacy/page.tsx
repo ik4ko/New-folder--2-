@@ -1,108 +1,164 @@
+import Link from "next/link"
+import { ArrowLeft, Shield, Lock, Database, Eye, Bell, FileCheck, Users, Mail } from "lucide-react"
+import { Logo } from "@/components/logo"
 import { Badge } from "@/components/ui/badge"
-import { Shield, Lock, Eye, Database, Trash2, FileCheck, Bell } from "lucide-react"
-import { MarketingShell } from "@/components/marketing-shell"
 
 export const metadata = {
   title: "Privacy Policy | AegisSage",
-  description: "AegisSage data minimization and HIPAA privacy policy.",
+  description: "AegisSage HIPAA privacy policy — how we collect, store, and protect Medicare broker and member data.",
 }
 
 const SECTIONS = [
   {
     icon: Database,
-    title: "Data We Collect",
-    content: `AegisSage collects only the minimum data necessary to deliver our Medicare retention monitoring service. This includes: (a) account registration information (name, work email, and agency name); (b) Medicare Beneficiary Identifiers (MBIs) and related plan information submitted by licensed agents on behalf of their clients; (c) client roster data uploaded by agents for plan-switch monitoring, consisting of name, member ID, and current plan; and (d) platform usage metadata (login timestamps, feature interactions). We do not collect or store Social Security Numbers, dates of birth, or clinical diagnosis codes. We do not sell, rent, or broker any data to third parties under any circumstances.`,
+    title: "What Data We Collect",
+    content: [
+      "Member data: full name, Medicare Beneficiary Identifier (MBI), and current plan information — submitted by licensed agents on behalf of their clients.",
+      "Broker data: name, email address, and agency affiliation — collected at account registration.",
+      "Usage data: session activity timestamps and audit log events generated during normal platform use.",
+      "We do not collect data beyond what is necessary for plan switch detection, VCC/SSBCI form routing, and broker campaign delivery. We do not collect Social Security Numbers, dates of birth, or clinical diagnosis codes.",
+    ],
   },
   {
     icon: Shield,
-    title: "HIPAA Compliance & Business Associate Agreements",
-    content: `AegisSage operates as a Business Associate under HIPAA for all agency customers. A signed Business Associate Agreement (BAA) is required before any Protected Health Information may be processed through the platform. All PHI is handled in strict accordance with 45 CFR Parts 160 and 164 (the HIPAA Privacy and Security Rules). MBI numbers and other PHI fields are encrypted at rest using AES-256 and in transit using TLS 1.3. Only authorized personnel with a documented business need may access PHI, and all such access is logged and auditable.`,
+    title: "How Data Is Used",
+    content: [
+      "Plan switch monitoring: we run automated checks against CMS enrollment data to detect changes, disenrollments, or pending switches for your clients.",
+      "Clinical form routing: VCC and SSBCI forms are routed to the appropriate member care teams on behalf of licensed agents.",
+      "Broker-to-client campaign delivery: retention messages, wellness outreach, and renewal reminders are sent to your book of business on your schedule.",
+      "Internal HIPAA audit logging: every PHI access event is recorded and retained to satisfy compliance obligations.",
+      "Your data is never sold, never rented, and never used for third-party marketing or advertising under any circumstances.",
+    ],
   },
   {
     icon: Lock,
-    title: "How Data Is Stored",
-    content: `All data is encrypted at rest and in transit. MBI data submitted by agents is stored in encrypted form and is used exclusively to run plan-switch monitoring checks and, where applicable, to support clinical form routing. Access to stored data is enforced at the database layer using row-level security policies: each broker can access only the records belonging to their own agency. We do not train machine-learning models on PHI. We do not aggregate or re-identify de-identified data.`,
-  },
-  {
-    icon: Eye,
-    title: "Who Can Access Your Data",
-    content: `Access to client data is scoped per agency. A licensed agent or broker can view and manage only the client records associated with their own agency account. Agency owners may grant access to additional team members within their agency; such access is also bounded to that agency's records. AegisSage staff access PHI only when required to investigate a reported platform issue, under documented authorization, and all such access is logged. No data is accessible to other agencies, to advertisers, or to any third-party commercial entity.`,
+    title: "How Data Is Stored and Protected",
+    content: [
+      "All data is encrypted at rest using AES-256 and in transit using TLS 1.2 or higher.",
+      "Row-level security (RLS) is enforced at the database layer: each broker can access only the client records belonging to their own agency. Cross-agency data access is architecturally impossible.",
+      "Audit logs are immutable and retained for a minimum of six years in compliance with HIPAA records retention requirements (45 CFR § 164.530(j)).",
+      "Access to PHI is restricted to authenticated, authorized users only. AegisSage staff may access PHI solely when required to investigate a reported platform issue, under documented internal authorization, with all access logged.",
+    ],
   },
   {
     icon: FileCheck,
-    title: "Data Retention",
-    content: `Active account data is retained for the duration of your subscription. Upon cancellation, account data is retained for 30 days to allow for data export, then permanently deleted. Backup copies are purged within 90 days of account termination. PHI contained in form routing submissions is retained for a minimum of six years in compliance with HIPAA records retention requirements (45 CFR § 164.530(j)), unless a shorter legally permissible period is requested. Agents may submit a data deletion request to privacy@aegissage.com at any time.`,
+    title: "Business Associate Agreements",
+    content: [
+      "AegisSage operates as a HIPAA Business Associate for all agency customers. A signed Business Associate Agreement (BAA) is required before any Protected Health Information may be processed through the platform.",
+      "AegisSage maintains BAAs with all sub-processors that handle PHI. Sub-processors are reviewed annually and are vetted for HIPAA eligibility before any PHI is transmitted to them.",
+      "A full list of sub-processors is available upon request at privacy@aegissage.com.",
+    ],
   },
   {
     icon: Bell,
     title: "Breach Notification",
-    content: `In the event of a breach of unsecured PHI, AegisSage will notify affected individuals within 60 days of discovery, in accordance with the HIPAA Breach Notification Rule (45 CFR §§ 164.400–414). For breaches affecting 500 or more individuals, AegisSage will also notify the Secretary of Health and Human Services and, where required, prominent media outlets in the affected area, within the same 60-day period. Notification will include: a description of the breach, the types of PHI involved, steps individuals should take to protect themselves, and the steps AegisSage is taking to investigate the breach and prevent recurrence.`,
+    content: [
+      "Breaches affecting 500 or more individuals: affected individuals and the U.S. Department of Health and Human Services (HHS) will be notified within 60 days of discovery, in accordance with the HIPAA Breach Notification Rule (45 CFR §§ 164.400–414). Where required by state law, prominent media outlets in the affected area will also be notified.",
+      "Smaller breaches affecting fewer than 500 individuals: logged internally and reported to HHS in our annual breach summary.",
+      "All breach notifications will include: a description of what occurred, the types of PHI involved, steps individuals should take to protect themselves, and the steps AegisSage is taking to investigate and prevent recurrence.",
+    ],
   },
   {
-    icon: Trash2,
-    title: "Sub-Processors",
-    content: `AegisSage uses a limited set of vetted, HIPAA-eligible sub-processors to deliver the platform, covering database hosting, application delivery, and payment processing. No PHI is transmitted to payment processors. All sub-processors are reviewed annually and are subject to Data Processing Agreements that restrict their use of data to the specific services they provide to AegisSage. A full sub-processor list is available upon request at privacy@aegissage.com.`,
-  },
-  {
-    icon: Shield,
+    icon: Users,
     title: "Your Rights",
-    content: `Licensed agents have the right to: (a) access all data held about their account; (b) correct inaccurate data; (c) request deletion of their account and associated data; (d) receive a machine-readable export of their data; and (e) withdraw consent for optional data processing at any time. Requests may be submitted to privacy@aegissage.com. We will respond within 30 days. For PHI access or amendment requests related to a specific Medicare beneficiary, agents must follow applicable HIPAA procedures and may be required to provide written authorization from the beneficiary.`,
+    content: [
+      "Licensed brokers may request deletion of their account and all associated data by contacting privacy@aegissage.com. We will respond within 30 days.",
+      "Brokers may also request access to, correction of, or a machine-readable export of all data held about their account.",
+      "Medicare members whose data is processed through the platform have rights under the HIPAA Privacy Rule (45 CFR Part 164, Subpart E), including the right to access and amend their PHI. Such requests must be coordinated with the licensed agent who submitted the data.",
+      "Contact: privacy@aegissage.com for all privacy inquiries, data access requests, or BAA execution.",
+    ],
   },
 ]
 
 export default function PrivacyPage() {
   return (
-    <MarketingShell>
-      <main className="max-w-3xl mx-auto py-24 px-8 space-y-12">
+    <div className="min-h-screen bg-slate-950 text-white">
+      <header className="h-20 border-b border-white/10 px-8 flex items-center justify-between sticky top-0 bg-slate-950/90 backdrop-blur-xl z-50">
+        <Link href="/"><Logo className="[&_span]:text-white" /></Link>
+        <Link
+          href="/"
+          className="flex items-center gap-2 rounded-xl px-3 py-2 text-[10px] font-black uppercase tracking-widest text-white/50 hover:text-white hover:bg-white/10 transition-all"
+        >
+          <ArrowLeft className="w-4 h-4" /> Back
+        </Link>
+      </header>
 
-        <div className="space-y-4">
-          <Badge className="bg-emerald-500/10 text-emerald-600 border-emerald-500/20 px-4 py-1.5 font-black uppercase tracking-widest text-[10px]">
-            Effective: January 1, 2026 · Last Updated: June 1, 2026
+      <main className="max-w-3xl mx-auto py-20 px-8 space-y-14">
+
+        {/* Header */}
+        <div className="space-y-5">
+          <Badge className="bg-primary/10 text-primary border-primary/20 font-black uppercase tracking-widest text-[10px] px-4 py-1.5">
+            Privacy Policy
           </Badge>
-          <h1 className="text-5xl font-black tracking-tighter uppercase">Privacy Policy</h1>
-          <p className="text-lg font-bold text-muted-foreground uppercase tracking-tight leading-relaxed">
-            AegisSage is committed to the highest standards of healthcare data privacy. This policy governs how we
-            collect, process, store, and protect data on behalf of licensed Medicare agents and their clients.
+          <h1 className="text-5xl font-black tracking-tighter uppercase text-white">Data &amp; Privacy</h1>
+          <p className="text-[10px] font-black uppercase tracking-widest text-white/40">
+            Effective: June 1, 2026 · Jurisdiction: United States
+          </p>
+          <p className="text-sm font-medium text-white/60 leading-relaxed max-w-2xl">
+            AegisSage is a HIPAA-covered platform serving licensed Medicare insurance brokers. This policy governs how
+            we collect, process, store, and protect data on behalf of brokers and their clients.
           </p>
         </div>
 
-        <div className="p-6 rounded-3xl bg-emerald-50 border border-emerald-200 flex items-start gap-4">
-          <Shield className="w-6 h-6 text-emerald-600 shrink-0 mt-0.5" />
+        {/* Never sell banner */}
+        <div className="flex items-start gap-4 rounded-3xl border border-emerald-500/20 bg-emerald-500/5 p-6">
+          <Shield className="w-5 h-5 text-emerald-400 shrink-0 mt-0.5" />
           <div className="space-y-1">
-            <p className="text-sm font-black uppercase tracking-tight text-emerald-900">We Do Not Sell Your Data. Ever.</p>
-            <p className="text-sm text-emerald-700 font-medium">
-              AegisSage does not sell, rent, license, or share any personal data or PHI with third parties for commercial
-              purposes, advertising, or data brokerage. Period.
+            <p className="text-sm font-black uppercase tracking-tight text-emerald-300">We Do Not Sell Your Data. Ever.</p>
+            <p className="text-sm font-medium text-emerald-400/70 leading-relaxed">
+              AegisSage does not sell, rent, license, or share any personal data or PHI with third parties for
+              commercial purposes, advertising, or data brokerage.
             </p>
           </div>
         </div>
 
-        <div className="space-y-10">
-          {SECTIONS.map((s, i) => (
+        {/* Sections */}
+        <div className="space-y-12">
+          {SECTIONS.map((section, i) => (
             <section key={i} className="space-y-4">
               <div className="flex items-center gap-3">
                 <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                  <s.icon className="w-4 h-4 text-primary" />
+                  <section.icon className="w-4 h-4 text-primary" />
                 </div>
-                <h2 className="text-xl font-black uppercase tracking-tight">{i + 1}. {s.title}</h2>
+                <h2 className="text-lg font-black uppercase tracking-tight text-white">
+                  {i + 1}. {section.title}
+                </h2>
               </div>
-              <p className="text-sm text-muted-foreground font-medium leading-relaxed pl-11">{s.content}</p>
+              <ul className="space-y-3 pl-11">
+                {section.content.map((item, j) => (
+                  <li key={j} className="text-sm font-medium text-white/60 leading-relaxed flex items-start gap-2.5">
+                    <span className="mt-2 w-1 h-1 rounded-full bg-primary/40 shrink-0" />
+                    {item}
+                  </li>
+                ))}
+              </ul>
             </section>
           ))}
         </div>
 
-        <div className="p-6 rounded-3xl bg-muted/30 border border-border space-y-3">
-          <p className="text-sm font-black uppercase tracking-tight">Contact Our Privacy Team</p>
-          <p className="text-sm text-muted-foreground font-medium">For all privacy inquiries, data access requests, or BAA execution:</p>
-          <a href="mailto:privacy@aegissage.com" className="inline-block font-black text-primary hover:text-primary/80 transition-colors">
+        {/* Contact */}
+        <div className="rounded-3xl border border-white/10 bg-white/[0.03] p-8 space-y-4">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+              <Mail className="w-4 h-4 text-primary" />
+            </div>
+            <h2 className="text-lg font-black uppercase tracking-tight text-white">Contact Our Privacy Team</h2>
+          </div>
+          <p className="text-sm font-medium text-white/50 pl-11">
+            For all privacy inquiries, data access requests, breach reports, or BAA execution:
+          </p>
+          <a
+            href="mailto:privacy@aegissage.com"
+            className="pl-11 inline-block font-black text-primary hover:text-primary/80 transition-colors"
+          >
             privacy@aegissage.com
           </a>
-          <p className="text-xs text-muted-foreground font-medium">
+          <p className="text-xs font-medium text-white/30 pl-11">
             AegisSage Intelligence Inc. · HIPAA Business Associate Operations · Response within 30 days
           </p>
         </div>
 
       </main>
-    </MarketingShell>
+    </div>
   )
 }

@@ -7,12 +7,11 @@ import { Label } from '@/components/ui/label';
 import { Card } from '@/components/ui/card';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useToast } from '@/hooks/use-toast';
-import { Loader2, ArrowLeft, Lock, Mail, Key, ShieldCheck, AlertCircle } from 'lucide-react';
+import { Loader2, ArrowLeft, Lock, Mail, Key, ShieldCheck, AlertCircle, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 import { Logo } from '@/components/logo';
 import Image from 'next/image';
 import { PlaceHolderImages } from '@/lib/placeholder-images';
-import { useAppStore } from '@/lib/store';
 import { createClient } from '@/lib/supabase/client';
 
 export default function LoginPage() {
@@ -37,8 +36,8 @@ function LoginPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const redirectTo = searchParams?.get('redirect') ?? '/dashboard';
+  const reason = searchParams?.get('reason');
   const { toast } = useToast();
-  const { updateAgencyProfile } = useAppStore();
 
   const authBg = PlaceHolderImages.find(img => img.id === 'auth-bg');
 
@@ -48,8 +47,9 @@ function LoginPageContent() {
 
     let settled = false;
 
-    // If the session check stalls (e.g. broken token, network timeout),
-    // surface the login form after 3 s rather than hanging indefinitely.
+    // Hard 3-second timeout: if the session check has not resolved, stop waiting
+    // and show the login form. This prevents indefinite hangs caused by stale
+    // tokens, network failures, or slow Supabase cold-starts.
     const timer = setTimeout(() => {
       if (!settled) {
         console.error('[login] session check timed out — showing login form');
@@ -59,17 +59,13 @@ function LoginPageContent() {
     }, 3000);
 
     supabase.auth.getUser()
-      .then(async ({ data: { user } }) => {
+      .then(({ data: { user } }) => {
         if (settled) return;
         settled = true;
         clearTimeout(timer);
         if (user) {
-          const { data: agency } = await supabase
-            .from('agencies')
-            .select('*')
-            .eq('owner_id', user.id)
-            .single();
-          if (agency) updateAgencyProfile(agency as any);
+          // Already authenticated — redirect without additional DB calls.
+          // AppShell will load agency/broker data after navigation.
           router.push(redirectTo);
         } else {
           setReady(true);
@@ -111,24 +107,12 @@ function LoginPageContent() {
       }
 
       if (data.user) {
-        const { data: agency } = await supabase
-          .from('agencies')
-          .select('*')
-          .eq('owner_id', data.user.id)
-          .single();
-        if (agency) updateAgencyProfile(agency as any);
-
-        // Hard navigation ensures the server re-renders with the session cookie
-        // so AppSidebar (a server component) sees the authenticated user.
+        // Trust the Supabase response — do not run additional session checks.
+        // Hard-navigate so the server re-renders with the new session cookie.
         window.location.href = redirectTo;
       }
     } catch (err: any) {
-      console.error('Login error details:', {
-        message: err?.message,
-        status: (err as any)?.status,
-        name: err?.name,
-        stack: err?.stack,
-      })
+      console.error('[login] signIn error:', err);
       setErrorMsg(err?.message ?? 'An unexpected error occurred. Please try again.');
     } finally {
       setLoading(false);
@@ -196,6 +180,25 @@ function LoginPageContent() {
               <p className="text-[10px] font-black uppercase tracking-widest text-white/60">AegisSage Retention Intelligence</p>
             </div>
 
+            {/* Reason-based banners (confirmation_expired, confirmed, etc.) */}
+            {reason === 'confirmation_expired' && (
+              <div className="flex items-start gap-3 rounded-2xl bg-red-500/10 border border-red-500/30 px-4 py-3">
+                <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 shrink-0" />
+                <p className="text-[11px] font-bold text-red-300">
+                  Your confirmation link has expired or was already used. Please sign in below or contact{' '}
+                  <a href="mailto:support@aegissage.com" className="underline hover:text-red-200">support@aegissage.com</a>.
+                </p>
+              </div>
+            )}
+            {reason === 'confirmed' && (
+              <div className="flex items-start gap-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/30 px-4 py-3">
+                <CheckCircle2 className="w-4 h-4 text-emerald-400 mt-0.5 shrink-0" />
+                <p className="text-[11px] font-bold text-emerald-300">
+                  Email confirmed. Please sign in to continue.
+                </p>
+              </div>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-5">
               <div className="space-y-2">
                 <Label className="text-[10px] font-black uppercase tracking-widest ml-2 text-white/70">Agent Email</Label>
@@ -226,7 +229,7 @@ function LoginPageContent() {
                 </div>
               </div>
 
-              {/* Inline error -- always visible, never hidden in a toast */}
+              {/* Inline error */}
               {errorMsg && (
                 <div className="flex items-start gap-3 rounded-2xl bg-red-500/10 border border-red-500/30 px-4 py-3">
                   <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 shrink-0" />
@@ -239,7 +242,7 @@ function LoginPageContent() {
                         onClick={handleResend}
                         className="mt-1.5 text-[10px] font-black uppercase tracking-widest text-red-300 hover:text-white underline underline-offset-2 transition-colors disabled:opacity-50"
                       >
-                        {resendSent ? 'Confirmation email sent (sent)' : resendLoading ? 'Sending...' : 'Resend confirmation email'}
+                        {resendSent ? 'Confirmation email sent' : resendLoading ? 'Sending...' : 'Resend confirmation email'}
                       </button>
                     )}
                   </div>

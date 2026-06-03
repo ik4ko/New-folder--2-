@@ -23,21 +23,18 @@ const admin = createClient(SUPABASE_URL, SERVICE_KEY, {
 });
 
 // Delete order: child/leaf tables first to respect foreign-key constraints.
-// Hyphenated names (e.g. "phi-vault", "csv-uploads") may be Supabase Storage
-// buckets rather than Postgres tables; delete attempts will fail gracefully and
-// be listed under Errors in the summary.
 const TABLE_ORDER: string[] = [
   // audit / log tables (reference agencies — delete first)
   'audit_log',
-  'compliance_audit_logs',
-  'enterprise_audit_logs',
+  // compliance_audit_logs — does not exist in DB schema, omitted
+  // enterprise_audit_logs — does not exist in DB schema, omitted
   'detection_audit_log',
   'alert_delivery_log',
   'member_detection_log',
   'carrier_false_positive_tracker',
   'sync_results',
-  // standalone / reference data
-  'waitlist',
+  // waitlist — migration pending, add back after
+  // supabase/migrations/20260603000000_waitlist.sql is applied
   // roster pipeline
   'roster_upload_errors',   // references roster_uploads
   'roster_members',
@@ -48,8 +45,8 @@ const TABLE_ORDER: string[] = [
   // forms & submissions
   'vcc_submissions',
   'aor_submissions',
-  'VCC-filled',
-  'vcc-templates',
+  // VCC-filled  — Storage bucket, not a Postgres table, omitted
+  // vcc-templates — Storage bucket, not a Postgres table, omitted
   'vcc_form_templates',
   // campaigns
   'campaign_enrollments',
@@ -61,13 +58,15 @@ const TABLE_ORDER: string[] = [
   'escalation_timers',
   // carrier data
   'carrier_logins',
-  'agency_credentials',
+  // agency_credentials — primary key column unknown; omitted to avoid incorrect
+  // bulk delete. Inspect schema (SELECT column_name FROM information_schema.columns
+  // WHERE table_name = 'agency_credentials') before adding back.
   'carrier_baselines',
   'carrier_schema_maps',
   // misc
   'background_job_queue',
-  'csv-uploads',
-  'phi-vault',
+  // csv-uploads — Storage bucket, not a Postgres table, omitted
+  // phi-vault   — Storage bucket, not a Postgres table, omitted
   // root rows last (brokers before agencies)
   'brokers',
   'agencies',

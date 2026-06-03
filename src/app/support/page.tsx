@@ -1,5 +1,6 @@
-import { Mail, Clock } from "lucide-react"
-import { MarketingShell } from "@/components/marketing-shell"
+import Link from "next/link"
+import { ArrowLeft, Mail, Clock, Shield } from "lucide-react"
+import { Logo } from "@/components/logo"
 import {
   Accordion,
   AccordionContent,
@@ -14,43 +15,64 @@ export const metadata = {
 
 const FAQS = [
   {
-    question: "How do I add clients to my book?",
+    question: "How do I add clients to my book of business?",
     answer:
-      "Log in to AegisSage and navigate to Book of Business. You can upload a CSV file with your client roster — we need each client's name, member ID, and current plan. Your data is encrypted and stored securely the moment it's imported. We'll walk you through the column mapping on the upload screen so nothing is left to chance.",
+      "After signing in, navigate to your Book of Business and use the Upload Roster option. You will need each client's full name, Medicare Beneficiary Identifier (MBI), and their current plan name. Supported formats are CSV and Excel.",
   },
   {
-    question: "What triggers an alert?",
+    question: "What triggers a plan switch alert?",
     answer:
-      "AegisSage checks CMS enrollment data on your behalf. An alert fires when we detect a plan status change, a pending plan switch, or a disenrollment signal for any client in your book. You'll be notified before the change takes effect — giving you time to reach out, have a conversation, and retain the relationship.",
+      "AegisSage monitors CMS enrollment data for your clients. An alert is triggered when we detect that a client's plan status has changed or a future plan change is pending for the upcoming enrollment period. You will be notified by email as soon as a change is detected.",
   },
   {
     question: "Is my client data secure?",
     answer:
-      "Yes. All client data — including Medicare Beneficiary Identifiers and plan information — is encrypted at rest and in transit. Access is enforced at the database level so each broker sees only their own clients; no cross-agency data leakage is possible by design. We maintain HIPAA-compliant infrastructure and every PHI access event is logged for audit purposes. A signed Business Associate Agreement (BAA) is in place before any data is processed.",
+      "Yes. All data is encrypted at rest and in transit. Access is restricted so brokers can only view their own clients. AegisSage maintains HIPAA-compliant infrastructure and immutable audit logs for all PHI access events.",
+  },
+  {
+    question: "What is the difference between the Broker and Agency plans?",
+    answer:
+      "The Broker plan is for individual producers managing their own book of business at $149/mo. The Agency plan supports teams of up to 5 seats with an agency-wide dashboard, role-based access for owners, managers, and customer service staff, and mass campaign capabilities at $749/mo. Additional seats can be added at $50 per seat per month. Yearly billing is available at a 17% discount.",
+  },
+  {
+    question: "How do I cancel my account?",
+    answer:
+      "Contact support@aegissage.com. Note that all sales are final and no refunds are issued per our Terms of Service.",
   },
 ]
 
 export default function SupportPage() {
   return (
-    <MarketingShell>
-      <main className="mx-auto max-w-2xl space-y-14 px-8 py-24">
+    <div className="min-h-screen bg-slate-950 text-white">
+      <header className="h-20 border-b border-white/10 px-8 flex items-center justify-between sticky top-0 bg-slate-950/90 backdrop-blur-xl z-50">
+        <Link href="/"><Logo className="[&_span]:text-white" /></Link>
+        <Link
+          href="/"
+          className="flex items-center gap-2 rounded-xl px-3 py-2 text-[10px] font-black uppercase tracking-widest text-white/50 hover:text-white hover:bg-white/10 transition-all"
+        >
+          <ArrowLeft className="w-4 h-4" /> Back
+        </Link>
+      </header>
 
+      <main className="max-w-2xl mx-auto py-20 px-8 space-y-14">
+
+        {/* Header */}
         <div className="space-y-3">
-          <h1 className="text-4xl font-black uppercase tracking-tighter">
+          <h1 className="text-4xl font-black uppercase tracking-tighter text-white">
             AegisSage <span className="text-primary">Support</span>
           </h1>
-          <p className="text-muted-foreground font-bold text-sm leading-relaxed">
-            We're here to help. Reach out directly or find answers to common questions below.
+          <p className="text-sm font-medium text-white/50 leading-relaxed">
+            We&apos;re here to help. Reach out directly or find answers to common questions below.
           </p>
         </div>
 
         {/* Contact card */}
-        <div className="flex items-start gap-5 rounded-3xl border border-border bg-muted/20 p-7">
-          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-            <Mail className="h-5 w-5" />
+        <div className="flex items-start gap-5 rounded-3xl border border-white/10 bg-white/[0.03] p-7">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10">
+            <Mail className="h-5 w-5 text-primary" />
           </div>
           <div className="space-y-2">
-            <h2 className="text-base font-black uppercase tracking-tight">General Support</h2>
+            <h2 className="text-base font-black uppercase tracking-tight text-white">General Support</h2>
             <a
               href="mailto:support@aegissage.com"
               className="block font-black text-primary hover:text-primary/80 transition-colors"
@@ -58,28 +80,28 @@ export default function SupportPage() {
               support@aegissage.com
             </a>
             <div className="flex items-center gap-1.5 pt-0.5">
-              <Clock className="h-3.5 w-3.5 text-muted-foreground/50" />
-              <span className="text-xs font-black uppercase tracking-widest text-muted-foreground/60">
-                Response within 1 business day
+              <Clock className="h-3.5 w-3.5 text-white/30" />
+              <span className="text-xs font-black uppercase tracking-widest text-white/40">
+                Response within 1 business day · Mon–Fri, 9am–6pm EST
               </span>
             </div>
           </div>
         </div>
 
-        {/* FAQs */}
+        {/* FAQ accordion */}
         <div className="space-y-4">
-          <h2 className="text-xl font-black uppercase tracking-tight">Common Questions</h2>
+          <h2 className="text-xl font-black uppercase tracking-tight text-white">Common Questions</h2>
           <Accordion type="single" collapsible className="w-full space-y-2">
             {FAQS.map((faq, i) => (
               <AccordionItem
                 key={i}
                 value={`faq-${i}`}
-                className="rounded-2xl border border-border bg-muted/10 px-5 data-[state=open]:border-primary/30"
+                className="rounded-2xl border border-white/10 bg-white/[0.03] px-5 data-[state=open]:border-primary/30 data-[state=open]:bg-primary/[0.04] transition-colors"
               >
-                <AccordionTrigger className="text-sm font-black uppercase tracking-tight hover:no-underline">
+                <AccordionTrigger className="text-sm font-black uppercase tracking-tight text-white hover:text-primary hover:no-underline transition-colors py-5">
                   {faq.question}
                 </AccordionTrigger>
-                <AccordionContent className="text-sm font-medium leading-relaxed text-muted-foreground">
+                <AccordionContent className="text-sm font-medium leading-relaxed text-white/50 pb-5">
                   {faq.answer}
                 </AccordionContent>
               </AccordionItem>
@@ -87,7 +109,18 @@ export default function SupportPage() {
           </Accordion>
         </div>
 
+        {/* HIPAA footer note */}
+        <div className="flex items-start gap-3 rounded-2xl border border-white/10 bg-white/[0.02] px-5 py-4">
+          <Shield className="w-4 h-4 text-white/30 shrink-0 mt-0.5" />
+          <p className="text-xs font-medium text-white/40 leading-relaxed">
+            For HIPAA compliance questions or breach reports, contact{" "}
+            <a href="mailto:privacy@aegissage.com" className="text-primary hover:text-primary/80 transition-colors font-bold">
+              privacy@aegissage.com
+            </a>
+          </p>
+        </div>
+
       </main>
-    </MarketingShell>
+    </div>
   )
 }

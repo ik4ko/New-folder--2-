@@ -34,7 +34,7 @@ function NavLink({
   )
 }
 
-export function SiteNavbar({ onWaitlistClick }: { onWaitlistClick?: () => void }) {
+export function SiteNavbar() {
   const pathname = usePathname() ?? "/"
   const [activeSection, setActiveSection] = useState("")
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -66,8 +66,6 @@ export function SiteNavbar({ onWaitlistClick }: { onWaitlistClick?: () => void }
   useEffect(() => {
     setMobileOpen(false)
   }, [pathname])
-
-  const showWaitlist = pathname === "/" && onWaitlistClick
 
   return (
     <header className="sticky top-0 z-40 border-b border-white/10 bg-[#0a0a0f]/85 px-4 backdrop-blur-xl sm:px-6">
@@ -104,15 +102,6 @@ export function SiteNavbar({ onWaitlistClick }: { onWaitlistClick?: () => void }
           <Button asChild className="bg-primary font-black text-black hover:bg-primary/90">
             <Link href="/signup">Sign Up</Link>
           </Button>
-          {showWaitlist ? (
-            <Button onClick={onWaitlistClick} variant="outline" className="border-white/20 text-white font-black hover:bg-white/10">
-              Request Early Access
-            </Button>
-          ) : (
-            <Button asChild variant="outline" className="border-white/20 text-white font-black hover:bg-white/10">
-              <Link href="/">Request Early Access</Link>
-            </Button>
-          )}
         </div>
 
         {/* Mobile hamburger */}
@@ -146,7 +135,6 @@ export function SiteNavbar({ onWaitlistClick }: { onWaitlistClick?: () => void }
             </Link>
           ))}
 
-          {/* Pricing page link */}
           <Link
             href="/pricing"
             onClick={() => setMobileOpen(false)}
@@ -159,7 +147,6 @@ export function SiteNavbar({ onWaitlistClick }: { onWaitlistClick?: () => void }
             Pricing
           </Link>
 
-          {/* Sign In */}
           <Link
             href="/login"
             onClick={() => setMobileOpen(false)}
@@ -168,27 +155,9 @@ export function SiteNavbar({ onWaitlistClick }: { onWaitlistClick?: () => void }
             Sign In
           </Link>
 
-          {/* Sign Up */}
           <Button asChild className="w-full bg-primary font-black text-black hover:bg-primary/90">
             <Link href="/signup" onClick={() => setMobileOpen(false)}>Sign Up</Link>
           </Button>
-
-          {/* Request Early Access */}
-          <div>
-            {showWaitlist ? (
-              <Button
-                onClick={() => { setMobileOpen(false); onWaitlistClick?.() }}
-                variant="outline"
-                className="w-full border-white/20 text-white font-black hover:bg-white/10"
-              >
-                Request Early Access
-              </Button>
-            ) : (
-              <Button asChild variant="outline" className="w-full border-white/20 text-white font-black hover:bg-white/10">
-                <Link href="/">Request Early Access</Link>
-              </Button>
-            )}
-          </div>
         </div>
       </div>
     </header>
