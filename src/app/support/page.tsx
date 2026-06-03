@@ -1,103 +1,93 @@
-import { createClient } from '@/lib/supabase/server'
-import { Button } from '@/components/ui/button'
-import { Card } from '@/components/ui/card'
-import { Logo } from '@/components/logo'
-import { MessageCircle, Shield, CreditCard, Clock, ArrowLeft } from 'lucide-react'
-import Link from 'next/link'
+import { Mail, Clock } from "lucide-react"
+import { MarketingShell } from "@/components/marketing-shell"
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion"
 
-const CONTACTS = [
+export const metadata = {
+  title: "Support | AegisSage",
+  description: "Get help with AegisSage — contact support or browse common questions.",
+}
+
+const FAQS = [
   {
-    icon: MessageCircle,
-    title: 'General Support',
-    desc: 'For platform questions and technical issues',
-    email: 'support@aegissage.com',
-    response: 'Within 24 hours',
-    btnLabel: 'Email Support',
-    color: 'bg-primary/10 text-primary',
+    question: "How do I add clients to my book?",
+    answer:
+      "Log in to AegisSage and navigate to Book of Business. You can upload a CSV file with your client roster — we need each client's name, member ID, and current plan. Your data is encrypted and stored securely the moment it's imported. We'll walk you through the column mapping on the upload screen so nothing is left to chance.",
   },
   {
-    icon: Shield,
-    title: 'Compliance & BAA',
-    desc: 'For HIPAA, BAA, and compliance questions',
-    email: 'compliance@aegissage.com',
-    response: 'Within 2 business days',
-    btnLabel: 'Email Compliance',
-    color: 'bg-emerald-500/10 text-emerald-600',
+    question: "What triggers an alert?",
+    answer:
+      "AegisSage checks CMS enrollment data on your behalf. An alert fires when we detect a plan status change, a pending plan switch, or a disenrollment signal for any client in your book. You'll be notified before the change takes effect — giving you time to reach out, have a conversation, and retain the relationship.",
   },
   {
-    icon: CreditCard,
-    title: 'Billing',
-    desc: 'For subscription and billing questions',
-    email: 'billing@aegissage.com',
-    response: 'Within 24 hours',
-    btnLabel: 'Email Billing',
-    color: 'bg-amber-500/10 text-amber-600',
+    question: "Is my client data secure?",
+    answer:
+      "Yes. All client data — including Medicare Beneficiary Identifiers and plan information — is encrypted at rest and in transit. Access is enforced at the database level so each broker sees only their own clients; no cross-agency data leakage is possible by design. We maintain HIPAA-compliant infrastructure and every PHI access event is logged for audit purposes. A signed Business Associate Agreement (BAA) is in place before any data is processed.",
   },
 ]
 
-export default async function SupportPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  const isLoggedIn = !!user
-
+export default function SupportPage() {
   return (
-    <div className="min-h-screen bg-background text-foreground flex flex-col">
-      <header className="h-16 border-b border-border px-6 md:px-8 flex items-center justify-between sticky top-0 bg-background/80 backdrop-blur-xl z-50">
-        <a href={isLoggedIn ? '/dashboard' : '/'}>
-          <Logo />
-        </a>
-        {isLoggedIn ? (
-          <Button variant="ghost" asChild className="text-[10px] font-black uppercase tracking-widest gap-2">
-            <Link href="/dashboard">
-              <ArrowLeft className="w-3.5 h-3.5" /> Back to Dashboard
-            </Link>
-          </Button>
-        ) : (
-          <Button variant="ghost" asChild className="text-[10px] font-black uppercase tracking-widest">
-            <Link href="/login">Log In</Link>
-          </Button>
-        )}
-      </header>
+    <MarketingShell>
+      <main className="mx-auto max-w-2xl space-y-14 px-8 py-24">
 
-      <main className="flex-1 px-4 md:px-8 py-16 max-w-4xl mx-auto w-full space-y-12">
-        <div className="text-center space-y-3">
-          <h1 className="text-4xl md:text-5xl font-black uppercase tracking-tighter">
+        <div className="space-y-3">
+          <h1 className="text-4xl font-black uppercase tracking-tighter">
             AegisSage <span className="text-primary">Support</span>
           </h1>
-          <p className="text-muted-foreground font-bold uppercase tracking-widest text-xs max-w-xl mx-auto">
-            Our team is here to help. Choose the right contact for your question.
+          <p className="text-muted-foreground font-bold text-sm leading-relaxed">
+            We're here to help. Reach out directly or find answers to common questions below.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {CONTACTS.map(({ icon: Icon, title, desc, email, response, btnLabel, color }) => (
-            <Card key={title} className="rounded-3xl border border-border p-8 flex flex-col gap-6 hover:border-primary/30 transition-all shadow-sm">
-              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${color}`}>
-                <Icon className="w-6 h-6" />
-              </div>
-              <div className="flex-1 space-y-2">
-                <h2 className="text-lg font-black uppercase tracking-tight">{title}</h2>
-                <p className="text-sm font-bold text-muted-foreground">{desc}</p>
-                <p className="font-mono text-[10px] text-muted-foreground/70 font-bold">{email}</p>
-                <div className="flex items-center gap-1.5 pt-1">
-                  <Clock className="w-3 h-3 text-muted-foreground/50" />
-                  <span className="text-[10px] font-black uppercase tracking-widest text-muted-foreground/60">{response}</span>
-                </div>
-              </div>
-              <Button asChild variant="outline"
-                className="w-full rounded-2xl font-black uppercase text-[10px] tracking-widest h-11">
-                <a href={`mailto:${email}`}>{btnLabel}</a>
-              </Button>
-            </Card>
-          ))}
+        {/* Contact card */}
+        <div className="flex items-start gap-5 rounded-3xl border border-border bg-muted/20 p-7">
+          <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+            <Mail className="h-5 w-5" />
+          </div>
+          <div className="space-y-2">
+            <h2 className="text-base font-black uppercase tracking-tight">General Support</h2>
+            <a
+              href="mailto:support@aegissage.com"
+              className="block font-black text-primary hover:text-primary/80 transition-colors"
+            >
+              support@aegissage.com
+            </a>
+            <div className="flex items-center gap-1.5 pt-0.5">
+              <Clock className="h-3.5 w-3.5 text-muted-foreground/50" />
+              <span className="text-xs font-black uppercase tracking-widest text-muted-foreground/60">
+                Response within 1 business day
+              </span>
+            </div>
+          </div>
         </div>
-      </main>
 
-      <footer className="py-8 px-8 border-t border-border/50 text-center">
-        <p className="text-slate-400 text-[10px] font-bold uppercase tracking-widest">
-          &copy; 2026 AegisSage Intelligence Inc. HIPAA Compliant.
-        </p>
-      </footer>
-    </div>
+        {/* FAQs */}
+        <div className="space-y-4">
+          <h2 className="text-xl font-black uppercase tracking-tight">Common Questions</h2>
+          <Accordion type="single" collapsible className="w-full space-y-2">
+            {FAQS.map((faq, i) => (
+              <AccordionItem
+                key={i}
+                value={`faq-${i}`}
+                className="rounded-2xl border border-border bg-muted/10 px-5 data-[state=open]:border-primary/30"
+              >
+                <AccordionTrigger className="text-sm font-black uppercase tracking-tight hover:no-underline">
+                  {faq.question}
+                </AccordionTrigger>
+                <AccordionContent className="text-sm font-medium leading-relaxed text-muted-foreground">
+                  {faq.answer}
+                </AccordionContent>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        </div>
+
+      </main>
+    </MarketingShell>
   )
 }

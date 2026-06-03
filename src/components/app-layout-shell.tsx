@@ -11,6 +11,8 @@ import { Logo } from "./logo"
 import { useEffect, useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import Link from "next/link"
+import { SiteNavbar } from "./site-navbar"
+import { Skeleton } from "./ui/skeleton"
 
 const PROTECTED_PREFIXES = [
   '/dashboard', '/settings', '/vault', '/members',
@@ -158,6 +160,7 @@ export function AppShell({ children, sidebar }: { children: React.ReactNode; sid
   if (isExcluded) {
     return (
       <div className="h-screen w-screen overflow-y-auto bg-background antialiased">
+        {pathname !== '/' && <SiteNavbar />}
         {children}
       </div>
     )
@@ -165,12 +168,21 @@ export function AppShell({ children, sidebar }: { children: React.ReactNode; sid
 
   if (isCheckingAuth) {
     return (
-      <div className="h-screen w-screen flex items-center justify-center bg-background antialiased">
-        <div className="flex flex-col items-center gap-4">
-          <Logo iconOnly className="animate-pulse" />
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-600 opacity-60">
-            Verifying Agency Credentials...
-          </p>
+      <div className="h-screen w-screen bg-background p-6 antialiased">
+        <div className="mx-auto flex h-full max-w-6xl flex-col justify-center gap-8">
+          <div className="flex items-center gap-3">
+            <Logo iconOnly />
+            <div className="space-y-2">
+              <Skeleton className="h-3 w-44 bg-white/10" />
+              <Skeleton className="h-2 w-28 bg-white/5" />
+            </div>
+          </div>
+          <div className="grid gap-4 md:grid-cols-3">
+            <Skeleton className="h-32 rounded-xl bg-white/10" />
+            <Skeleton className="h-32 rounded-xl bg-white/10" />
+            <Skeleton className="h-32 rounded-xl bg-white/10" />
+          </div>
+          <Skeleton className="h-72 rounded-xl bg-white/5" />
         </div>
       </div>
     )

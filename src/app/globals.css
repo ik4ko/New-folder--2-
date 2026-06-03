@@ -20,8 +20,8 @@
     --popover-foreground:  222 47% 11%;
 
     /* Brand */
-    --primary:             221 83% 53%;   /* Trust Blue */
-    --primary-foreground:  210 40% 98%;
+    --primary:             174 100% 45%;  /* Sharp Teal */
+    --primary-foreground:  222 47% 6%;
 
     --secondary:           210 40% 96%;
     --secondary-foreground: 222 47% 11%;
@@ -29,7 +29,7 @@
     --muted:               210 40% 96%;
     --muted-foreground:    215 16% 47%;
 
-    --accent:              199 89% 48%;   /* Clinical Cyan */
+    --accent:              174 100% 45%;  /* Sharp Teal */
     --accent-foreground:   222 47% 11%;
 
     --destructive:         0 84% 60%;
@@ -59,22 +59,22 @@
 
   .dark {
     /* ── Core palette ─────────────────────────────────────────────────────── */
-    --background:          222 47% 4%;    /* Deep Space Slate */
+    --background:          240 20% 3%;    /* #0a0a0f */
     --foreground:          210 40% 98%;
 
     /* Card surface depth system — 3-stop elevation */
-    --card:                222 47% 6%;    /* base card */
+    --card:                230 18% 7%;    /* base card */
     --card-foreground:     210 40% 98%;
-    --surface-1:           222 47% 6%;    /* floor — same as card */
-    --surface-2:           222 47% 9%;    /* raised card, hover state  */
-    --surface-3:           222 40% 13%;   /* floating panel, modal  */
+    --surface-1:           230 18% 7%;    /* floor */
+    --surface-2:           230 18% 10%;   /* raised card, hover state */
+    --surface-3:           230 18% 12%;   /* floating panel, modal */
 
-    --popover:             222 47% 7%;
+    --popover:             230 18% 8%;
     --popover-foreground:  210 40% 98%;
 
     /* Brand */
-    --primary:             217 91% 60%;   /* Electric Blue */
-    --primary-foreground:  222 47% 11%;
+    --primary:             174 100% 45%;  /* Sharp Teal */
+    --primary-foreground:  240 20% 3%;
 
     --secondary:           217 32% 12%;
     --secondary-foreground: 210 40% 98%;
@@ -82,7 +82,7 @@
     --muted:               217 32% 12%;
     --muted-foreground:    215 20% 65%;
 
-    --accent:              199 89% 48%;
+    --accent:              174 100% 45%;
     --accent-foreground:   210 40% 98%;
 
     --destructive:         0 62% 30%;
@@ -93,19 +93,19 @@
     --warning-foreground:  38 90% 10%;
 
     /* ── Border / Input / Ring ────────────────────────────────────────────── */
-    --border:              217 32% 17%;
-    --input:               217 32% 17%;
-    --ring:                224 76% 48%;
+    --border:              230 16% 15%;
+    --input:               230 16% 15%;
+    --ring:                174 100% 45%;
 
     /* ── Sidebar (deep slate — deliberately darker than --background) ──────── */
-    --sidebar-background:        220 47% 3%;   /* #050a14 — one stop below background */
+    --sidebar-background:        240 20% 3%;
     --sidebar-foreground:        210 40% 98%;
-    --sidebar-primary:           217 91% 60%;
-    --sidebar-primary-foreground: 222 47% 11%;
-    --sidebar-accent:            217 32% 10%;
+    --sidebar-primary:           174 100% 45%;
+    --sidebar-primary-foreground: 240 20% 3%;
+    --sidebar-accent:            230 18% 9%;
     --sidebar-accent-foreground: 210 40% 98%;
-    --sidebar-border:            217 32% 14%;
-    --sidebar-ring:              224 76% 48%;
+    --sidebar-border:            230 16% 13%;
+    --sidebar-ring:              174 100% 45%;
   }
 }
 
@@ -116,7 +116,7 @@
   /* Transition only color/opacity — never layout properties */
   * {
     @apply border-border;
-    transition-property: color, background-color, border-color, opacity, box-shadow;
+    transition-property: color, background-color, border-color, opacity, box-shadow, transform;
     transition-duration: 150ms;
     transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
   }
@@ -148,6 +148,16 @@
 
     font-size: 14px;
     line-height: 1.6;
+  }
+
+  main {
+    animation: page-fade-in 220ms ease-out both;
+  }
+
+  input,
+  textarea,
+  select {
+    @apply border-white/10 bg-white/[0.03] text-foreground outline-none;
   }
 
   /* Selection highlight */
@@ -248,6 +258,36 @@
   .surface-1 { background-color: hsl(var(--surface-1)); }
   .surface-2 { background-color: hsl(var(--surface-2)); }
   .surface-3 { background-color: hsl(var(--surface-3)); }
+
+  .interactive-item {
+    transform: translateY(0);
+  }
+
+  .interactive-item:hover {
+    transform: translateY(-1px);
+  }
+
+  .interactive-card {
+    border-color: rgb(255 255 255 / 0.08);
+    background-color: hsl(var(--card) / 0.86);
+    box-shadow: none;
+    transform: translateY(0);
+    transition: border-color 180ms ease, background-color 180ms ease, transform 180ms ease;
+  }
+
+  .interactive-card:hover {
+    border-color: hsl(var(--primary) / 0.38);
+    background-color: hsl(var(--surface-2) / 0.96);
+    transform: translateY(-3px);
+  }
+
+  .headline-reveal {
+    animation: headline-reveal 700ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  .idle-pulse {
+    animation: idle-pulse 2.8s ease-in-out infinite;
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════

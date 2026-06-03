@@ -1,23 +1,21 @@
 "use client"
 
-import { useEffect, useMemo, useRef, useState, type FormEvent, type ReactNode } from "react"
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react"
 import Link from "next/link"
 import {
   Activity,
   ArrowRight,
   BellRing,
   CheckCircle2,
-  Chrome,
   DatabaseZap,
-  Layers3,
+  FileText,
   LockKeyhole,
-  Mail,
-  ShieldCheck,
+  Megaphone,
   UploadCloud,
-  Users,
 } from "lucide-react"
 
 import { Logo } from "@/components/logo"
+import { SiteNavbar } from "@/components/site-navbar"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
@@ -31,64 +29,50 @@ import {
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 
-const SWITCH_RATE = 0.27
-const RECOVERY_RATE = 0.6
-
-const stats = [
-  { value: 27, suffix: "%", label: "of MA clients switch plans annually" },
-  { value: 1200, prefix: "$", label: "average commission lost per switched client" },
-  { value: 60, suffix: "+", label: "days before most switches are discovered" },
-]
-
 const steps = [
   {
     title: "Connect your book of business",
-    description: "Upload your roster or sync the clients your agency already manages.",
+    description: "Upload your client roster. Name, member ID, and current plan is all we need.",
     icon: UploadCloud,
   },
   {
-    title: "AegisSage monitors CMS MARx data",
-    description: "Automated checks compare plan status, enrollment movement, and risk signals.",
+    title: "We monitor CMS enrollment data",
+    description: "Automated checks surface plan changes, disenrollments, and upcoming switches.",
     icon: DatabaseZap,
   },
   {
-    title: "Get alerted before the switch finalizes",
-    description: "Know which clients need outreach while there is still time to intervene.",
+    title: "You get the alert in time",
+    description: "Know which clients need outreach before the change takes effect.",
     icon: BellRing,
   },
 ]
 
-const features = [
+const pillars = [
   {
-    title: "Batch MARx Verification",
-    description: "Run high-volume eligibility checks across your whole Medicare book without spreadsheet triage.",
-    icon: Layers3,
-  },
-  {
-    title: "Real-time Switch Alerts",
-    description: "Surface pending plan changes, disenrollments, and carrier movement before commissions disappear.",
+    title: "Plan Switch Detection",
+    description:
+      "Get notified the moment a client's Medicare Advantage plan status changes or a future switch is detected.",
     icon: Activity,
   },
   {
-    title: "HIPAA Audit Logging",
-    description: "Track PHI access, verification actions, and alert workflows for compliance reviews.",
-    icon: ShieldCheck,
+    title: "Clinical Form Routing",
+    description:
+      "For members on chronic condition plans, we route the necessary forms to their care team automatically.",
+    icon: FileText,
   },
   {
-    title: "Chrome Extension Automation",
-    description: "Reduce manual portal work with guided browser automation for carrier and roster workflows.",
-    icon: Chrome,
+    title: "Broker Campaigns",
+    description:
+      "Send plan updates, wellness check-ins, and renewal reminders to your book — on your schedule.",
+    icon: Megaphone,
   },
-  {
-    title: "Multi-broker Agency Support",
-    description: "Give owners and managers a rollup view across downline books, seats, and revenue risk.",
-    icon: Users,
-  },
-  {
-    title: "Email Notifications via Resend",
-    description: "Route switch alerts to the right broker with clear, action-ready email notifications.",
-    icon: Mail,
-  },
+]
+
+const stats: { value: string | null; detail: string }[] = [
+  { value: "27%",   detail: "of MA clients switch plans every year" },
+  { value: "60+",   detail: "days before most switches are discovered" },
+  { value: "Jan 1", detail: "AEP enrollment window closes" },
+  { value: null,    detail: "One alert. One call. Client retained." },
 ]
 
 function useInView<T extends HTMLElement>() {
@@ -140,43 +124,6 @@ function Reveal({
   )
 }
 
-function AnimatedNumber({
-  value,
-  prefix = "",
-  suffix = "",
-  start,
-}: {
-  value: number
-  prefix?: string
-  suffix?: string
-  start: boolean
-}) {
-  const [current, setCurrent] = useState(0)
-
-  useEffect(() => {
-    if (!start) return
-
-    let frame = 0
-    const frames = 42
-    const id = window.setInterval(() => {
-      frame += 1
-      const progress = 1 - Math.pow(1 - frame / frames, 3)
-      setCurrent(Math.round(value * Math.min(progress, 1)))
-      if (frame >= frames) window.clearInterval(id)
-    }, 22)
-
-    return () => window.clearInterval(id)
-  }, [start, value])
-
-  return (
-    <span>
-      {prefix}
-      {current.toLocaleString()}
-      {suffix}
-    </span>
-  )
-}
-
 function WaitlistDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const [form, setForm] = useState({ name: "", email: "", agency_name: "" })
   const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle")
@@ -208,7 +155,7 @@ function WaitlistDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="border-white/10 bg-slate-950 text-white sm:rounded-2xl">
+      <DialogContent className="border-white/10 bg-[#0a0a0f] text-white shadow-none sm:rounded-2xl">
         {status === "sent" ? (
           <div className="space-y-5 py-8 text-center">
             <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full border border-emerald-400/30 bg-emerald-400/10">
@@ -260,7 +207,6 @@ function WaitlistDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (
                 <Label htmlFor="agency_name">Agency</Label>
                 <Input
                   id="agency_name"
-                  required
                   value={form.agency_name}
                   onChange={(event) => setForm((prev) => ({ ...prev, agency_name: event.target.value }))}
                   placeholder="Smith Medicare Group"
@@ -287,166 +233,43 @@ function WaitlistDialog({ open, onOpenChange }: { open: boolean; onOpenChange: (
   )
 }
 
-function RoiCalculator() {
-  const [clients, setClients] = useState(420)
-  const [commission, setCommission] = useState(1200)
-
-  const revenueAtRisk = useMemo(() => clients * commission * SWITCH_RATE, [clients, commission])
-  const recoverableRevenue = useMemo(() => revenueAtRisk * RECOVERY_RATE, [revenueAtRisk])
-
-  return (
-    <Card className="overflow-hidden border-white/10 bg-slate-950 shadow-2xl shadow-black/30">
-      <div className="grid gap-0 lg:grid-cols-[1fr_0.9fr]">
-        <div className="space-y-8 p-6 sm:p-8 lg:p-10">
-          <div className="space-y-3">
-            <Badge className="border-cyan-400/30 bg-cyan-400/10 text-cyan-200">ROI Calculator</Badge>
-            <h2 className="text-3xl font-black tracking-tight text-white sm:text-4xl">
-              See the quiet revenue leak in your book.
-            </h2>
-            <p className="max-w-2xl text-sm leading-6 text-slate-400 sm:text-base">
-              Estimate annual commission exposed by Medicare Advantage plan switches, then model how much can be
-              recovered when brokers are alerted early enough to act.
-            </p>
-          </div>
-          <div className="space-y-6">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between gap-4">
-                <Label htmlFor="clients" className="text-slate-200">Number of clients</Label>
-                <span className="font-mono text-sm text-cyan-200">{clients.toLocaleString()}</span>
-              </div>
-              <input
-                id="clients"
-                type="range"
-                min={50}
-                max={2000}
-                step={10}
-                value={clients}
-                onChange={(event) => setClients(Number(event.target.value))}
-                className="h-2 w-full cursor-pointer accent-cyan-300"
-              />
-              <div className="flex justify-between text-xs font-bold uppercase tracking-widest text-slate-600">
-                <span>50</span>
-                <span>2,000</span>
-              </div>
-            </div>
-            <div className="space-y-3">
-              <Label htmlFor="commission" className="text-slate-200">Average annual commission per client</Label>
-              <div className="flex items-center rounded-lg border border-white/10 bg-white/5 px-3 focus-within:border-primary">
-                <span className="text-slate-500">$</span>
-                <input
-                  id="commission"
-                  type="number"
-                  min={800}
-                  max={2000}
-                  step={50}
-                  value={commission}
-                  onChange={(event) => setCommission(Number(event.target.value))}
-                  className="h-11 w-full bg-transparent px-2 text-white outline-none"
-                />
-              </div>
-              <p className="text-xs text-slate-500">Use $800 to $2,000 based on your renewal economics.</p>
-            </div>
-          </div>
-        </div>
-        <div className="flex flex-col justify-center gap-5 border-t border-white/10 bg-white/[0.03] p-6 sm:p-8 lg:border-l lg:border-t-0 lg:p-10">
-          <div className="rounded-lg border border-white/10 bg-black/20 p-5">
-            <p className="text-xs font-black uppercase tracking-[0.22em] text-slate-500">Annual revenue at risk</p>
-            <p className="mt-3 text-4xl font-black tracking-tight text-white sm:text-5xl">
-              {revenueAtRisk.toLocaleString("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 })}
-            </p>
-          </div>
-          <div className="rounded-lg border border-emerald-400/20 bg-emerald-400/10 p-5">
-            <p className="text-xs font-black uppercase tracking-[0.22em] text-emerald-300/80">
-              Estimated recoverable revenue
-            </p>
-            <p className="mt-3 text-4xl font-black tracking-tight text-emerald-200 sm:text-5xl">
-              {recoverableRevenue.toLocaleString("en-US", {
-                style: "currency",
-                currency: "USD",
-                maximumFractionDigits: 0,
-              })}
-            </p>
-            <p className="mt-3 text-sm text-emerald-100/70">Assumes a 60% recovery rate after timely intervention.</p>
-          </div>
-        </div>
-      </div>
-    </Card>
-  )
-}
-
 export default function LandingPage() {
   const [waitlistOpen, setWaitlistOpen] = useState(false)
-  const statReveal = useInView<HTMLDivElement>()
 
   return (
-    <div className="min-h-screen scroll-smooth bg-slate-950 text-white selection:bg-cyan-300/20">
+    <div className="min-h-screen scroll-smooth bg-[#0a0a0f] text-white selection:bg-primary/20">
       <WaitlistDialog open={waitlistOpen} onOpenChange={setWaitlistOpen} />
-
-      <header className="sticky top-0 z-40 border-b border-white/10 bg-slate-950/82 px-4 backdrop-blur-xl sm:px-6">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4">
-          <Link href="/" aria-label="AegisSage home">
-            <Logo className="[&_span]:text-white" />
-          </Link>
-          <nav className="hidden items-center gap-7 md:flex">
-            {[
-              ["How it works", "#how-it-works"],
-              ["Features", "#features"],
-              ["ROI", "#roi"],
-            ].map(([label, href]) => (
-              <Link
-                key={href}
-                href={href}
-                className="text-xs font-black uppercase tracking-widest text-slate-500 hover:text-cyan-200"
-              >
-                {label}
-              </Link>
-            ))}
-          </nav>
-          <Button onClick={() => setWaitlistOpen(true)} className="h-10 bg-primary font-black hover:bg-primary/90">
-            Request Early Access
-          </Button>
-        </div>
-      </header>
+      <SiteNavbar onWaitlistClick={() => setWaitlistOpen(true)} />
 
       <main>
+        {/* ── Hero ─────────────────────────────────────────────────────────── */}
         <section className="relative overflow-hidden px-4 py-16 sm:px-6 md:py-24">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(34,211,238,0.13),transparent_38%),linear-gradient(180deg,rgba(15,23,42,0),rgba(2,6,23,1))]" />
+          <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(20,184,166,0.08),rgba(10,10,15,0)_42%)]" />
           <div className="relative mx-auto grid max-w-7xl gap-12 lg:grid-cols-[1fr_0.78fr] lg:items-center">
             <Reveal className="space-y-8">
-              <Badge className="border-cyan-300/30 bg-cyan-300/10 text-cyan-200">
+              <Badge className="border-primary/30 bg-primary/10 text-primary">
                 Medicare Retention SaaS
               </Badge>
               <div className="space-y-6">
-                <h1 className="max-w-5xl text-5xl font-black leading-[0.95] tracking-tight text-white sm:text-6xl lg:text-7xl">
-                  Stop losing Medicare clients silently
+                <h1 className="headline-reveal max-w-5xl text-5xl font-black leading-[0.95] tracking-tight text-white sm:text-6xl lg:text-7xl">
+                  Know before the switch. Not after.
                 </h1>
                 <p className="max-w-2xl text-lg leading-8 text-slate-300 sm:text-xl">
-                  AegisSage detects when Medicare Advantage clients switch plans or disenroll, so brokers can
-                  intervene before the relationship and commission are gone.
+                  AegisSage monitors your Medicare Advantage book and alerts you while there's still time to act.
                 </p>
               </div>
-              <div className="flex flex-col gap-3 sm:flex-row">
-                <Button
-                  onClick={() => setWaitlistOpen(true)}
-                  size="lg"
-                  className="h-14 bg-primary px-7 text-sm font-black hover:bg-primary/90"
-                >
-                  Request Early Access <ArrowRight className="ml-2 h-4 w-4" />
-                </Button>
-                <Button
-                  asChild
-                  size="lg"
-                  variant="outline"
-                  className="h-14 border-white/15 bg-white/5 px-7 text-sm font-black text-white hover:bg-white/10 hover:text-white"
-                >
-                  <Link href="#roi">Estimate revenue risk</Link>
-                </Button>
-              </div>
+              <Button
+                onClick={() => setWaitlistOpen(true)}
+                size="lg"
+                className="idle-pulse h-14 bg-primary px-7 text-sm font-black text-black hover:bg-primary/90"
+              >
+                Request Early Access <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
             </Reveal>
 
             <Reveal delay={140}>
-              <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4 shadow-2xl shadow-black/40">
-                <div className="rounded-xl border border-white/10 bg-slate-950 p-4">
+              <div className="rounded-2xl border border-white/10 bg-white/[0.04] p-4">
+                <div className="rounded-xl border border-white/10 bg-[#0a0a0f] p-4">
                   <div className="mb-5 flex items-center justify-between border-b border-white/10 pb-4">
                     <div>
                       <p className="text-xs font-black uppercase tracking-[0.22em] text-slate-500">Live retention desk</p>
@@ -456,18 +279,17 @@ export default function LandingPage() {
                   </div>
                   <div className="space-y-3">
                     {[
-                      ["Margaret T.", "Pending plan change", "$1,180 at risk", "Critical"],
-                      ["Robert S.", "Disenrollment signal", "$940 at risk", "Review"],
-                      ["Linda P.", "Verified unchanged", "$0 at risk", "Clear"],
-                    ].map(([name, signal, revenue, status]) => (
+                      ["Margaret T.", "Pending plan change", "Critical"],
+                      ["Robert S.", "Disenrollment signal", "Review"],
+                      ["Linda P.", "Verified unchanged", "Clear"],
+                    ].map(([name, signal, status]) => (
                       <div key={name} className="grid grid-cols-[1fr_auto] gap-3 rounded-lg border border-white/10 bg-white/[0.03] p-4">
                         <div>
                           <p className="font-bold text-white">{name}</p>
                           <p className="text-sm text-slate-500">{signal}</p>
                         </div>
                         <div className="text-right">
-                          <p className="font-mono text-sm text-cyan-200">{revenue}</p>
-                          <p className="mt-1 text-xs font-black uppercase tracking-widest text-slate-500">{status}</p>
+                          <p className="text-xs font-black uppercase tracking-widest text-primary">{status}</p>
                         </div>
                       </div>
                     ))}
@@ -478,36 +300,39 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section ref={statReveal.ref} className="border-y border-white/10 bg-white/[0.03] px-4 py-8 sm:px-6">
-          <div className="mx-auto grid max-w-7xl gap-4 md:grid-cols-3">
-            {stats.map((stat) => (
-              <div key={stat.label} className="rounded-lg border border-white/10 bg-slate-950/60 p-6">
-                <p className="text-4xl font-black tracking-tight text-cyan-200">
-                  <AnimatedNumber
-                    value={stat.value}
-                    prefix={stat.prefix}
-                    suffix={stat.suffix}
-                    start={statReveal.isInView}
-                  />
-                </p>
-                <p className="mt-2 text-sm font-bold uppercase tracking-widest text-slate-500">{stat.label}</p>
-              </div>
+        {/* ── Stats bar ────────────────────────────────────────────────────── */}
+        <section className="border-y border-white/10 px-4 py-8 sm:px-6">
+          <div className="mx-auto grid max-w-7xl grid-cols-2 gap-3 md:grid-cols-4">
+            {stats.map((stat, i) => (
+              <Reveal key={i} delay={i * 80}>
+                <div className="flex h-full flex-col items-center justify-center rounded-xl border border-white/10 bg-white/[0.03] p-5 text-center">
+                  {stat.value !== null ? (
+                    <>
+                      <p className="text-3xl font-black text-primary">{stat.value}</p>
+                      <p className="mt-1.5 text-xs leading-5 text-slate-500">{stat.detail}</p>
+                    </>
+                  ) : (
+                    <p className="text-sm font-black leading-snug text-slate-300">{stat.detail}</p>
+                  )}
+                </div>
+              </Reveal>
             ))}
           </div>
         </section>
 
+        {/* ── How It Works ─────────────────────────────────────────────────── */}
         <section id="how-it-works" className="px-4 py-20 sm:px-6 md:py-28">
           <div className="mx-auto max-w-7xl space-y-10">
             <Reveal className="max-w-3xl space-y-4">
               <Badge className="border-white/10 bg-white/5 text-slate-300">How it works</Badge>
               <h2 className="text-3xl font-black tracking-tight sm:text-5xl">A three-step flow built for retention teams.</h2>
             </Reveal>
-            <div className="grid gap-4 md:grid-cols-3">
+            <div className="grid gap-4 md:grid-cols-3 md:items-stretch">
               {steps.map((step, index) => (
                 <Reveal key={step.title} delay={index * 110}>
                   <Card className="h-full border-white/10 bg-white/[0.04] p-6">
                     <div className="mb-6 flex items-center justify-between">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-cyan-300/10 text-cyan-200">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
                         <step.icon className="h-6 w-6" />
                       </div>
                       <span className="font-mono text-sm text-slate-600">0{index + 1}</span>
@@ -521,19 +346,20 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section id="features" className="border-y border-white/10 bg-slate-900/40 px-4 py-20 sm:px-6 md:py-28">
+        {/* ── What We Do ───────────────────────────────────────────────────── */}
+        <section id="what-we-do" className="border-y border-white/10 bg-slate-900/40 px-4 py-20 sm:px-6 md:py-28">
           <div className="mx-auto max-w-7xl space-y-10">
             <Reveal className="max-w-3xl space-y-4">
-              <Badge className="border-white/10 bg-white/5 text-slate-300">Platform</Badge>
-              <h2 className="text-3xl font-black tracking-tight sm:text-5xl">Everything brokers need to catch churn early.</h2>
+              <Badge className="border-white/10 bg-white/5 text-slate-300">What we do</Badge>
+              <h2 className="text-3xl font-black tracking-tight sm:text-5xl">Three capabilities. One platform.</h2>
             </Reveal>
-            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {features.map((feature, index) => (
-                <Reveal key={feature.title} delay={index * 70}>
+            <div className="grid gap-4 md:grid-cols-3 md:items-stretch">
+              {pillars.map((pillar, index) => (
+                <Reveal key={pillar.title} delay={index * 110}>
                   <Card className="h-full border-white/10 bg-slate-950/80 p-6">
-                    <feature.icon className="h-7 w-7 text-cyan-200" />
-                    <h3 className="mt-5 text-lg font-black text-white">{feature.title}</h3>
-                    <p className="mt-3 text-sm leading-6 text-slate-400">{feature.description}</p>
+                    <pillar.icon className="h-7 w-7 text-primary" />
+                    <h3 className="mt-5 text-lg font-black text-white">{pillar.title}</h3>
+                    <p className="mt-3 text-sm leading-6 text-slate-400">{pillar.description}</p>
                   </Card>
                 </Reveal>
               ))}
@@ -541,26 +367,24 @@ export default function LandingPage() {
           </div>
         </section>
 
-        <section id="roi" className="px-4 py-20 sm:px-6 md:py-28">
-          <div className="mx-auto max-w-7xl">
+        {/* ── CTA band ─────────────────────────────────────────────────────── */}
+        <section className="px-4 py-20 sm:px-6 md:py-24">
+          <div className="mx-auto max-w-3xl space-y-6 text-center">
             <Reveal>
-              <RoiCalculator />
+              <h2 className="text-3xl font-black tracking-tight sm:text-4xl">
+                Built for brokers who want to know first.
+              </h2>
+            </Reveal>
+            <Reveal delay={120}>
+              <Button
+                onClick={() => setWaitlistOpen(true)}
+                size="lg"
+                className="h-14 bg-primary px-7 text-sm font-black text-black hover:bg-primary/90"
+              >
+                Request Early Access <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
             </Reveal>
           </div>
-        </section>
-
-        <section className="px-4 pb-20 sm:px-6 md:pb-28">
-          <Reveal className="mx-auto flex max-w-7xl flex-col items-start justify-between gap-6 rounded-2xl border border-white/10 bg-cyan-300/10 p-6 sm:p-8 md:flex-row md:items-center">
-            <div className="space-y-2">
-              <h2 className="text-2xl font-black tracking-tight text-white sm:text-3xl">Protect the clients you already earned.</h2>
-              <p className="max-w-2xl text-slate-300">
-                Join the early access list for Medicare agencies that want switch alerts before renewal revenue leaks.
-              </p>
-            </div>
-            <Button onClick={() => setWaitlistOpen(true)} className="h-12 bg-primary px-6 font-black hover:bg-primary/90">
-              Request Early Access
-            </Button>
-          </Reveal>
         </section>
       </main>
 
@@ -568,12 +392,11 @@ export default function LandingPage() {
         <div className="mx-auto flex max-w-7xl flex-col justify-between gap-8 md:flex-row md:items-center">
           <div className="space-y-3">
             <Logo className="[&_span]:text-white" />
-            <p className="max-w-md text-sm text-slate-500">
-              Medicare retention intelligence for brokers who cannot afford silent plan switches.
-            </p>
+            <p className="max-w-md text-sm text-slate-500">Early detection for Medicare brokers.</p>
           </div>
           <div className="flex flex-col gap-3 text-sm text-slate-500 sm:flex-row sm:items-center sm:gap-5">
-            <Link href="/privacy-policy" className="font-bold hover:text-cyan-200">Privacy policy</Link>
+            <Link href="/privacy" className="font-bold hover:text-primary">Privacy Policy</Link>
+            <Link href="/support" className="font-bold hover:text-primary">Support</Link>
             <div className="inline-flex items-center gap-2 rounded-full border border-emerald-400/20 bg-emerald-400/10 px-3 py-1.5 font-bold text-emerald-200">
               <LockKeyhole className="h-4 w-4" />
               HIPAA-compliant infrastructure
