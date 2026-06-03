@@ -25,23 +25,18 @@ export async function provisionAgency(params: ProvisionParams) {
     displayName,
   })
 
+  // ── Step 1: Core agency insert — only columns guaranteed in original schema ──
+  // (owner_id, name, status, tier — no subscription_tier / seat_limit / included_seats)
+  // This insert must never throw due to a missing column.
   const { data: agency, error: agencyError } = await supabaseAdmin
     .from('agencies')
     .insert({
       owner_id: params.userId,
-      name: displayName,
-      // status/tier are the original core-schema columns (kept for backward compat)
-      status: 'trial',
-      tier: isAgency ? 'agency' : 'starter',
-      // subscription_tier drives billing-page plan detection and dashboard view
-      // Valid values (from 20260514040000_beta_and_billing migration):
-      //   'trial' | 'beta' | 'broker' | 'agency' | 'enterprise'
-      subscription_tier: isAgency ? 'agency' : 'broker',
-      // seat_limit / included_seats added in 20260528080000_seat_enforcement
-      // Agency plan: null seat_limit (unlimited), 5 included seats
-      // Broker plan: 1 seat_limit (hard cap),     1 included seat
-      seat_limit:     isAgency ? null : 1,
-      included_seats: isAgency ? 5    : 1,
+      name:     displayName,
+      status:   'trial',
+      // 'starter' is always valid per the original core schema constraint.
+      // subscription_tier (the billing-page field) is set below in the resilient update.
+      tier: 'starter',
     })
     .select('id')
     .single()
@@ -51,13 +46,40 @@ export async function provisionAgency(params: ProvisionParams) {
     throw new Error(`Failed to create agency: ${agencyError.message}`)
   }
 
-  console.log('[provisionAgency] agency row created:', {
-    agencyId:         agency.id,
-    subscription_tier: isAgency ? 'agency' : 'broker',
-    included_seats:    isAgency ? 5 : 1,
-  })
+  console.log('[provisionAgency] agency core row created, id:', agency.id)
 
-  const { error: brokerError } = await supabaseAdmin
+  // ── Step 1b: Resilient extended-column update ─────────────────────────────
+  // subscription_tier, seat_limit, included_seats were added in migrations that
+  // may not yet be applied to the live database. Attempt the update and swallow
+  // silently if the columns do not exist — core provisioning already succeeded.
+  try {
+    const { error: extError } = await supabaseAdmin
+      .from('agencies')
+      .update({
+        subscription_tier: isAgency ? 'agency' : 'broker',
+        seat_limit:        isAgency ? null : 1,
+        included_seats:    isAgency ? 5    : 1,
+      })
+      .eq('id', agency.id)
+
+    if (extError) {
+      // Log but do not throw — the core agency row exists and is usable
+      console.warn('[provisionAgency] extended agency columns update failed (columns may not exist yet):', extError.message)
+    } else {
+      console.log('[provisionAgency] extended agency columns set:', {
+        subscription_tier: isAgency ? 'agency' : 'broker',
+        included_seats:    isAgency ? 5 : 1,
+      })
+    }
+  } catch (extErr: any) {
+    // columns not yet migrated — non-fatal, core provisioning succeeded
+    console.warn('[provisionAgency] extended agency update threw (non-fatal):', extErr?.message)
+  }
+
+  // ── Step 2: Core broker insert — only columns guaranteed in original schema ──
+  // (agency_id, user_id, first_name, last_name, npn)
+  // role defaults to 'broker' in the original schema; we set it in Step 2b.
+  const { data: brokerData, error: brokerError } = await supabaseAdmin
     .from('brokers')
     .insert({
       agency_id:  agency.id,
@@ -65,20 +87,39 @@ export async function provisionAgency(params: ProvisionParams) {
       first_name: params.firstName,
       last_name:  params.lastName,
       npn:        null,
-      // role values validated by brokers_role_check constraint
-      // (agency_owner | agency_admin | customer_service | broker | solo_broker)
-      role: params.role === 'agency_owner' ? 'agency_owner' : 'solo_broker',
     })
+    .select('id')
+    .single()
 
   if (brokerError) {
     console.error('[provisionAgency] broker insert error:', brokerError)
     throw new Error(`Failed to create broker record: ${brokerError.message}`)
   }
 
-  console.log('[provisionAgency] broker row created:', {
-    role: params.role === 'agency_owner' ? 'agency_owner' : 'solo_broker',
-  })
+  console.log('[provisionAgency] broker core row created, id:', brokerData.id)
 
+  // ── Step 2b: Resilient role update ───────────────────────────────────────
+  // The role constraint was extended in a later migration to include
+  // 'agency_owner' and 'solo_broker'. If the migration hasn't run yet,
+  // the broker row keeps its default role ('broker') — non-fatal.
+  try {
+    const targetRole = params.role === 'agency_owner' ? 'agency_owner' : 'solo_broker'
+    const { error: roleError } = await supabaseAdmin
+      .from('brokers')
+      .update({ role: targetRole })
+      .eq('id', brokerData.id)
+
+    if (roleError) {
+      console.warn('[provisionAgency] broker role update failed (constraint may not be migrated yet):', roleError.message)
+    } else {
+      console.log('[provisionAgency] broker role set to:', targetRole)
+    }
+  } catch (roleErr: any) {
+    // role column constraint not yet updated — non-fatal, broker row exists
+    console.warn('[provisionAgency] broker role update threw (non-fatal):', roleErr?.message)
+  }
+
+  // ── Audit log (fire-and-forget) ───────────────────────────────────────────
   await supabaseAdmin.from('audit_log').insert({
     agency_id:     agency.id,
     user_id:       params.userId,
@@ -89,7 +130,6 @@ export async function provisionAgency(params: ProvisionParams) {
       role:             params.role,
       billingPlan:      params.billingPlan,
       tpmoCertifiedAt:  params.tpmoCertifiedAt,
-      subscription_tier: isAgency ? 'agency' : 'broker',
     },
   })
 
