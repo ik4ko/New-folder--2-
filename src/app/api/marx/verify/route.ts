@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
 
   const { data: broker, error: brokerErr } = await db
     .from('brokers')
-    .select('id, agency_id, user_id, email, first_name, last_name')
+    .select('id, agency_id, user_id, email, first_name, last_name, npn')
     .eq('extension_api_key', token)
     .single()
 
@@ -70,6 +70,7 @@ export async function POST(req: NextRequest) {
     'carrier', 'last_known_plan_code', 'verification_status',
     'original_carrier_name', 'original_contract_id', 'original_pbp',
     'detected_plan_name', 'detected_carrier_name',
+    'first_seen_at', 'enrollment_confirmed',
   ].join(', ')
 
   let member: any = null
@@ -371,6 +372,30 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  // ── NPN mismatch check ──────────────────────────────────────────────────────
+  // Runs only when the plan matches (verified). Compares the broker's stored NPN
+  // against the enrolling_broker_npn field sent by the MARx extension payload.
+  // If broker.npn is null we skip the check — NPN has not been configured yet.
+  const enrollingBrokerNpn = (body.enrolling_broker_npn as string | null) ?? null
+  let detectionStatus: string | null = null
+
+  if (finalStatus === 'verified' && broker.npn && enrollingBrokerNpn && broker.npn !== enrollingBrokerNpn) {
+    detectionStatus = 'npn_mismatch'
+    console.log('[MARx] NPN mismatch — broker NPN:', broker.npn, '| enrolling NPN:', enrollingBrokerNpn)
+  }
+
+  // ── Pending enrollment flag ──────────────────────────────────────────────────
+  // Fires when MARx finds no active enrollment, the member was added more than
+  // 30 days ago, and enrollment has never been confirmed by a successful MARx run.
+  if (!detectionStatus && (marxResult === 'no_ma_plan' || marxResult === 'not_found')) {
+    const firstSeen = member.first_seen_at ? new Date(member.first_seen_at) : null
+    const cutoff    = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+    if (firstSeen && firstSeen < cutoff && !member.enrollment_confirmed) {
+      detectionStatus = 'pending_enrollment'
+      console.log('[MARx] pending_enrollment — first_seen_at:', member.first_seen_at)
+    }
+  }
+
   // ── Build update payload ─────────────────────────────────────────────────────
   // IMPORTANT: When a switch is detected, we do NOT overwrite plan_name or carrier.
   // Those columns always show the ORIGINAL enrolled plan for the broker.
@@ -404,6 +429,16 @@ export async function POST(req: NextRequest) {
 
   if (finalStatus === 'termed')                               updatePayload.enrollment_status = 'disenrolled'
   if (finalStatus === 'verified' || finalStatus === 'changed') updatePayload.enrollment_status = 'active'
+
+  // detection_status + enrollment_confirmed tracking
+  if (detectionStatus) {
+    updatePayload.detection_status            = detectionStatus
+    updatePayload.detection_status_updated_at = new Date().toISOString()
+  }
+  if (finalStatus === 'verified') {
+    updatePayload.enrollment_confirmed    = true
+    updatePayload.enrollment_confirmed_at = new Date().toISOString()
+  }
 
   // Improve full_name if the stored value looks like a partial/missing name
   const capturedName = typeof body.capturedName === 'string' ? body.capturedName.trim() : null
