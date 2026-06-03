@@ -87,7 +87,13 @@ export function SiteNavbar({ onWaitlistClick }: { onWaitlistClick?: () => void }
           ))}
         </nav>
 
-        <div className="hidden items-center md:flex">
+        <div className="hidden items-center gap-3 md:flex">
+          <Link
+            href="/login"
+            className="rounded-full px-3 py-2 text-xs font-black uppercase tracking-widest text-slate-500 transition-all hover:bg-white/[0.04] hover:text-white"
+          >
+            Sign In
+          </Link>
           {showWaitlist ? (
             <Button onClick={onWaitlistClick} className="bg-primary font-black text-black hover:bg-primary/90">
               Request Early Access
@@ -128,6 +134,13 @@ export function SiteNavbar({ onWaitlistClick }: { onWaitlistClick?: () => void }
               {link.label}
             </Link>
           ))}
+          <Link
+            href="/login"
+            onClick={() => setMobileOpen(false)}
+            className="rounded-xl border border-transparent px-4 py-3 text-sm font-bold text-slate-500 transition-all hover:border-white/10 hover:bg-white/[0.04] hover:text-white"
+          >
+            Sign In
+          </Link>
           <div className="mt-2">
             {showWaitlist ? (
               <Button

@@ -19,6 +19,9 @@ const PROTECTED_PREFIXES = [
   '/clients', '/ai', '/accounting', '/check-ins', '/ghl',
 ]
 
+// Auth and standalone pages that render their own layout — no marketing navbar.
+const NO_NAVBAR_PREFIXES = ['/login', '/signup', '/auth', '/account-deleted']
+
 // ── Account-paused overlay ────────────────────────────────────────────────────
 // Rendered in place of all /dashboard/* content when subscription_status = 'paused'.
 // Settings routes remain accessible so the owner can reach /settings/billing.
@@ -158,9 +161,10 @@ export function AppShell({ children, sidebar }: { children: React.ReactNode; sid
   }, [isExcluded, router, updateAgencyProfile])
 
   if (isExcluded) {
+    const showNavbar = pathname !== '/' && !NO_NAVBAR_PREFIXES.some(p => pathname.startsWith(p))
     return (
       <div className="h-screen w-screen overflow-y-auto bg-background antialiased">
-        {pathname !== '/' && <SiteNavbar />}
+        {showNavbar && <SiteNavbar />}
         {children}
       </div>
     )

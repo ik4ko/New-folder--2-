@@ -46,8 +46,23 @@ function LoginPageContent() {
     setIsMounted(true);
     const supabase = createClient();
 
+    let settled = false;
+
+    // If the session check stalls (e.g. broken token, network timeout),
+    // surface the login form after 3 s rather than hanging indefinitely.
+    const timer = setTimeout(() => {
+      if (!settled) {
+        console.error('[login] session check timed out — showing login form');
+        settled = true;
+        setReady(true);
+      }
+    }, 3000);
+
     supabase.auth.getUser()
       .then(async ({ data: { user } }) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
         if (user) {
           const { data: agency } = await supabase
             .from('agencies')
@@ -60,10 +75,15 @@ function LoginPageContent() {
           setReady(true);
         }
       })
-      .catch(() => {
-        // Network error on session check -- show login form anyway
+      .catch((err) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timer);
+        console.error('[login] session check error:', err);
         setReady(true);
       });
+
+    return () => clearTimeout(timer);
   }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {

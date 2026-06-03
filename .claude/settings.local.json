@@ -140,7 +140,9 @@
       "Bash(xargs grep -l \"current_period_end\")",
       "Bash(Get-ChildItem -Path \"c:\\\\Developer\\\\New folder \\(2\\)\\\\src\\\\app\\\\api\\\\ghl\\\\\" -File -Recurse | Select-Object FullName)",
       "Bash(xargs grep -l \"invite\\\\|invitation\\\\|onboard\")",
-      "mcp__claude_ai_Supabase__apply_migration"
+      "mcp__claude_ai_Supabase__apply_migration",
+      "Bash(Get-ChildItem -Path \"C:\\\\Developer\\\\New folder \\(2\\)\\\\src\\\\app\" -Recurse -Directory)",
+      "Bash(Sort-Object)"
     ]
   },
   "enabledMcpjsonServers": [
