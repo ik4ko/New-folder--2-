@@ -80,7 +80,7 @@ export async function POST(req: NextRequest) {
     const records: object[] = []
     let dropped = 0
     // Collect rejected rows so users can review and correct them
-    const rejectedRows: Array<{ row_index: number; reason: string; raw_data: Record<string, string> }> = []
+    const rejectedRows: Array<{ row_index: number; reason: string; raw_data: Record<string, string>; member_name: string }> = []
 
     for (let rowIdx = 0; rowIdx < dataRows.length; rowIdx++) {
       const row = dataRows[rowIdx]
@@ -95,12 +95,17 @@ export async function POST(req: NextRequest) {
         dropped++
         const rawDataSnap: Record<string, string> = {}
         headers.forEach((h, i) => { rawDataSnap[h] = row[i] ?? '' })
+        const skipFirst   = colMap['first_name'] !== undefined ? (row[colMap['first_name']] ?? '').trim() : ''
+        const skipLast    = colMap['last_name']  !== undefined ? (row[colMap['last_name']]  ?? '').trim() : ''
+        const skipFull    = colMap['full_name']  !== undefined ? (row[colMap['full_name']]  ?? '').trim() : ''
+        const memberName  = skipFull || `${skipFirst} ${skipLast}`.trim() || `Row ${rowIdx + 2}`
         rejectedRows.push({
           row_index: rowIdx + 2, // +2 = 1-based + header row
           reason: rawMbi
             ? `MBI "${rawMbi}" is invalid (must be 9–11 alphanumeric chars)`
             : 'MBI column is empty or could not be resolved',
           raw_data: rawDataSnap,
+          member_name: memberName,
         })
         continue
       }
@@ -209,7 +214,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({
       imported: deduped.length, dropped, mbiCount, planCount, carrierCount,
       ...(duplicateCount > 0 && { duplicates: duplicateCount, message: `${duplicateCount} duplicate MBI entries were merged` }),
-      ...(rejectedRows.length > 0 && { rejectedCount: rejectedRows.length, message_errors: `${rejectedRows.length} row(s) had invalid MBIs and were logged for review.` }),
+      ...(rejectedRows.length > 0 && {
+        rejectedCount: rejectedRows.length,
+        message_errors: `${rejectedRows.length} row(s) had invalid MBIs and were logged for review.`,
+        skipped: rejectedRows.map(r => ({ name: r.member_name, reason: r.reason, row: r.row_index })),
+      }),
     })
   } catch (err: unknown) {
     console.error('[roster/upload] error:', err)

@@ -2,15 +2,14 @@ import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
 import {
-  Users, ShieldCheck, AlertTriangle, CheckCircle2,
-  XCircle, ArrowUpRight, ExternalLink, Clock, KeyRound,
+  Users, AlertTriangle,
+  XCircle, ExternalLink, Clock,
 } from 'lucide-react'
 import Link from 'next/link'
 import { RosterUploadPanel } from '@/components/roster-upload-panel'
-import { BookMemberTable } from '@/components/book-member-table'
 import { MarxStatusBar } from '@/components/marx-status-bar'
+import { BookDashboard } from '@/components/book-dashboard'
 
 
 export default async function BookPage({
@@ -85,11 +84,7 @@ export default async function BookPage({
 
   const totalMembers    = memberList.length
   const verifiedCount   = memberList.filter(m => m.enrollment_status === 'active' && m.last_marx_check).length
-  const switchingCount  = memberList.filter(m => m.enrollment_status === 'switching').length
-  const termedCount     = memberList.filter(m => m.enrollment_status === 'termed' || m.enrollment_status === 'disenrolled').length
-  const unverifiedCount = memberList.filter(m => !m.has_mbi || !m.last_marx_check).length
   const missingCount    = memberList.filter(m => m.verification_status === 'missing').length
-  const noMbiCount      = memberList.filter(m => !m.mbi).length
   const mbiMemberIds    = memberList.filter(m => m.has_mbi).map(m => m.id)
 
   const mbiMembers      = memberList.filter(m => m.has_mbi)
@@ -256,30 +251,6 @@ export default async function BookPage({
           activeCarriers={activeCarriers}
         />
 
-        {/* Summary cards */}
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-          {[
-            { label: 'Total',       value: totalMembers,    icon: Users,        cls: 'text-slate-400 bg-slate-800' },
-            { label: '✓ Verified',  value: verifiedCount,   icon: CheckCircle2, cls: verifiedCount > 0 ? 'text-emerald-500 bg-emerald-500/10' : 'text-slate-400 bg-slate-800' },
-            { label: '⚠ Switching', value: switchingCount,  icon: AlertTriangle, cls: switchingCount > 0 ? 'text-orange-400 bg-orange-500/10' : 'text-slate-400 bg-slate-800' },
-            { label: '✗ Left',      value: termedCount,     icon: XCircle,      cls: termedCount > 0 ? 'text-red-500 bg-red-500/10' : 'text-slate-400 bg-slate-800' },
-            { label: 'Unverified',  value: unverifiedCount, icon: ShieldCheck,  cls: 'text-slate-400 bg-slate-800' },
-            { label: 'No MBI',      value: noMbiCount,      icon: KeyRound,     cls: noMbiCount > 0 ? 'text-red-400 bg-red-500/10' : 'text-slate-400 bg-slate-800' },
-          ].map(({ label, value, icon: Icon, cls }) => (
-            <Card key={label} className="rounded-2xl border-slate-800 bg-slate-900/60 shadow-sm">
-              <CardContent className="p-4 flex items-center gap-3">
-                <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${cls}`}>
-                  <Icon className="w-4 h-4" />
-                </div>
-                <div>
-                  <p className="text-xl font-black text-white">{value}</p>
-                  <p className="text-[9px] font-black uppercase tracking-widest text-slate-500">{label}</p>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-
         {/* MARx verification status */}
         <MarxStatusBar
           verifiedCount={verifiedCount}
@@ -298,28 +269,8 @@ export default async function BookPage({
           </div>
         )}
 
-        {/* Member table */}
-        {memberList.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-24 gap-4 text-center">
-            <div className="w-16 h-16 rounded-3xl bg-slate-800 flex items-center justify-center">
-              <Users className="w-8 h-8 text-slate-600" />
-            </div>
-            <div>
-              <p className="text-lg font-black uppercase tracking-tight text-white">No Members Yet</p>
-              <p className="text-sm text-slate-400 mt-1">
-                Sync from a carrier portal with the extension, or upload a roster CSV.
-              </p>
-            </div>
-            <Button asChild size="sm"
-              className="rounded-xl font-black uppercase text-[10px] tracking-widest gap-2 mt-2">
-              <Link href="/dashboard/churn/upload">
-                <ArrowUpRight className="w-3.5 h-3.5" /> Upload Roster
-              </Link>
-            </Button>
-          </div>
-        ) : (
-          <BookMemberTable members={memberList} />
-        )}
+        {/* Member stat cards + table */}
+        <BookDashboard members={memberList} />
       </div>
     </div>
   )

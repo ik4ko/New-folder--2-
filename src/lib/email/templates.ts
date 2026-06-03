@@ -82,8 +82,8 @@ export interface SwitchAlertEmailParams {
 export function switchAlertEmail(params: SwitchAlertEmailParams): { subject: string; html: string } {
   const alertLabel = params.alertType === 'missing_from_roster' ? 'Missing From Roster' : 'New Enrollment'
   const subject = params.alertType === 'missing_from_roster'
-    ? `⚠️ ${params.clientName} may have switched plans — act now`
-    : `[AegisSage] Alert: ${params.clientName} — ${alertLabel}`
+    ? `${params.clientName} may have switched plans`
+    : `${params.clientName} may be switching plans`
 
   const body = `
     ${badge(alertLabel, '#f59e0b')}
@@ -113,7 +113,7 @@ export interface VCCDeadlineEmailParams {
 
 export function vccDeadlineEmail(params: VCCDeadlineEmailParams): { subject: string; html: string } {
   const urgency = params.daysRemaining <= 2 ? '#ef4444' : params.daysRemaining <= 5 ? '#f59e0b' : '#6366f1'
-  const subject = `[AegisSage] VCC Deadline: ${params.clientName} — ${params.daysRemaining} day${params.daysRemaining === 1 ? '' : 's'} left`
+  const subject = `${params.clientName}'s carrier form sends in ${params.daysRemaining} day${params.daysRemaining === 1 ? '' : 's'}`
 
   const body = `
     ${badge(`${params.daysRemaining} Days Remaining`, urgency)}
@@ -141,7 +141,7 @@ export interface AORSignedEmailParams {
 }
 
 export function aorSignedEmail(params: AORSignedEmailParams): { subject: string; html: string } {
-  const subject = `[AegisSage] ${params.clientName} signed their AOR — counter-signature needed`
+  const subject = `${params.clientName} signed their AOR — your counter-signature is needed`
 
   const body = `
     ${badge('Action Required', '#10b981')}
@@ -197,7 +197,7 @@ export interface WeeklyDigestEmailParams {
 }
 
 export function weeklyDigestEmail(params: WeeklyDigestEmailParams): { subject: string; html: string } {
-  const subject = `[AegisSage] Weekly Digest — ${params.agencyName}`
+  const subject = `Your Medicare book update is ready — ${params.agencyName}`
 
   const statBlock = (label: string, value: number, color = TEXT) =>
     `<td style="text-align:center;padding:16px 20px;background:${BG};border-radius:10px;border:1px solid ${BORDER};">

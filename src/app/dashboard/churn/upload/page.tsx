@@ -23,6 +23,7 @@ type ImportResult = {
   mbiCount:     number
   planCount:    number
   carrierCount: number
+  skipped?:     Array<{ name: string; reason: string; row: number }>
 }
 
 // ── Column detection — mirrors server-side ALIAS_MAP ─────────────────────────
@@ -208,6 +209,7 @@ export default function ChurnUploadPage() {
   const [preview,       setPreview]       = useState<PreviewState | null>(null);
   const [importResult,  setImportResult]  = useState<ImportResult | null>(null);
   const [marxOpened,    setMarxOpened]    = useState(false);
+  const [skippedOpen,   setSkippedOpen]   = useState(false);
   const [hipaaCertified, setHipaaCertified] = useState(false);
   const [showHipaaModal, setShowHipaaModal] = useState(false);
   const [pendingAction, setPendingAction] = useState<'ghl_sync' | 'csv_upload' | 'sheets_import' | null>(null);
@@ -455,10 +457,12 @@ export default function ChurnUploadPage() {
         const json = await res.json();
         if (!res.ok) throw new Error(json.error || 'Sheets import failed');
         setSyncState('success');
+        setSkippedOpen(false);
         setImportResult({
           imported: json.imported ?? 0, dropped: json.dropped ?? 0,
           mbiCount: json.mbiCount ?? (json.imported ?? 0),
           planCount: json.planCount ?? 0, carrierCount: json.carrierCount ?? 0,
+          skipped: json.skipped,
         });
       } else if (file) {
         const formData = new FormData();
@@ -467,10 +471,12 @@ export default function ChurnUploadPage() {
         const json = await res.json();
         if (!res.ok) throw new Error(json.error || 'Upload failed');
         setSyncState('success');
+        setSkippedOpen(false);
         setImportResult({
           imported: json.imported ?? 0, dropped: json.dropped ?? 0,
           mbiCount: json.mbiCount ?? (json.imported ?? 0),
           planCount: json.planCount ?? 0, carrierCount: json.carrierCount ?? 0,
+          skipped: json.skipped,
         });
       }
     } catch (err: unknown) {
@@ -977,7 +983,17 @@ export default function ChurnUploadPage() {
                     <span className="font-black text-foreground">{importResult.imported.toLocaleString()}</span> member
                     {importResult.imported !== 1 ? 's' : ''} added to your Book of Business
                     {importResult.dropped > 0 && (
-                      <> · <span className="text-amber-400">{importResult.dropped} skipped</span> (no MBI found)</>
+                      <>
+                        {' · '}
+                        <button
+                          type="button"
+                          onClick={() => setSkippedOpen(o => !o)}
+                          className="text-amber-400 hover:text-amber-300 font-black underline underline-offset-2 transition-colors"
+                        >
+                          {importResult.dropped} skipped {skippedOpen ? '▲' : '▼'}
+                        </button>
+                        {' '}(no MBI found)
+                      </>
                     )}
                   </p>
                 </div>
@@ -991,6 +1007,49 @@ export default function ChurnUploadPage() {
                   </a>
                 </Button>
               </div>
+
+              {/* Skipped members detail */}
+              {skippedOpen && importResult.dropped > 0 && (
+                <div className="rounded-2xl border border-amber-500/20 bg-amber-500/5 overflow-hidden">
+                  <div className="px-5 py-3 flex items-center justify-between border-b border-amber-500/10">
+                    <p className="text-[9px] font-black uppercase tracking-widest text-amber-400">
+                      {importResult.dropped} Skipped — No Valid MBI
+                    </p>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const rows = importResult.skipped ?? []
+                        const csv = ['Name,Reason,Row', ...rows.map(r =>
+                          `"${r.name.replace(/"/g, '""')}","${r.reason.replace(/"/g, '""')}",${r.row}`
+                        )].join('\n')
+                        const blob = new Blob([csv], { type: 'text/csv' })
+                        const url = URL.createObjectURL(blob)
+                        const a = document.createElement('a')
+                        a.href = url; a.download = 'skipped-members.csv'; a.click()
+                        URL.revokeObjectURL(url)
+                      }}
+                      className="text-[9px] font-black uppercase tracking-widest text-amber-400 hover:text-amber-300 transition-colors flex items-center gap-1"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                      Download CSV
+                    </button>
+                  </div>
+                  <div className="max-h-56 overflow-y-auto divide-y divide-amber-500/10">
+                    {importResult.skipped && importResult.skipped.length > 0 ? (
+                      importResult.skipped.map((s, i) => (
+                        <div key={i} className="px-5 py-2.5 flex items-start justify-between gap-4">
+                          <span className="text-[11px] font-bold text-foreground truncate">{s.name}</span>
+                          <span className="text-[10px] text-amber-400/70 font-medium shrink-0">{s.reason}</span>
+                        </div>
+                      ))
+                    ) : (
+                      <p className="px-5 py-3 text-[10px] text-muted-foreground">
+                        Skipped row details are available for CSV uploads only.
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
 
               {/* Data quality grid */}
               <div>

@@ -18,6 +18,7 @@ import { provisionAgency } from "@/app/actions/provision-agency"
 const PROTECTED_PREFIXES = [
   '/dashboard', '/settings', '/vault', '/members',
   '/clients', '/ai', '/accounting', '/check-ins', '/ghl',
+  '/support', '/privacy', '/extension', '/connect-extension',
 ]
 
 // Auth and standalone pages that render their own layout — no marketing navbar.

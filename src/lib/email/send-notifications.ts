@@ -296,7 +296,7 @@ export async function sendSwitchAlertEmail(
   `.replace(/\n\s+/g, ' ').trim()
 
   if (data.switchType === 'future_plan_change') {
-    subject = `⚠ ACTION REQUIRED: ${data.memberName} — Upcoming Plan Change ${data.futureEffectiveDate ? `(eff. ${data.futureEffectiveDate})` : ''}`
+    subject = `${data.memberName} has a plan change coming${data.futureEffectiveDate ? ` (eff. ${data.futureEffectiveDate})` : ''}`
     html = `<!DOCTYPE html><html><head><style>${styles}</style></head><body>
 <div class="wrapper"><div class="card">
   <div class="logo">AegisSage</div>
@@ -325,7 +325,7 @@ export async function sendSwitchAlertEmail(
 </div></div></body></html>`
 
   } else if (data.switchType === 'termed' || data.switchType === 'no_ma_plan') {
-    subject = `🚨 CRITICAL: ${data.memberName} — No Active Medicare Advantage Plan`
+    subject = `${data.memberName} may no longer have active Medicare coverage`
     html = `<!DOCTYPE html><html><head><style>${styles}</style></head><body>
 <div class="wrapper"><div class="card">
   <div class="logo">AegisSage</div>
@@ -353,7 +353,7 @@ export async function sendSwitchAlertEmail(
 </div></div></body></html>`
 
   } else if (data.switchType === 'carrier_switch') {
-    subject = `🔴 ALERT: ${data.memberName} — Carrier Switch Detected`
+    subject = `${data.memberName} appears to have switched carriers`
     html = `<!DOCTYPE html><html><head><style>${styles}</style></head><body>
 <div class="wrapper"><div class="card">
   <div class="logo">AegisSage</div>
@@ -382,7 +382,7 @@ export async function sendSwitchAlertEmail(
 
   } else {
     // Generic plan switch (same carrier, different plan)
-    subject = `⚠ WARNING: ${data.memberName} — Plan Change Detected`
+    subject = `${data.memberName} may be switching plans`
     html = `<!DOCTYPE html><html><head><style>${styles}</style></head><body>
 <div class="wrapper"><div class="card">
   <div class="logo">AegisSage</div>

@@ -1,6 +1,4 @@
-import Link from "next/link"
-import { ArrowLeft, Mail, Clock, Shield } from "lucide-react"
-import { Logo } from "@/components/logo"
+import { Mail, Clock, Shield } from "lucide-react"
 import {
   Accordion,
   AccordionContent,
@@ -44,16 +42,6 @@ const FAQS = [
 export default function SupportPage() {
   return (
     <div className="min-h-screen bg-slate-950 text-white">
-      <header className="h-20 border-b border-white/10 px-8 flex items-center justify-between sticky top-0 bg-slate-950/90 backdrop-blur-xl z-50">
-        <Link href="/"><Logo className="[&_span]:text-white" /></Link>
-        <Link
-          href="/"
-          className="flex items-center gap-2 rounded-xl px-3 py-2 text-[10px] font-black uppercase tracking-widest text-white/50 hover:text-white hover:bg-white/10 transition-all"
-        >
-          <ArrowLeft className="w-4 h-4" /> Back
-        </Link>
-      </header>
-
       <main className="max-w-2xl mx-auto py-20 px-8 space-y-14">
 
         {/* Header */}

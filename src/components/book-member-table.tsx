@@ -18,7 +18,7 @@ import {
   ChevronLeft, ChevronRight, Stethoscope,
 } from 'lucide-react'
 
-interface MemberRow {
+export interface MemberRow {
   id: string
   mbi: string | null
   carrier: string
