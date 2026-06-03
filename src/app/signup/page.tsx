@@ -90,16 +90,34 @@ function SignupPageContent() {
       if (authError) throw authError;
       if (!authData.user) throw new Error('Signup returned no user object.');
 
-      await provisionAgency({
-        userId: authData.user.id,
-        firstName,
-        lastName,
-        agencyName: null,
-        phone: '',
-        role: accountType === 'agency' ? 'agency_owner' : 'solo_broker',
-        tpmoCertifiedAt: new Date().toISOString(),
-        billingPlan: accountType === 'agency' ? 'agency' : 'broker-individual',
-      });
+      // ── Provisioning (separate from auth) ─────────────────────────────────
+      // If provisioning fails, the auth user already exists. Surface the error
+      // clearly so the user knows their account was created but setup failed.
+      // AppShell will offer a re-provision button if they reach /dashboard.
+      try {
+        await provisionAgency({
+          userId: authData.user.id,
+          firstName,
+          lastName,
+          agencyName: null,
+          phone: '',
+          role: accountType === 'agency' ? 'agency_owner' : 'solo_broker',
+          tpmoCertifiedAt: new Date().toISOString(),
+          billingPlan: accountType === 'agency' ? 'agency' : 'broker-individual',
+        });
+      } catch (provisionErr: any) {
+        console.error('[signup] provisionAgency failed:', {
+          message: provisionErr?.message,
+          code:    provisionErr?.code,
+          userId:  authData.user.id,
+        });
+        setErrorMsg(
+          `Account created, but workspace setup failed: ${provisionErr?.message ?? 'unknown error'}. ` +
+          'You can sign in and complete setup from the dashboard, or contact support@aegissage.com.'
+        );
+        setLoading(false);
+        return;
+      }
 
       if (authData.session) {
         // Session live — hard-navigate so the server picks up the session cookie
@@ -109,7 +127,7 @@ function SignupPageContent() {
         setEmailPending(true);
       }
     } catch (err: any) {
-      console.error('[signup] error:', err);
+      console.error('[signup] auth error:', err);
       setErrorMsg(err?.message ?? 'An unexpected error occurred. Please try again.');
     } finally {
       setLoading(false);

@@ -133,8 +133,14 @@ export async function proxy(req: NextRequest) {
   // Check session expiry from Supabase
   const { data: { session } } = await supabase.auth.getSession()
   if (session) {
-    const sessionAge = now - Math.floor(new Date(session.expires_at ?? 0).getTime() / 1000)
-    
+    // session.expires_at is a Unix timestamp in SECONDS — compare directly to now.
+    // A negative sessionAge means the token hasn't expired yet (correct, no timeout).
+    // Previously this used `new Date(session.expires_at)` which treated seconds as
+    // milliseconds, resulting in a date in 1970 and sessionAge always ~56 years,
+    // causing every authenticated request to trigger the timeout redirect.
+    const expiresAt = session.expires_at ?? 0
+    const sessionAge = now - expiresAt
+
     // Check for recent heartbeat activity from Chrome extension
     const lastHeartbeatCookie = req.cookies.get('last_heartbeat')?.value
     const lastHeartbeat = lastHeartbeatCookie ? parseInt(lastHeartbeatCookie, 10) : 0
@@ -150,8 +156,11 @@ export async function proxy(req: NextRequest) {
         ? new Date(lastHeartbeat * 1000).toISOString()
         : null
 
-      // Await so the write completes before the redirect response is issued.
-      await logEnterpriseEvent({
+      // Fire-and-forget: audit write must never block or delay the redirect response.
+      // The enterprise_audit_logs table may not exist yet — logEnterpriseEvent already
+      // swallows errors internally, but awaiting it would stall the middleware until
+      // the failed write times out, masking the real cause of the 307 redirect.
+      void logEnterpriseEvent({
         agencyId:     agencyIdCookie,
         userId:       user.id,
         actionType:   'SESSION_END',
