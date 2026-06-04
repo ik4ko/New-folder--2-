@@ -17,6 +17,11 @@ export async function provisionAgency(params: ProvisionParams) {
   const isAgency = params.role === 'agency_owner'
   const displayName = params.agencyName?.trim() || `${params.firstName} ${params.lastName}`
 
+  console.log('[provisionAgency] isAgency:', isAgency,
+    'role param:', params.role,
+    'account_type from meta will be:',
+    params.role === 'agency_owner' ? 'agency' : 'broker')
+
   console.log('[provisionAgency] starting provisioning:', {
     userId:      params.userId,
     role:        params.role,
@@ -57,7 +62,7 @@ export async function provisionAgency(params: ProvisionParams) {
       .from('agencies')
       .update({
         subscription_tier: isAgency ? 'agency' : 'broker',
-        seat_limit:        isAgency ? null : 1,
+        seat_limit:        isAgency ? 999 : 1,
         included_seats:    isAgency ? 5    : 1,
       })
       .eq('id', agency.id)
@@ -75,6 +80,14 @@ export async function provisionAgency(params: ProvisionParams) {
     // columns not yet migrated — non-fatal, core provisioning succeeded
     console.warn('[provisionAgency] extended agency update threw (non-fatal):', extErr?.message)
   }
+
+  // Verify what was actually written to the database
+  const { data: check } = await supabaseAdmin
+    .from('agencies')
+    .select('subscription_tier, included_seats, seat_limit')
+    .eq('id', agency.id)
+    .single()
+  console.log('[provisionAgency] agency after update:', check)
 
   // ── Step 2: Core broker insert — only columns guaranteed in original schema ──
   // (agency_id, user_id, first_name, last_name, npn)

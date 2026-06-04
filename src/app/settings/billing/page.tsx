@@ -144,8 +144,9 @@ export default function BillingPage() {
       if (ag) {
         // ── User owns this agency ─────────────────────────────────────────
         setAgency(ag)
-        const tier = ag.subscription_tier ?? 'broker'
-        setBillingCase(AGENCY_TIERS.includes(tier) ? 'owner_agency' : 'owner_broker')
+        const isAgencyOwnerByRole = brokerRow?.role === 'agency_owner'
+        const isAgencyOwnerByTier = AGENCY_TIERS.includes(ag.subscription_tier ?? '')
+        setBillingCase(isAgencyOwnerByRole || isAgencyOwnerByTier ? 'owner_agency' : 'owner_broker')
 
         // Pull live active seat count for agency owners
         const { count } = await supabase

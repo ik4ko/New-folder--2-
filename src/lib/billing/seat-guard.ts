@@ -115,23 +115,6 @@ export async function checkSeatLimit(
     }
   }
 
-  // ── Check subscription is active ────────────────────────────────────────────
-  const isActive = ['active', 'beta'].includes(agency.subscription_status ?? '')
-  if (!isActive) {
-    return {
-      allowed:       false,
-      currentSeats:  0,
-      maxSeats:      agency.seat_limit ?? 1,
-      includedSeats: agency.included_seats ?? 1,
-      overageSeats:  0,
-      overageBilled: false,
-      tier:          (agency.subscription_tier as SeatTier) ?? 'trial',
-      reason:        'subscription_inactive',
-      userMessage:   `Your subscription is ${agency.subscription_status ?? 'inactive'}. ` +
-                     'Please update your billing to add broker seats.',
-    }
-  }
-
   // ── Count active broker seats ───────────────────────────────────────────────
   const { count: activeSeatCount } = await svc
     .from('brokers')
