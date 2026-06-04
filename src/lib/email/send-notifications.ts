@@ -12,7 +12,10 @@ const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'https://app.aegissage.com'
 // Called after extension sync detects missing members -- fires per-switch emails
 
 export async function notifyNewSwitchAlerts(uploadId: string, agencyId: string): Promise<void> {
-  if (!process.env.RESEND_API_KEY?.startsWith('re_')) return
+  if (!process.env.RESEND_API_KEY?.startsWith('re_')) {
+    console.error('[email] RESEND_API_KEY is not set — notifyNewSwitchAlerts skipped')
+    return
+  }
 
   try {
     const supabase = createServiceClient()
@@ -262,7 +265,7 @@ export async function sendSwitchAlertEmail(
   }
 ): Promise<void> {
   if (!process.env.RESEND_API_KEY?.startsWith('re_')) {
-    console.warn('[email] Resend key not configured -- skipping MARx alert email')
+    console.error('[email] RESEND_API_KEY is not set — sendSwitchAlertEmail skipped')
     return
   }
 
@@ -429,7 +432,10 @@ export async function sendSwitchAlertEmail(
 // successful sends. Failed brokers remain unnotified for next cron retry.
 
 export async function notifyOpenAlerts(): Promise<void> {
-  if (!process.env.RESEND_API_KEY?.startsWith('re_')) return
+  if (!process.env.RESEND_API_KEY?.startsWith('re_')) {
+    console.error('[email] RESEND_API_KEY is not set — notifyOpenAlerts skipped')
+    return
+  }
 
   try {
     const supabase = createServiceClient()

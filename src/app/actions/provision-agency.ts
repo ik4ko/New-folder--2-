@@ -53,41 +53,42 @@ export async function provisionAgency(params: ProvisionParams) {
 
   console.log('[provisionAgency] agency core row created, id:', agency.id)
 
-  // ── Step 1b: Resilient extended-column update ─────────────────────────────
-  // subscription_tier, seat_limit, included_seats were added in migrations that
-  // may not yet be applied to the live database. Attempt the update and swallow
-  // silently if the columns do not exist — core provisioning already succeeded.
-  try {
-    const { error: extError } = await supabaseAdmin
-      .from('agencies')
-      .update({
-        subscription_tier: isAgency ? 'agency' : 'broker',
-        seat_limit:        isAgency ? 999 : 1,
-        included_seats:    isAgency ? 5    : 1,
-      })
-      .eq('id', agency.id)
+  // ── Step 1b: Direct tier/seats update — throws on failure ─────────────────
+  const subscriptionTier = isAgency ? 'agency' : 'broker'
+  const includedSeats    = isAgency ? 5 : 1
+  const seatLimit        = isAgency ? 999 : 1
 
-    if (extError) {
-      // Log but do not throw — the core agency row exists and is usable
-      console.warn('[provisionAgency] extended agency columns update failed (columns may not exist yet):', extError.message)
-    } else {
-      console.log('[provisionAgency] extended agency columns set:', {
-        subscription_tier: isAgency ? 'agency' : 'broker',
-        included_seats:    isAgency ? 5 : 1,
-      })
-    }
-  } catch (extErr: any) {
-    // columns not yet migrated — non-fatal, core provisioning succeeded
-    console.warn('[provisionAgency] extended agency update threw (non-fatal):', extErr?.message)
+  const { error: extError } = await supabaseAdmin
+    .from('agencies')
+    .update({
+      subscription_tier: subscriptionTier,
+      included_seats:    includedSeats,
+      seat_limit:        seatLimit,
+    })
+    .eq('id', agency.id)
+
+  if (extError) {
+    console.error('[provisionAgency] CRITICAL: tier update failed:',
+      extError.message,
+      'tier attempted:', subscriptionTier,
+      'agency id:', agency.id,
+    )
+    throw new Error(`Tier update failed: ${extError.message}`)
   }
 
-  // Verify what was actually written to the database
-  const { data: check } = await supabaseAdmin
+  // Immediate readback to confirm what was actually persisted
+  const { data: readback } = await supabaseAdmin
     .from('agencies')
     .select('subscription_tier, included_seats, seat_limit')
     .eq('id', agency.id)
     .single()
-  console.log('[provisionAgency] agency after update:', check)
+  console.log('[provisionAgency] tier readback:', readback)
+
+  if (readback?.subscription_tier !== subscriptionTier) {
+    console.error('[provisionAgency] MISMATCH: wrote',
+      subscriptionTier, 'but DB has', readback?.subscription_tier)
+    throw new Error('Tier mismatch after update — provisioning aborted')
+  }
 
   // ── Step 2: Core broker insert — only columns guaranteed in original schema ──
   // (agency_id, user_id, first_name, last_name, npn)

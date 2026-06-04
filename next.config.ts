@@ -8,7 +8,9 @@ import type {NextConfig} from 'next';
 // https://nextjs.org/docs/app/building-your-application/configuring/content-security-policy
 const cspDirectives = [
   "default-src 'self'",
-  "script-src 'self' 'unsafe-inline'",
+  // 'unsafe-eval' added for dashboard components (charting/animation libs require eval).
+  // TODO: identify the specific dependency and replace with a nonce-based approach.
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob:",
   "connect-src 'self' https://*.supabase.co https://api.resend.com https://hooks.slack.com",
