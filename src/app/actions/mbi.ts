@@ -3,7 +3,7 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
-import { encryptCredential } from '@/lib/crypto-server'
+import { encryptMbi, hashMbi } from '@/lib/mbi-crypto'
 
 const MBI_REGEX = /^[A-Z0-9]{11}$/
 
@@ -37,11 +37,9 @@ export async function saveMbi(memberId: string, rawMbi: string) {
 
   if (!member) return { error: 'Member not found' }
 
-  const mbi_encrypted = encryptCredential(mbi)
-
   const { error } = await supabaseAdmin
     .from('book_of_business')
-    .update({ mbi_encrypted, has_mbi: true })
+    .update({ mbi_encrypted: encryptMbi(mbi), mbi_hash: hashMbi(mbi), has_mbi: true })
     .eq('id', memberId)
 
   if (error) return { error: error.message }

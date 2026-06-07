@@ -267,13 +267,15 @@ async function handleMessage(message) {
     // ── MARx progress tracking ────────────────────────────────────────────────
 
     case 'MARX_PROGRESS': {
+      // PHI-SAFE: memberName is intentionally excluded — full names are HIPAA identifiers
+      // and must not be persisted to chrome.storage.local. The popup displays the index
+      // count (current/total) instead.
       const progress = {
         current: message.current,
         total: message.total,
         changesFound: message.changesFound,
         done: message.done,
         message: message.message ?? null,
-        memberName: message.memberName ?? null,
         timestamp: Date.now(),
       }
       await chrome.storage.local.set({ marx_progress: progress })

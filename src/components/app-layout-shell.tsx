@@ -202,6 +202,19 @@ export function AppShell({ children, sidebar }: { children: React.ReactNode; sid
           return
         }
 
+        // ── MFA gate ────────────────────────────────────────────────────────
+        // HIPAA §164.312(d): require multi-factor authentication before any
+        // PHI-bearing dashboard route is accessible. Skip check on the MFA
+        // setup page itself to avoid an infinite redirect loop.
+        if (!pathname.startsWith('/auth/mfa-setup')) {
+          const { data: mfaData } = await supabase.auth.mfa.listFactors()
+          const enrolled = (mfaData?.totp ?? []).some(f => f.status === 'verified')
+          if (!enrolled) {
+            router.replace('/auth/mfa-setup')
+            return
+          }
+        }
+
         // ── Lifecycle gate ──────────────────────────────────────────────────
         if (resolvedStatus === 'deleted') {
           router.replace('/account-deleted')
@@ -247,6 +260,8 @@ export function AppShell({ children, sidebar }: { children: React.ReactNode; sid
       const firstName = parts[0] ?? 'User'
       const lastName  = parts.slice(1).join(' ') || firstName
       const accountType = (authUserMeta.account_type as string | undefined) ?? 'broker'
+      const role = accountType === 'agency' ? 'agency_owner' : 'solo_broker'
+      console.log('[AppShell] re-provision: accountType=', accountType, 'role=', role, 'userId=', authUserId)
 
       await provisionAgency({
         userId:          authUserId,
@@ -254,7 +269,7 @@ export function AppShell({ children, sidebar }: { children: React.ReactNode; sid
         lastName,
         agencyName:      null,
         phone:           '',
-        role:            accountType === 'agency' ? 'agency_owner' : 'solo_broker',
+        role,
         tpmoCertifiedAt: new Date().toISOString(),
         billingPlan:     accountType === 'agency' ? 'agency' : 'broker-individual',
       })

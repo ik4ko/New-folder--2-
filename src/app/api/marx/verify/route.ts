@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { sendSwitchAlertEmail } from '@/lib/email/send-notifications'
 import { withRetrySafe } from '@/lib/utils/retry'
+import { hashMbi } from '@/lib/mbi-crypto'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -90,10 +91,10 @@ export async function POST(req: NextRequest) {
     const { data, error } = await db
       .from('book_of_business')
       .select(BOB_SELECT)
-      .eq('mbi', cleanMbi)
+      .eq('mbi_hash', hashMbi(cleanMbi))
       .eq('agency_id', broker.agency_id)
       .single()
-    if (error) console.log('[MARx] mbi lookup miss:', error.message)
+    if (error) console.log('[MARx] mbi_hash lookup miss:', error.message)
     member = data ?? null
   }
 
@@ -444,7 +445,7 @@ export async function POST(req: NextRequest) {
   const capturedName = typeof body.capturedName === 'string' ? body.capturedName.trim() : null
   if (capturedName && capturedName.length > 2) {
     const currentName  = member.full_name || ''
-    const looksPartial = !currentName || currentName === member.mbi || currentName.split(' ').length < 2
+    const looksPartial = !currentName || currentName === member.member_id || currentName.split(' ').length < 2
     if (looksPartial) {
       updatePayload.full_name = capturedName
     }

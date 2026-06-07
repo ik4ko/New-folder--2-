@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase'
-import { createServiceClient } from '@/lib/supabase/service'
-import { checkSeatLimit } from '@/lib/billing/seat-guard'
 import { sendTeamInviteEmail } from '@/lib/email/send-notifications'
 
 const APP_URL = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:9002'
@@ -16,16 +14,18 @@ export async function POST(req: NextRequest) {
     // Resolve agency and verify admin role
     let agencyId: string | null = null
     let maxAdminSeats = 3
+    let agencySeatLimit = 1
 
     const { data: agency } = await supabase
       .from('agencies')
-      .select('id, max_admin_seats')
+      .select('id, max_admin_seats, seat_limit')
       .eq('owner_id', user.id)
       .maybeSingle()
 
     if (agency) {
       agencyId = agency.id
       maxAdminSeats = agency.max_admin_seats ?? 3
+      agencySeatLimit = agency.seat_limit ?? 1
     } else {
       const { data: broker } = await supabase
         .from('brokers')
@@ -40,10 +40,11 @@ export async function POST(req: NextRequest) {
 
       const { data: agencyData } = await supabase
         .from('agencies')
-        .select('max_admin_seats')
+        .select('max_admin_seats, seat_limit')
         .eq('id', agencyId)
         .maybeSingle()
       maxAdminSeats = agencyData?.max_admin_seats ?? 3
+      agencySeatLimit = agencyData?.seat_limit ?? 1
     }
 
     const body = await req.json()
@@ -88,18 +89,16 @@ export async function POST(req: NextRequest) {
     // direct API call cannot bypass the UI pre-flight gate (/api/team/seat-check).
     // This is the authoritative enforcement point; the seat-check endpoint is
     // purely informational for the frontend.
-    if (inviteRole !== 'agency_admin') {
-      const svc = createServiceClient()
-      const seatResult = await checkSeatLimit(agencyId!, user.id)
-      if (!seatResult.allowed) {
+    if (inviteRole !== 'agency_admin' && agencySeatLimit !== 999) {
+      const { count: brokerCount } = await supabase
+        .from('brokers')
+        .select('id', { count: 'exact', head: true })
+        .eq('agency_id', agencyId!)
+
+      if ((brokerCount ?? 0) >= agencySeatLimit) {
         return NextResponse.json(
-          {
-            error:       seatResult.userMessage,
-            reason:      seatResult.reason,
-            tier:        seatResult.tier,
-            upgradeUrl:  '/settings/billing',
-          },
-          { status: 402 }
+          { error: 'Seat limit reached. Contact support to add more seats.' },
+          { status: 400 }
         )
       }
     }

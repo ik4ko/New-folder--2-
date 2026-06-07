@@ -35,8 +35,6 @@ export async function GET(req: NextRequest) {
     .select(`
       id,
       full_name,
-      mbi,
-      member_id,
       mbi_encrypted,
       carrier,
       plan_name,
@@ -57,15 +55,7 @@ export async function GET(req: NextRequest) {
     .limit(200)
 
   const members = (rows ?? []).map(row => {
-    // mbi column stores the plain MBI — mbi_encrypted may also be plain text (legacy)
-    let mbi: string | null = row.mbi ?? null
-    if (!mbi && row.mbi_encrypted) {
-      try {
-        mbi = decryptCredential(row.mbi_encrypted)
-      } catch {
-        mbi = row.mbi_encrypted  // stored as plaintext — use as-is
-      }
-    }
+    const mbi = decryptCredential(row.mbi_encrypted ?? '')
     return {
       id: row.id,
       mbi,

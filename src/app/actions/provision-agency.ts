@@ -53,41 +53,38 @@ export async function provisionAgency(params: ProvisionParams) {
 
   console.log('[provisionAgency] agency core row created, id:', agency.id)
 
-  // ── Step 1b: Direct tier/seats update — throws on failure ─────────────────
+  // ── Step 1b: Tier/seats update — non-fatal on error, warn on mismatch ──────
   const subscriptionTier = isAgency ? 'agency' : 'broker'
   const includedSeats    = isAgency ? 5 : 1
   const seatLimit        = isAgency ? 999 : 1
 
-  const { error: extError } = await supabaseAdmin
+  const { data: tierReadback, error: tierError } = await supabaseAdmin
     .from('agencies')
     .update({
       subscription_tier: subscriptionTier,
       included_seats:    includedSeats,
       seat_limit:        seatLimit,
+      status:            'trial',
     })
     .eq('id', agency.id)
-
-  if (extError) {
-    console.error('[provisionAgency] CRITICAL: tier update failed:',
-      extError.message,
-      'tier attempted:', subscriptionTier,
-      'agency id:', agency.id,
-    )
-    throw new Error(`Tier update failed: ${extError.message}`)
-  }
-
-  // Immediate readback to confirm what was actually persisted
-  const { data: readback } = await supabaseAdmin
-    .from('agencies')
-    .select('subscription_tier, included_seats, seat_limit')
-    .eq('id', agency.id)
+    .select('subscription_tier, included_seats')
     .single()
-  console.log('[provisionAgency] tier readback:', readback)
 
-  if (readback?.subscription_tier !== subscriptionTier) {
-    console.error('[provisionAgency] MISMATCH: wrote',
-      subscriptionTier, 'but DB has', readback?.subscription_tier)
-    throw new Error('Tier mismatch after update — provisioning aborted')
+  if (tierError) {
+    console.error('[provisionAgency] tier update failed:', {
+      message:  tierError.message,
+      code:     (tierError as any).code,
+      details:  (tierError as any).details,
+      hint:     (tierError as any).hint,
+      tier:     subscriptionTier,
+      agencyId: agency.id,
+    })
+  } else {
+    console.log('[provisionAgency] tier readback:', tierReadback)
+    if (tierReadback?.subscription_tier !== subscriptionTier) {
+      console.warn('[provisionAgency] tier mismatch: wrote', subscriptionTier,
+        'but DB has', tierReadback?.subscription_tier, '— continuing')
+    }
   }
 
   // ── Step 2: Core broker insert — only columns guaranteed in original schema ──

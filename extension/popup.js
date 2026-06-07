@@ -322,7 +322,7 @@ async function checkCurrentTab() {
           } else if (prog.total > 0) {
             var pct = Math.round((prog.current / prog.total) * 100)
             if (portalStatus) {
-              portalStatus.textContent = 'Checking ' + prog.memberName + '... (' + prog.current + '/' + prog.total + ')'
+              portalStatus.textContent = 'Checking member ' + prog.current + ' of ' + prog.total + '…'
             }
             if (syncBtn) {
               syncBtn.textContent = pct + '% complete'

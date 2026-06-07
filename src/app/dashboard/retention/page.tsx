@@ -5,9 +5,9 @@ import { createClient } from '@/lib/supabase/client'
 import { useRole } from '@/hooks/useRole'
 import { cn } from '@/lib/utils'
 import { assignBrokerToContact } from '@/app/actions/assign_broker'
-import { createAORSubmission, sendAORToClient, uploadSignedAOR } from '@/app/actions/aor'
-import { SignatureMethod } from '@/types/aor'
 import { CollectionSidebar } from '@/components/collection-sidebar'
+
+type SignatureMethod = 'email_link' | 'sms_link' | 'manual_upload' | 'in_person'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -148,59 +148,14 @@ export default function RetentionPage() {
       return
     }
     startLockTransition(async () => {
-      const createRes = await createAORSubmission({
-        ghlContactId: lockContact.ghl_contact_id,
-        clientName: lockContact.full_name ?? 'Unknown Client',
-        medicareId: lockForm.medicareId || undefined,
-        clientEmail: lockContact.email ?? undefined,
-        clientPhone: lockContact.phone ?? undefined,
-        carrier: lockForm.carrier,
-        carrierFax: lockForm.carrierFax || undefined,
-        signatureMethod: lockForm.signatureMethod as SignatureMethod,
-      })
-
-      if (createRes.error) {
-        toast({ variant: 'destructive', title: 'Failed to create AOR', description: createRes.error })
-        return
-      }
-
-      const sendRes = await sendAORToClient(createRes.submissionId!)
-      if (sendRes.error) {
-        toast({ variant: 'destructive', title: 'AOR created but send failed', description: sendRes.error })
-        return
-      }
-
-      setContacts(prev => prev.map(c =>
-        c.id === lockContact.id ? { ...c, aor_status: 'pending' } : c
-      ))
-
-      if (lockForm.signatureMethod === 'manual_upload' || lockForm.signatureMethod === 'in_person') {
-        setLockSubmissionId(createRes.submissionId!)
-        setLockDownloadUrl(sendRes.pdfDownloadUrl ?? null)
-      } else {
-        toast({ title: 'AOR sent', description: 'Signature link sent to client.' })
-        closeModal()
-      }
+      toast({ variant: 'destructive', title: 'AOR Not Available', description: 'AOR submission is not yet available in this version.' })
     })
   }
 
   const handleUploadSigned = () => {
     if (!lockSubmissionId || !uploadFile) return
     startLockTransition(async () => {
-      const fd = new FormData()
-      fd.append('file', uploadFile)
-      const res = await uploadSignedAOR(lockSubmissionId, fd)
-      if (res.error) {
-        toast({ variant: 'destructive', title: 'Upload failed', description: res.error })
-      } else {
-        toast({ title: 'AOR Locked', description: 'Signed copy uploaded and faxed to carrier.' })
-        if (lockContact) {
-          setContacts(prev => prev.map(c =>
-            c.id === lockContact.id ? { ...c, aor_status: 'locked' } : c
-          ))
-        }
-        closeModal()
-      }
+      toast({ variant: 'destructive', title: 'AOR Not Available', description: 'AOR submission is not yet available in this version.' })
     })
   }
 

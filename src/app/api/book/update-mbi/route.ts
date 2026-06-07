@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { encryptMbi, hashMbi } from '@/lib/mbi-crypto'
 
 export const dynamic = 'force-dynamic'
 
@@ -44,7 +45,11 @@ export async function PATCH(req: NextRequest) {
   const service = createServiceClient()
   const { error: updateError } = await service
     .from('book_of_business')
-    .update({ mbi: sanitized, mbi_encrypted: sanitized, has_mbi: true })
+    .update({
+      mbi_encrypted: encryptMbi(sanitized),
+      mbi_hash:      hashMbi(sanitized),
+      has_mbi:       true,
+    })
     .eq('id', memberId)
     .eq('agency_id', agencyId)
 

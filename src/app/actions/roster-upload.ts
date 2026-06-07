@@ -7,6 +7,7 @@ import { parseRosterFileWithErrors, hashName, normalizeStr } from '@/lib/churn/r
 import { diffRosterAgainstGHL } from '@/lib/churn/diff-engine'
 import { notifyNewSwitchAlerts } from '@/lib/email/send-notifications'
 import type { RosterRow } from '@/lib/churn/roster-parser'
+import { encryptMbi, hashMbi } from '@/lib/mbi-crypto'
 
 const CARRIER_DISPLAY: Record<string, string> = {
   humana: 'Humana', uhc: 'UHC', clover: 'Clover',
@@ -46,7 +47,9 @@ async function upsertToBookOfBusiness(
       // backfill migration (this field is only set here for NEW rows).
       original_carrier_name: carrier,
       member_id: r.member_id ?? generateMemberId(r.full_name, carrier),
-      mbi: mbiValue,
+      mbi_encrypted: mbiValue ? encryptMbi(mbiValue) : null,
+      mbi_hash:      mbiValue ? hashMbi(mbiValue)    : null,
+      has_mbi:       !!mbiValue,
       full_name: r.full_name || null,
       plan_name: r.plan_name ?? null,
       plan_id: r.plan_id ?? null,
