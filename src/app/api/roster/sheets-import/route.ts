@@ -13,6 +13,7 @@ import {
   normalizeFullName,
   detectChronicStatus,
 } from '@/lib/data-normalization'
+import { encryptMbi, hashMbi } from '@/lib/mbi-crypto'
 
 /**
  * RFC 4180-compliant CSV parser.
@@ -189,12 +190,13 @@ export async function POST(req: NextRequest) {
     const mbi = sanitizeMbi(rawMbi)
     if (!mbi) {
       dropped++
+      // Never persist or surface the raw MBI value — even invalid ones may be near-miss PHI
       const rawDataSnap: Record<string, string> = {}
-      headers.forEach((h, i) => { rawDataSnap[h] = row[i] ?? '' })
+      headers.forEach((h, i) => { rawDataSnap[h] = i === colMap['mbi'] ? '[REDACTED]' : (row[i] ?? '') })
       rejectedRows.push({
         row_index: rowIdx + 2, // +2 = 1-based row index + header row
         reason: rawMbi
-          ? `MBI "${rawMbi}" is invalid (must be 9–11 alphanumeric chars after sanitization)`
+          ? 'MBI is invalid (must be 9–11 alphanumeric chars after removing dashes/spaces)'
           : 'MBI column is empty or could not be resolved from this row',
         raw_data: rawDataSnap,
       })
@@ -223,10 +225,14 @@ export async function POST(req: NextRequest) {
     const isChronicColumn = get('is_chronic') || ''
     const isChronic = detectChronicStatus(planValue, isChronicColumn)
 
+    // The mbi column was renamed to mbi_plaintext_deprecated (20260607000000_mbi_encryption).
+    // Store only ciphertext + deterministic hash — same utils as the MARx path so
+    // roster-imported MBIs match MARx-captured MBIs byte-for-byte.
+    const mbiHash = hashMbi(mbi)
     records.push({
-      mbi,
-      mbi_encrypted:        mbi,
-      member_id:            mbi,
+      mbi_encrypted:        encryptMbi(mbi),
+      mbi_hash:             mbiHash,
+      member_id:            mbiHash,
       has_mbi:              true,
       agency_id:            broker.agency_id,
       broker_id:            broker.id,
@@ -256,10 +262,10 @@ export async function POST(req: NextRequest) {
 
   const typedRecords = records as Array<Record<string, unknown>>
 
-  // Deduplicate by mbi — keep last occurrence (most complete data wins)
+  // Deduplicate by mbi_hash — keep last occurrence (most complete data wins)
   const deduped: Record<string, unknown>[] = Object.values(
     typedRecords.reduce<Record<string, Record<string, unknown>>>((acc, record) => {
-      const key = `${record.mbi}-${record.agency_id}`
+      const key = `${record.mbi_hash}-${record.agency_id}`
       acc[key] = record
       return acc
     }, {})
@@ -272,7 +278,7 @@ export async function POST(req: NextRequest) {
 
   const { error: upsertError } = await supabase
     .from('book_of_business')
-    .upsert(deduped, { onConflict: 'mbi,agency_id', ignoreDuplicates: false })
+    .upsert(deduped, { onConflict: 'mbi_hash,agency_id', ignoreDuplicates: false })
 
   if (upsertError) {
     console.error('[sheets-import] upsert error:', JSON.stringify(upsertError))
