@@ -80,7 +80,7 @@ export default async function AlertDetailPage({
     alert.bob_member_id
       ? supabaseAdmin
           .from('book_of_business')
-          .select('id, mbi, full_name, plan_name, carrier_display_name, date_of_birth, phone_primary')
+          .select('id, full_name, plan_name, carrier_display_name, date_of_birth, phone_primary')
           .eq('id', alert.bob_member_id)
           .single()
       : Promise.resolve({ data: null }),
@@ -104,7 +104,6 @@ export default async function AlertDetailPage({
   const components = (detectionLog as any)?.score_components ?? {}
 
   const memberDisplayName = (member as any)?.full_name
-    ?? (member as any)?.mbi
     ?? (alert.bob_member_id ? `Member #${alert.bob_member_id.slice(0, 8)}` : null)
 
   const detectionDescription = (() => {

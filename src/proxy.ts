@@ -29,6 +29,7 @@ const PUBLIC_PATHS = [
   '/auth/reset-password',
   '/auth/confirm',
   '/auth/callback',   // PKCE email confirmation callback — no session yet
+  '/auth/set-password', // invite landing — session cookies may not be readable on first hop
   '/sign/aor',        // public AOR signing page (token-gated, not session-gated)
   '/privacy-policy',
   '/terms-of-service',

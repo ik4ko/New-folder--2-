@@ -10,6 +10,7 @@ import Link from 'next/link'
 import { RosterUploadPanel } from '@/components/roster-upload-panel'
 import { MarxStatusBar } from '@/components/marx-status-bar'
 import { BookDashboard } from '@/components/book-dashboard'
+import { decryptMbi } from '@/lib/mbi-crypto'
 
 
 export default async function BookPage({
@@ -45,7 +46,7 @@ export default async function BookPage({
   // to enforce the same boundary the RLS policies would otherwise provide.
   let membersQuery = supabaseAdmin
     .from('book_of_business')
-    .select('id, mbi, carrier, carrier_display_name, original_carrier_name, member_id, full_name, plan_name, detected_plan_name, detected_carrier_name, status, verification_status, last_verified_at, first_seen_at, enrollment_status, has_mbi, last_marx_check, future_plan_name, future_effective_date, is_chronic, doctor_name, doctor_fax')
+    .select('id, mbi_encrypted, carrier, carrier_display_name, original_carrier_name, member_id, full_name, plan_name, detected_plan_name, detected_carrier_name, status, verification_status, last_verified_at, first_seen_at, enrollment_status, has_mbi, last_marx_check, future_plan_name, future_effective_date, is_chronic, doctor_name, doctor_fax')
     .eq('agency_id', agencyId)
     .order('full_name', { ascending: true, nullsFirst: false })
     .limit(500)
@@ -69,7 +70,7 @@ export default async function BookPage({
     alertsCountQuery = alertsCountQuery.eq('broker_id', brokerRow.id) as typeof alertsCountQuery
   }
 
-  const [{ data: members }, { data: carrierLogins }, { count: openAlertsCount }] = await Promise.all([
+  const [{ data: members, error: membersError }, { data: carrierLogins }, { count: openAlertsCount }] = await Promise.all([
     membersQuery,
     supabaseAdmin
       .from('carrier_logins')
@@ -78,7 +79,15 @@ export default async function BookPage({
     alertsCountQuery,
   ])
 
-  const memberList    = members ?? []
+  // A schema/query error here previously rendered an empty book with no signal.
+  if (membersError) console.error('[dashboard/book] members query failed:', membersError.message)
+
+  // Decrypt server-side for the reveal/copy overlay — plaintext never reaches
+  // the DB and the key never reaches the client bundle.
+  const memberList = (members ?? []).map(({ mbi_encrypted, ...m }) => ({
+    ...m,
+    mbi: decryptMbi(mbi_encrypted),
+  }))
   const loginList     = carrierLogins ?? []
   const activeCarriers = [...new Set(memberList.map(m => m.carrier))]
 

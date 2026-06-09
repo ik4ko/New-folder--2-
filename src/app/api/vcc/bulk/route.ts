@@ -29,6 +29,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient }        from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { decryptMbi }          from '@/lib/mbi-crypto'
 
 export const dynamic = 'force-dynamic'
 
@@ -109,7 +110,7 @@ export async function POST(req: NextRequest) {
   // Fetch doctor_name and doctor_fax from member record for auto-fill fallback
   const { data: members, error: fetchErr } = await svc
     .from('book_of_business')
-    .select('id, agency_id, broker_id, full_name, mbi, carrier, plan_name, doctor_name, doctor_fax')
+    .select('id, agency_id, broker_id, full_name, mbi_encrypted, carrier, plan_name, doctor_name, doctor_fax')
     .in('id', memberIds)
     .eq('agency_id', scope.agencyId)
 
@@ -136,7 +137,8 @@ export async function POST(req: NextRequest) {
     bob_member_id: m.id,
     // Golden data pillars from member record
     client_name:   m.full_name ?? null,
-    medicare_id:   m.mbi       ?? null,
+    // Decrypted server-side — vcc_submissions.medicare_id feeds the carrier fax PDF
+    medicare_id:   decryptMbi(m.mbi_encrypted),
     carrier:       m.carrier   ?? null,
     plan_name:     m.plan_name ?? null,
     form_type:     formType,

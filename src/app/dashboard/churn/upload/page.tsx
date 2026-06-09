@@ -20,6 +20,7 @@ type SyncState = 'idle' | 'uploading' | 'syncing' | 'success' | 'error';
 type ImportResult = {
   imported:     number
   dropped:      number
+  duplicates:   number
   mbiCount:     number
   planCount:    number
   carrierCount: number
@@ -460,6 +461,7 @@ export default function ChurnUploadPage() {
         setSkippedOpen(false);
         setImportResult({
           imported: json.imported ?? 0, dropped: json.dropped ?? 0,
+          duplicates: json.duplicates ?? 0,
           mbiCount: json.mbiCount ?? (json.imported ?? 0),
           planCount: json.planCount ?? 0, carrierCount: json.carrierCount ?? 0,
           skipped: json.skipped,
@@ -474,6 +476,7 @@ export default function ChurnUploadPage() {
         setSkippedOpen(false);
         setImportResult({
           imported: json.imported ?? 0, dropped: json.dropped ?? 0,
+          duplicates: json.duplicates ?? 0,
           mbiCount: json.mbiCount ?? (json.imported ?? 0),
           planCount: json.planCount ?? 0, carrierCount: json.carrierCount ?? 0,
           skipped: json.skipped,
@@ -980,8 +983,11 @@ export default function ChurnUploadPage() {
                     Import Complete
                   </p>
                   <p className="text-[11px] text-muted-foreground mt-0.5">
-                    <span className="font-black text-foreground">{importResult.imported.toLocaleString()}</span> member
-                    {importResult.imported !== 1 ? 's' : ''} added to your Book of Business
+                    <span className="font-black text-foreground">
+                      {(importResult.imported + importResult.duplicates + importResult.dropped).toLocaleString()}
+                    </span> rows found
+                    {' · '}
+                    <span className="font-black text-foreground">{importResult.imported.toLocaleString()}</span> imported
                     {importResult.dropped > 0 && (
                       <>
                         {' · '}
@@ -992,8 +998,11 @@ export default function ChurnUploadPage() {
                         >
                           {importResult.dropped} skipped {skippedOpen ? '▲' : '▼'}
                         </button>
-                        {' '}(no MBI found)
+                        {' '}(missing/invalid MBI)
                       </>
+                    )}
+                    {importResult.duplicates > 0 && (
+                      <>{' · '}{importResult.duplicates} duplicate{importResult.duplicates !== 1 ? 's' : ''} merged</>
                     )}
                   </p>
                 </div>
@@ -1054,7 +1063,7 @@ export default function ChurnUploadPage() {
               {/* Data quality grid */}
               <div>
                 <p className="text-[9px] font-black uppercase tracking-widest text-muted-foreground mb-3">
-                  Data Quality Report
+                  Data Quality Report · of imported members
                 </p>
                 <div className="grid grid-cols-3 gap-3">
                   <StatPill label="MBI"     value={importResult.mbiCount}     total={importResult.imported} />

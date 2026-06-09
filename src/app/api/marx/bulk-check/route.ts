@@ -86,7 +86,7 @@ export async function POST(req: NextRequest) {
   // ── Fetch members — scoped to agency ──────────────────────────────────────
   const { data: members } = await service
     .from('book_of_business')
-    .select('id, mbi, broker_id')
+    .select('id, has_mbi, broker_id')
     .in('id', ids)
     .eq('agency_id', agencyId)
 
@@ -130,8 +130,8 @@ export async function POST(req: NextRequest) {
 
   // ── Process authorized members only ───────────────────────────────────────
   const now         = new Date().toISOString()
-  const withMbi     = authorized.filter(m => m.mbi).map(m => m.id)
-  const withoutMbi  = authorized.filter(m => !m.mbi).map(m => m.id)
+  const withMbi     = authorized.filter(m => m.has_mbi).map(m => m.id)
+  const withoutMbi  = authorized.filter(m => !m.has_mbi).map(m => m.id)
 
   const updateResults = await Promise.allSettled([
     withMbi.length > 0

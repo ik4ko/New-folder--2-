@@ -216,13 +216,15 @@ export async function notifyAORSigned(submissionId: string): Promise<void> {
 // -- 4. Team Invite ---------------------------------------------------------
 // Called after broker insert in /api/team/invite
 
+// Returns true when Resend accepted the email. The invite route depends on
+// this signal — this is now the only email carrying the invite link.
 export async function sendTeamInviteEmail(params: {
   inviteeEmail: string
   inviterName: string
   agencyName: string
   role: string
   inviteUrl: string
-}): Promise<void> {
+}): Promise<boolean> {
   try {
     const { subject, html } = teamInviteEmail({
       inviterName: params.inviterName,
@@ -232,14 +234,20 @@ export async function sendTeamInviteEmail(params: {
       expiresIn: '7 days',
     })
 
-    await getResend().emails.send({
+    const { error } = await getResend().emails.send({
       from: FROM_EMAIL,
       to: params.inviteeEmail,
       subject,
       html,
     })
+    if (error) {
+      console.error('[sendTeamInviteEmail]', error.message)
+      return false
+    }
+    return true
   } catch (err) {
     console.error('[sendTeamInviteEmail]', err)
+    return false
   }
 }
 

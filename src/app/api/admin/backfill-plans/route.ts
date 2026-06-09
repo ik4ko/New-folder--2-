@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
   // Fetch all members missing plan_name but having last_known_plan_code or plan_id
   const { data: members, error: fetchErr } = await db
     .from('book_of_business')
-    .select('id, mbi, last_known_plan_code, plan_id, plan_contract, plan_pbp, plan_name')
+    .select('id, last_known_plan_code, plan_id, plan_contract, plan_pbp, plan_name')
     .or('plan_name.is.null,plan_name.eq.unknown,plan_name.eq.')
     .limit(2000)
 

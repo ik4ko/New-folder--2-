@@ -5,6 +5,7 @@ import { createServiceClient } from '@/lib/supabase/service'
 import { fillVCCForm, saveFilledPDF } from '@/lib/vcc/pdf-engine'
 import { sendFax } from '@/lib/vcc/fax-dispatcher'
 import { revalidatePath } from 'next/cache'
+import { decryptMbi } from '@/lib/mbi-crypto'
 
 export interface VCCSubmitInput {
   ghl_contact_id:   string
@@ -165,12 +166,16 @@ export async function getMemberForVCC(memberId: string) {
 
   const { data } = await svc
     .from('book_of_business')
-    .select('id, full_name, mbi, doctor_name, doctor_fax, carrier, carrier_display_name, plan_name')
+    .select('id, full_name, mbi_encrypted, doctor_name, doctor_fax, carrier, carrier_display_name, plan_name')
     .eq('id', memberId)
     .eq('agency_id', agencyId)
     .maybeSingle()
 
-  return data ?? null
+  if (!data) return null
+
+  // Decrypt server-side — the VCC form needs the real MBI for the carrier fax
+  const { mbi_encrypted, ...member } = data
+  return { ...member, mbi: decryptMbi(mbi_encrypted) }
 }
 
 export async function markVCCSigned(submissionId: string) {

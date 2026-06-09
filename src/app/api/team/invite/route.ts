@@ -103,14 +103,17 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // Invite user via Supabase Auth Admin API
-    const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(
+    // Create the user + invite token WITHOUT sending Supabase's default email.
+    // generateLink (unlike inviteUserByEmail) returns the link instead of
+    // emailing it, so the branded email below is the only one the invitee gets.
+    const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.generateLink({
+      type: 'invite',
       email,
-      {
+      options: {
         data: { first_name, last_name, agency_id: agencyId },
-        redirectTo: `${APP_URL}/dashboard`,
-      }
-    )
+        redirectTo: `${APP_URL}/auth/set-password`,
+      },
+    })
 
     if (inviteError) {
       console.error('[team/invite] invite error:', inviteError)
@@ -121,6 +124,17 @@ export async function POST(req: NextRequest) {
     if (!invitedUserId) {
       return NextResponse.json({ error: 'Invite succeeded but no user ID returned' }, { status: 500 })
     }
+
+    // Route the token through our own /auth/confirm (public, verifies server-side
+    // and sets session cookies) rather than the raw action_link, whose implicit
+    // URL-fragment session is silently dropped by the PKCE browser client.
+    const hashedToken = inviteData.properties?.hashed_token
+    if (!hashedToken) {
+      return NextResponse.json({ error: 'Invite link could not be generated' }, { status: 500 })
+    }
+    const inviteUrl =
+      `${APP_URL}/auth/confirm?token_hash=${encodeURIComponent(hashedToken)}` +
+      `&type=invite&next=${encodeURIComponent('/auth/set-password')}`
 
     // Insert broker record immediately using the new user's UUID
     const { data: brokerRow, error: brokerError } = await supabaseAdmin
@@ -161,7 +175,9 @@ export async function POST(req: NextRequest) {
       metadata: { invited_email: email, invited_user_id: invitedUserId, role: inviteRole },
     })
 
-    // Send invite notification email (non-fatal)
+    // Send the branded invite email — now the ONLY email carrying the invite
+    // link, so a failure here means the invitee never receives anything.
+    let emailError: string | null = null
     try {
       const [{ data: inviter }, { data: agencyData }] = await Promise.all([
         supabaseAdmin.from('brokers').select('first_name, last_name').eq('user_id', user.id).maybeSingle(),
@@ -169,16 +185,23 @@ export async function POST(req: NextRequest) {
       ])
       const inviterName = inviter ? `${inviter.first_name} ${inviter.last_name}` : 'Your agency admin'
       const agencyName = agencyData?.name ?? 'AegisSage'
-      sendTeamInviteEmail({
+      const sent = await sendTeamInviteEmail({
         inviteeEmail: email,
         inviterName,
         agencyName,
         role: inviteRole,
-        inviteUrl: `${APP_URL}/dashboard`,
-      }).catch(() => {})
-    } catch { /* non-fatal */ }
+        inviteUrl,
+      })
+      if (!sent) emailError = 'Invite created but the email could not be sent'
+    } catch (emailErr) {
+      emailError = emailErr instanceof Error ? emailErr.message : 'Failed to send invite email'
+      console.error('[team/invite] invite email failed:', emailError)
+    }
 
-    return NextResponse.json({ broker: { ...brokerRow, assignedCount: 0 } }, { status: 201 })
+    return NextResponse.json(
+      { broker: { ...brokerRow, assignedCount: 0 }, ...(emailError && { emailError }) },
+      { status: 201 }
+    )
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err)
     console.error('[team/invite] unexpected error:', msg)
