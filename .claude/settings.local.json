@@ -147,7 +147,27 @@
       "PowerShell(cd \"C:\\\\Developer\\\\New folder \\(2\\)\"; Get-ChildItem -Recurse -File | Select-Object -First 50 | ForEach-Object { $_.FullName.Replace\\(\"C:\\\\Developer\\\\New folder \\(2\\)\\\\\", \"\"\\) })",
       "PowerShell(Get-ChildItem -Path \"C:\\\\Developer\\\\New folder \\(2\\)\" -Recurse -Directory | Select-Object -First 20 | ForEach-Object { $_.FullName })",
       "Bash(Remove-Item *)",
-      "Bash(grep -v \"^.*//.*\")"
+      "Bash(grep -v \"^.*//.*\")",
+      "PowerShell(npx tsc --noEmit 2>&1 | Select-Object -First 30)",
+      "PowerShell(npm test *)",
+      "PowerShell(git stash *)",
+      "mcp__claude_ai_Vercel__list_deployments",
+      "PowerShell(Select-String -Path .env.local,.env -Pattern 'SUPABASE_URL|SERVICE_ROLE|PHI_MASTER_SECRET' | ForEach-Object { \\($_.Line -split '='\\)[0] + '  [' + $_.Filename + ']' })",
+      "PowerShell(foreach \\($f in '.env.local','.env.vercel.prod','.env.vercel.pulled','.env.vercel.local'\\) { $line = \\(Select-String -Path $f -Pattern '^PHI_MASTER_SECRET=' -ErrorAction SilentlyContinue\\); if \\($line\\) { $v = $line.Line -replace '^PHI_MASTER_SECRET=','' -replace '\"',''; $isHex = $v -match '^[0-9a-fA-F]+$'; \"$f : chars=$\\($v.Length\\) validHex=$isHex hexBytes=$\\([math]::Floor\\($v.Length/2\\)\\)\" } else { \"$f : not present\" } })",
+      "PowerShell($m = Select-String -Path .env.local -Pattern 'PHI_MASTER_SECRET'; \"matches: $\\($m.Count\\)\"; foreach \\($x in $m\\) { \"lineNum=$\\($x.LineNumber\\) lineLen=$\\($x.Line.Length\\)\" })",
+      "PowerShell(foreach \\($f in '.env.vercel.prod','.env.vercel.pulled','.env.vercel.check','.env.vercel.scan','.env'\\) { $m = Select-String -Path $f -Pattern 'PHI_MASTER_SECRET' -ErrorAction SilentlyContinue; if \\($m\\) { foreach \\($x in $m\\) { \"$f : lineLen=$\\($x.Line.Length\\) \\(key name = 18 chars\\)\" } } else { \"$f : not present\" } })",
+      "PowerShell(foreach \\($f in '.env.local','.env.vercel.prod','.env.vercel.pulled','.env'\\) { foreach \\($p in 'SUPABASE_URL','NEXT_PUBLIC_SUPABASE_URL','SUPABASE_SERVICE_ROLE_KEY'\\) { $m = Select-String -Path $f -Pattern \\('^' + $p + '='\\) -ErrorAction SilentlyContinue; if \\($m\\) { $v = \\($m.Line -replace \\('^' + $p + '='\\),''\\) -replace '\"',''; $shape = if \\($v.Length -eq 0\\) { 'EMPTY' } elseif \\($v.StartsWith\\('eyJ'\\)\\) { 'JWT' } elseif \\($v.StartsWith\\('sb_'\\)\\) { 'sb-key' } elseif \\($v.StartsWith\\('http'\\)\\) { $v } else { 'other' }; \"$f  $p  len=$\\($v.Length\\)  $shape\" } } })",
+      "PowerShell(npx vercel whoami 2>&1; npx vercel env ls production 2>&1 | Select-Object -First 40)",
+      "PowerShell(npx vercel env pull .env.vercel.tmp --environment=production --yes 2>$null; if \\(Test-Path .env.vercel.tmp\\) { foreach \\($p in 'PHI_MASTER_SECRET','SUPABASE_URL','SUPABASE_SERVICE_ROLE_KEY'\\) { $m = Select-String -Path .env.vercel.tmp -Pattern \\('^' + $p + '='\\); if \\($m\\) { $v = \\($m.Line -replace \\('^' + $p + '='\\),''\\) -replace '\"',''; $shape = if \\($v.Length -eq 0\\) { 'EMPTY' } elseif \\($v -match '^[0-9a-fA-F]+$'\\) { 'hex' } elseif \\($v.StartsWith\\('eyJ'\\)\\) { 'JWT' } elseif \\($v.StartsWith\\('http'\\)\\) { 'url' } else { 'other' }; \"$p len=$\\($v.Length\\) shape=$shape\" } else { \"$p MISSING\" } } } else { 'pull failed' })",
+      "PowerShell(foreach \\($p in 'PHI_MASTER_SECRET','SUPABASE_SERVICE_ROLE_KEY','SUPABASE_SECRET_KEY','SUPABASE_ANON_KEY','MBI_ENCRYPTION_KEY'\\) { $m = Select-String -Path .env.vercel.tmp -Pattern $p; foreach \\($x in $m\\) { \"$\\($p\\): lineLen=$\\($x.Line.Length\\)\" } })",
+      "PowerShell($f = 'src\\\\app\\\\dashboard\\\\churn\\\\upload\\\\page.tsx'; \\(Get-Content $f\\)[990..1010] -join \"`n\")",
+      "PowerShell(Out-File *)",
+      "PowerShell(git checkout *)",
+      "PowerShell(Select-String -Path src\\\\app\\\\actions\\\\vcc-submit.ts,src\\\\app\\\\api\\\\vcc\\\\bulk\\\\route.ts -Pattern \"^import\" | ForEach-Object { \"$\\($_.Filename\\):$\\($_.LineNumber\\): $\\($_.Line\\)\" })",
+      "Bash(echo \"set-password: $\\(curl -s -o /dev/null -w '%{http_code}' https://www.aegissage.com/auth/set-password\\)\")",
+      "Bash(echo \"auth/confirm \\(no token\\): $\\(curl -s -o /dev/null -w '%{http_code} -> %{redirect_url}' https://www.aegissage.com/auth/confirm\\)\")",
+      "Bash(echo \"dashboard/book logged out: $\\(curl -s -o /dev/null -w '%{http_code} -> %{redirect_url}' https://www.aegissage.com/dashboard/book\\)\")",
+      "Bash(echo \"PUT api/ghl/sync logged out: $\\(curl -s -o /dev/null -w '%{http_code}' -X PUT https://www.aegissage.com/api/ghl/sync\\)\")"
     ]
   },
   "enabledMcpjsonServers": [
