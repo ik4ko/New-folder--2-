@@ -1,5 +1,18 @@
 # Aegis Sage — Changelog
 
+## [Security: Seat-Count Function Lockdown] — 2026-06-10
+
+### Migration `20260610000000_lock_seat_count_functions.sql` (applied to production)
+- **`get_active_seat_count(uuid)` / `get_seat_overage(uuid)`**: were SECURITY DEFINER and executable by any signed-in user via `/rest/v1/rpc` with an arbitrary `agency_id` — a cross-tenant leak of agency headcount and seat-overage status (Supabase advisor 0029). EXECUTE revoked from `PUBLIC`, `anon`, `authenticated`; granted only to `service_role`. Safe because the sole caller is the `enforce_broker_seat_limit` trigger function, itself SECURITY DEFINER owned by `postgres`, so nested EXECUTE checks resolve against `postgres` — seat enforcement unaffected (verified via `has_function_privilege` matrix post-apply).
+- **`get_my_agency_id()` / `get_user_agency_id()`**: `anon` + `PUBLIC` revoked; `authenticated` intentionally retained — they take no parameters, derive strictly from `auth.uid()`, and RLS policies check EXECUTE against the querying role. The remaining advisor WARN on these two is accepted residual, documented in the migration header.
+- **Verified post-apply**: advisor re-run shows both arbitrary-input findings cleared; remaining items are the two intentional identity helpers, two INFO-level deny-by-default service tables (`background_job_queue`, `carrier_schema_history`), and the leaked-password-protection Auth toggle (dashboard-only setting, flagged to owner).
+
+### Investigation notes (no code change)
+- **`ghl_contacts` plaintext PHI caveat from 2026-06-09 handoff is moot**: live schema holds only `mbi_enc`/`dob_enc`/`phone_enc` (jsonb) + `mbi_hash`; the 2026-05-16 migration added only name/email/phone (non-PHI). Table currently has 0 rows.
+- **Campaigns → GHL outbound writes confirmed intentional** (owner decision 2026-06-10): GHL sync stays inbound-only, but campaign tag/pipeline writes remain to trigger client-side GHL workflows.
+- **Migration ledger drift noted**: production ledger (67 entries) diverges from repo files (54) — MCP-applied migrations received new version stamps and several ad-hoc data fixes were never committed. Reconciliation deferred.
+
+
 ## [Security & Compliance Hardening: PHI Log Purge, Auth Fix, Error Trails, Dedup Migration] — 2026-05-28
 
 ### Part 1 — PHI Log Purge (`src/app/api/extension/sync/route.ts`)
