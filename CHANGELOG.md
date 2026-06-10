@@ -1,5 +1,20 @@
 # Aegis Sage — Changelog
 
+## [Critical Fix: MARx Verify 404 + Alert Pipeline, Account Deletion Unblocked] — 2026-06-10
+
+### MARx verify route was 100% broken (`src/app/api/marx/verify/route.ts`)
+Vercel logs showed every `POST /api/marx/verify` returning 404 (33/33 members on the 2026-06-10 02:33 UTC run). Three stacked bugs:
+
+- **Root cause 1 — dead `mbi` select (the 404)**: `BOB_SELECT` still included the plaintext `mbi` column dropped by `20260607000000_mbi_encryption`. PostgREST rejects the entire select, so BOTH member lookups (by id and by `mbi_hash`) failed and every call returned "Member not found". This was the 7th dead-mbi select; yesterday's sweep caught the other six. `last_marx_check` was stamped by bulk-check (200), which made the run look like "all verified, nothing detected".
+- **Root cause 2 — alert insert used 4 nonexistent columns**: payload wrote `member_id` / `previous_plan` / `detected_plan` / `details` — none exist on `switch_alerts`. Every detected switch would have failed to insert, with the error visible only in Vercel logs. Rewritten to the live schema (`bob_member_id`, `previous_plan_code`, `new_plan_code`, `new_plan_name`, `previous_value`, `new_value`, `carrier`, `switch_type`, `detection_source: 'marx_extension'`, `detected_at`, `status: 'open'`, `effective_date` when parseable). The 24h dedup query had the same dead `member_id` filter (error silently discarded) — fixed and error now logged.
+- **Root cause 3 — magic-detection alert types violated CHECK constraint**: `FUTURE_CHURN` / `LOST_MEMBER` / `LAPSED_COVERAGE` were written raw into `alert_type`, which the CHECK constraint rejects. Now mapped: FUTURE_CHURN → `pending_switch`, LOST_MEMBER → `plan_switch`, LAPSED_COVERAGE → `termed`; the original message is preserved in `new_value`.
+- **Email dispatch hardening**: inline email now sends only when the alert row was actually inserted (no more emails about alerts that don't exist in the dashboard); on confirmed send, `notified_at` + `notification_email` are stamped so the notifications cron doesn't double-send; on failure `notified_at` stays NULL and the cron retries.
+
+### Account deletion unblocked (DB migrations, applied to production)
+- `20260610010000_audit_log_detach_fks_for_retention` — `audit_log.agency_id` had `ON DELETE CASCADE` into a table whose `audit_log_no_delete` trigger forbids ALL deletes (HIPAA immutability) → every agency/account deletion aborted with P0001 (user-reported screenshot). `audit_log.user_id` FK (NO ACTION) likewise blocked auth-user deletion. Both FKs dropped — audit rows must outlive their principals per HIPAA retention; columns remain as plain uuids, immutability trigger unchanged. Indexes added on both columns.
+- `20260610020000_user_attribution_fks_set_null` — ten "who did it" FKs to `auth.users` (invited_by, submitted_by ×2, synced_by, csr_id, assigned_broker_id, resolved_by ×2, acknowledged_by, uploaded_by) converted from NO ACTION to `ON DELETE SET NULL`; NOT NULL dropped on the three compliance-artifact columns. Deleting a user no longer FK-blocks; their records survive with actor cleared.
+- Deletion chain verified: auth user → agencies CASCADE → brokers/members CASCADE; audit_log retained. NOTE: deleting an agency OWNER's auth user deletes the whole agency (pre-existing `agencies.owner_id ON DELETE CASCADE`) — intended, but don't do it to a live customer.
+
 ## [Security: Seat-Count Function Lockdown] — 2026-06-10
 
 ### Migration `20260610000000_lock_seat_count_functions.sql` (applied to production)

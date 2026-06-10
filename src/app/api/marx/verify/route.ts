@@ -66,7 +66,10 @@ export async function POST(req: NextRequest) {
   // ── Member lookup ─────────────────────────────────────────────────────────────
   // broker_id is included so we can enforce ownership BEFORE processing.
   const BOB_SELECT = [
-    'id', 'agency_id', 'broker_id', 'full_name', 'mbi',
+    // NOTE: plaintext 'mbi' column was dropped by 20260607000000_mbi_encryption —
+    // selecting it makes PostgREST reject the ENTIRE query (this 404'd every
+    // MARx verify call). Lookup is by id / mbi_hash; plaintext MBI is never needed here.
+    'id', 'agency_id', 'broker_id', 'full_name',
     'plan_id', 'plan_name', 'plan_contract', 'plan_pbp', 'plan_type',
     'carrier', 'last_known_plan_code', 'verification_status',
     'original_carrier_name', 'original_contract_id', 'original_pbp',
@@ -269,10 +272,16 @@ export async function POST(req: NextRequest) {
 
   // If magic detection found a critical alert, override the state machine
   if (magicAlertType) {
-    alertType = magicAlertType
+    // Map internal magic-detection codes to the switch_alerts.alert_type CHECK
+    // constraint values — inserting 'FUTURE_CHURN' / 'LOST_MEMBER' / 'LAPSED_COVERAGE'
+    // directly violates the constraint and the alert insert fails.
+    // The original code is preserved in alertDetails.magicAlertMessage.
+    alertType = magicAlertType === 'LAPSED_COVERAGE' ? 'termed'
+              : magicAlertType === 'FUTURE_CHURN'    ? 'pending_switch'
+              : 'plan_switch' // LOST_MEMBER — member already switched
     alertPriority = magicAlertPriority
     finalStatus = magicAlertType === 'LAPSED_COVERAGE' ? 'termed' : 'changed'
-    console.log('[MARx] Magic detection override — alertType:', alertType, '| finalStatus:', finalStatus)
+    console.log('[MARx] Magic detection override —', magicAlertType, '→ alertType:', alertType, '| finalStatus:', finalStatus)
   }
 
   if (marxResult === 'no_ma_plan') {
@@ -469,13 +478,16 @@ export async function POST(req: NextRequest) {
   if (alertType) {
     // Deduplication: skip if we already fired this alert type for this member within 24h
     const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-    const { data: existingAlert } = await db
+    // Column is bob_member_id — 'member_id' does not exist on switch_alerts and
+    // silently broke dedup (the error was discarded by destructuring only data).
+    const { data: existingAlert, error: dedupErr } = await db
       .from('switch_alerts')
       .select('id')
-      .eq('member_id', member.id)
+      .eq('bob_member_id', member.id)
       .eq('alert_type', alertType)
       .gte('created_at', yesterday)
       .maybeSingle()
+    if (dedupErr) console.error('[MARx] dedup query error:', dedupErr.message)
 
     if (existingAlert) {
       console.log('[MARx] alert dedup — already alerted within 24h, skipping')
@@ -498,21 +510,51 @@ export async function POST(req: NextRequest) {
         alertDetails.eligibilityStatus = eligibilityStatus
       }
 
-      const { error: alertInsertErr } = await db.from('switch_alerts').insert({
-        member_id:    member.id,
-        agency_id:    member.agency_id,
-        broker_id:    broker.id,
-        alert_type:   alertType,
-        priority:     alertPriority,
-        previous_plan: storedCode,
-        detected_plan: detectedPlanCode,
-        details: JSON.stringify(alertDetails),
-      })
-      if (alertInsertErr) console.error('[MARx] alert insert error:', JSON.stringify(alertInsertErr))
-      else console.log('[MARx] alert inserted — type:', alertType)
+      // Columns must match the live switch_alerts schema — the previous payload
+      // used member_id/previous_plan/detected_plan/details, none of which exist,
+      // so EVERY detected switch failed to insert (visible only in Vercel logs).
+      const effectiveDateRaw = futureEnrollmentDate ?? detectedFutureStart
+      const effectiveDate = effectiveDateRaw && /^\d{4}-\d{2}-\d{2}/.test(effectiveDateRaw)
+        ? effectiveDateRaw.slice(0, 10) : null
 
-      // Send email notification
-      if (notificationEmail) {
+      const switchType = alertType === 'termed'         ? 'termed'
+                       : alertType === 'pending_switch' ? 'future_plan_change'
+                       : alertType === 'aor_change'     ? null
+                       : 'plan_changed' // plan_switch / carrier_switch
+
+      const { data: insertedAlert, error: alertInsertErr } = await db
+        .from('switch_alerts')
+        .insert({
+          bob_member_id:      member.id,
+          ghl_contact_id:     `bob:${member.id}`,
+          agency_id:          member.agency_id,
+          broker_id:          broker.id,
+          alert_type:         alertType,
+          priority:           alertPriority,
+          status:             'open',
+          detection_source:   'marx_extension',
+          detected_at:        new Date().toISOString(),
+          switch_type:        switchType,
+          previous_plan_code: storedCode ?? null,
+          new_plan_code:      detectedPlanCode ?? null,
+          new_plan_name:      realPlanName ?? null,
+          carrier:            realCarrierName ?? member.carrier ?? null,
+          previous_value:     member.plan_name ?? storedCode ?? null,
+          new_value:          magicAlertMessage ?? realPlanName ?? detectedPlanCode ?? null,
+          effective_date:     effectiveDate,
+        })
+        .select('id')
+        .single()
+      if (alertInsertErr) console.error('[MARx] alert insert error:', JSON.stringify(alertInsertErr))
+      else console.log('[MARx] alert inserted — type:', alertType, '| id:', insertedAlert?.id)
+
+      // Send email notification — only when the alert row exists, so the email
+      // always corresponds to something visible in the dashboard. On success we
+      // stamp notified_at so the notifications cron doesn't send a duplicate;
+      // on failure notified_at stays NULL and the cron retries.
+      if (alertInsertErr) {
+        console.warn('[MARx] skipping inline email — alert insert failed; cron cannot retry a row that does not exist')
+      } else if (notificationEmail) {
         try {
           // Use original enrollment data for "previous" fields
           const previousCarrier  = member.original_carrier_name || member.carrier || 'Previous carrier'
@@ -520,10 +562,10 @@ export async function POST(req: NextRequest) {
           const newCarrier       = realCarrierName || 'New carrier detected'
           const newPlanName      = realPlanName || detectedPlanCode || 'New plan detected'
 
-          const switchType = alertType === 'termed'         ? 'termed'
-                           : alertType === 'pending_switch' ? 'future_plan_change'
-                           : alertType === 'carrier_switch' ? 'carrier_switch'
-                           : 'plan_switch'
+          const emailSwitchType = alertType === 'termed'         ? 'termed'
+                                : alertType === 'pending_switch' ? 'future_plan_change'
+                                : alertType === 'carrier_switch' ? 'carrier_switch'
+                                : 'plan_switch'
 
           await sendSwitchAlertEmail(notificationEmail, {
             memberName:          member.full_name ?? 'Unknown Member',
@@ -531,13 +573,22 @@ export async function POST(req: NextRequest) {
             previousCarrier,
             newPlanName,
             newCarrier,
-            switchType,
+            switchType:          emailSwitchType,
             futurePlanName:      detectedFuturePlan   ?? undefined,
             futureEffectiveDate: detectedFutureStart  ?? undefined,
             detectedVia:         'MARx Extension',
             alertUrl:            `${APP_URL}/book`,
           })
-          console.log('[MARx] email sent to', notificationEmail, '— switchType:', switchType)
+          console.log('[MARx] email sent to', notificationEmail, '— switchType:', emailSwitchType)
+
+          // Mark as notified so the scheduler cron doesn't re-send this alert
+          if (insertedAlert?.id) {
+            const { error: stampErr } = await db
+              .from('switch_alerts')
+              .update({ notified_at: new Date().toISOString(), notification_email: notificationEmail })
+              .eq('id', insertedAlert.id)
+            if (stampErr) console.error('[MARx] notified_at stamp failed:', stampErr.message)
+          }
         } catch (emailErr: any) {
           console.error('[MARx] email send failed:', emailErr?.message ?? String(emailErr))
         }
