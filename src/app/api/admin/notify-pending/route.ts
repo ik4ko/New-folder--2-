@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
     .select(`
       id, alert_type, priority, previous_value, new_value,
       agency_id, bob_member_id,
-      book_of_business!bob_member_id (full_name, mbi)
+      book_of_business!bob_member_id (full_name)
     `)
     .eq('status', 'open')
     .is('notified_at', null)
@@ -78,7 +78,7 @@ export async function POST(req: NextRequest) {
 
     const alertLines = agencyAlerts.map(a => {
       const member = (a as any).book_of_business
-      const name = member?.full_name || member?.mbi || 'Unknown Member'
+      const name = member?.full_name || 'Unknown Member'
       if (a.alert_type === 'termed') {
         return `🚨 Left Medicare Advantage: ${name}\n   Previous: ${a.previous_value || 'Unknown'}`
       }
