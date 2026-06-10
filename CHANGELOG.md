@@ -1,5 +1,10 @@
 # Aegis Sage — Changelog
 
+## [Fix: Broker Book Navigation + Merge Reconciliation] — 2026-06-10 (later)
+
+- **Owner clicking a broker's "View Book" landed on the agency-wide default view**: the dashboard team table links `/dashboard/book?broker_id=<id>`, but the book page only ever read `view=my_book` and silently ignored `broker_id`. The page now resolves `broker_id` for staff/owners (validated against the caller's agency — never cross-tenant), filters members and the open-alert count to that broker, and shows "· <Name>'s Book" in the header.
+- **Merge**: reconciled local history with the externally-pushed `569f73d` ("Fable 5", settings-only change) — the 2026-06-10 fix/perf commits were not in that push because it was made from a different clone.
+
 ## [Performance: RLS InitPlan Rewrite + FK Index Sweep] — 2026-06-10
 
 ### Migration `20260610030000_performance_rls_initplan_and_fk_indexes.sql` (applied to production)

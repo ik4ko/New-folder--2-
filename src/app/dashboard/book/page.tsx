@@ -41,6 +41,21 @@ export default async function BookPage({
   const sp         = await searchParams
   const myBookMode = isStaff && sp['view'] === 'my_book' && !!brokerRow?.id
 
+  // ?broker_id=<uuid> — staff/owners inspecting a specific broker's book
+  // (linked from the dashboard team table "View Book"). This param was
+  // previously ignored, which sent owners to the agency-wide default view.
+  const requestedBrokerId = sp['broker_id'] ?? null
+  let viewedBroker: { id: string; first_name: string | null; last_name: string | null } | null = null
+  if (isStaff && requestedBrokerId && !myBookMode) {
+    const { data: target } = await supabaseAdmin
+      .from('brokers')
+      .select('id, first_name, last_name')
+      .eq('id', requestedBrokerId)
+      .eq('agency_id', agencyId) // never cross-tenant, even for owners
+      .maybeSingle()
+    viewedBroker = target ?? null
+  }
+
   // Brokers see only their own clients. Staff, managers, and owners see all.
   // supabaseAdmin bypasses RLS so the filter must be applied explicitly here
   // to enforce the same boundary the RLS policies would otherwise provide.
@@ -55,6 +70,8 @@ export default async function BookPage({
   // Staff/owners in ?view=my_book mode filter to their personal selling book.
   if ((!isStaff && brokerRow?.id) || myBookMode) {
     membersQuery = membersQuery.eq('broker_id', brokerRow!.id) as typeof membersQuery
+  } else if (viewedBroker) {
+    membersQuery = membersQuery.eq('broker_id', viewedBroker.id) as typeof membersQuery
   }
 
   // Scope the open-alert count to the broker's own alerts when not staff.
@@ -68,6 +85,8 @@ export default async function BookPage({
 
   if (!isStaff && brokerRow?.id) {
     alertsCountQuery = alertsCountQuery.eq('broker_id', brokerRow.id) as typeof alertsCountQuery
+  } else if (viewedBroker) {
+    alertsCountQuery = alertsCountQuery.eq('broker_id', viewedBroker.id) as typeof alertsCountQuery
   }
 
   const [{ data: members, error: membersError }, { data: carrierLogins }, { count: openAlertsCount }] = await Promise.all([
@@ -147,6 +166,12 @@ export default async function BookPage({
     ? new Date(new Date(lastCheck).getTime() + 72 * 60 * 60 * 1000).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
     : 'After first connection'
 
+  const viewLabel = myBookMode
+    ? ' · My Book'
+    : viewedBroker
+      ? ` · ${[viewedBroker.first_name, viewedBroker.last_name].filter(Boolean).join(' ') || 'Broker'}'s Book`
+      : ''
+
   return (
     <div className="flex flex-col h-full w-full bg-background">
       <header className="h-16 border-b border-slate-800 px-8 flex items-center justify-between bg-slate-950/80 backdrop-blur-md sticky top-0 z-10">
@@ -157,7 +182,7 @@ export default async function BookPage({
           <div>
             <h1 className="text-lg font-black text-white uppercase tracking-tight">Book of Business</h1>
             <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-              {totalMembers} members{myBookMode ? ' · My Book' : ''} · Next check: {nextCheck}
+              {totalMembers} members{viewLabel} · Next check: {nextCheck}
             </p>
           </div>
         </div>
