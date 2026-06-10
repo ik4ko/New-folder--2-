@@ -1,5 +1,12 @@
 # Aegis Sage — Changelog
 
+## [Critical Fix: Account Provisioning Restored] — 2026-06-10 (later)
+
+- **"Complete Account Setup" error on login/signup — ROOT CAUSE found and fixed.** `agencies.subscription_tier` had a column DEFAULT of `'solo'`, which is NOT in the `agencies_subscription_tier_check` allowed set (`trial, beta, broker, agency, enterprise`). `provisionAgency`'s core insert omits `subscription_tier`, so the invalid default applied and the INSERT failed with a CHECK violation every time — making the server action throw, surfaced to users as the masked "An error occurred in the Server Components render" on the setup page. ANY new or re-provisioned account hit this.
+  - **DB fix (applied to production)**: `20260610040000_fix_agencies_subscription_tier_default.sql` sets the default to `'trial'`. Verified by replaying the exact provisioning insert sequence in a rolled-back transaction — all four steps (agency insert → tier update → broker insert → role update) now succeed.
+  - **Code hardening**: `provisionAgency` now sets `subscription_tier: 'trial'` explicitly in the initial insert so it never again depends on the column default.
+- Confirmed RLS is intact after the perf migration: an authenticated owner can SELECT their own agency row (simulated under `role authenticated` + JWT claims). The setup overlay was correct behavior for accounts whose profile was wiped by the earlier deletions (`ika9191@`, `erekleniniashvili@` have no agency/broker); it errored only because provisioning itself was broken.
+
 ## [Security Audit: Credential-Leak Endpoint Removed, Service Client Hardened] — 2026-06-10
 
 - **CRITICAL — deleted `src/pages/api/carrier/get-credentials.ts`**: a GET endpoint with ZERO authentication that accepted `?agency_id=<uuid>` and returned **decrypted carrier portal passwords** (username + plaintext password) for any agency. On a public-repo deployment this was a full cross-tenant credential exfiltration vector. Confirmed zero callers anywhere in the codebase before removing.

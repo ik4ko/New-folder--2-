@@ -40,8 +40,12 @@ export async function provisionAgency(params: ProvisionParams) {
       name:     displayName,
       status:   'trial',
       // 'starter' is always valid per the original core schema constraint.
-      // subscription_tier (the billing-page field) is set below in the resilient update.
       tier: 'starter',
+      // Set explicitly: the agencies.subscription_tier column DEFAULT was 'solo',
+      // which violates agencies_subscription_tier_check and made this insert fail
+      // (surfaced as the "Complete Account Setup" error). 'trial' is valid; the
+      // resilient update below overwrites it with the real tier.
+      subscription_tier: 'trial',
     })
     .select('id')
     .single()
