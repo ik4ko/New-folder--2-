@@ -45,3 +45,8 @@ firebase-debug.log
 firestore-debug.log
 .vercel
 .env*
+
+# build & debug artifacts (untracked 2026-06-10)
+/deploy.log
+/supabase/.temp/
+scripts/debug-*.png
