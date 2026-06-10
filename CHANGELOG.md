@@ -1,5 +1,15 @@
 # Aegis Sage — Changelog
 
+## [Security Audit: Credential-Leak Endpoint Removed, Service Client Hardened] — 2026-06-10
+
+- **CRITICAL — deleted `src/pages/api/carrier/get-credentials.ts`**: a GET endpoint with ZERO authentication that accepted `?agency_id=<uuid>` and returned **decrypted carrier portal passwords** (username + plaintext password) for any agency. On a public-repo deployment this was a full cross-tenant credential exfiltration vector. Confirmed zero callers anywhere in the codebase before removing.
+- **Service-role client hardened (`src/lib/supabase/service.ts`)**: added a module-eval guard that throws if imported in a browser context, plus a missing-key guard. The service-role key bypasses RLS; this makes a client-bundle leak fail loudly at build/eval instead of silently shipping.
+- **Removed dangling `createServiceClient` import from a client component** (`settings/carriers/verify/[carrier]/mfa-verify-form.tsx`) — it was imported but never called (the form correctly POSTs to the authed `/api/carriers/submit-mfa`). Not a live key leak (`SUPABASE_SERVICE_ROLE_KEY` lacks the `NEXT_PUBLIC_` prefix so Next never inlined it) but a footgun now eliminated and prevented by the guard above.
+
+### Audited clean (no change needed)
+- All `/api/scheduler/*` routes gate on `CRON_SECRET`; `/api/extension/*` and `/api/marx/*` gate on `extension_api_key` Bearer; Stripe webhook verifies HMAC signature; audit alert-receiver checks `x-supabase-webhook-secret`; admin routes gate on `ADMIN_API_SECRET`/`ADMIN_ENABLED`.
+- No real secrets in tracked files or git history — only documentation placeholders (`sk_live_xxxxx`, `YOUR_API_KEY_HERE`). No `NEXT_PUBLIC_` secret misuse. Extension bundle carries no hardcoded keys.
+
 ## [Fix: Broker Book Navigation + Merge Reconciliation] — 2026-06-10 (later)
 
 - **Owner clicking a broker's "View Book" landed on the agency-wide default view**: the dashboard team table links `/dashboard/book?broker_id=<id>`, but the book page only ever read `view=my_book` and silently ignored `broker_id`. The page now resolves `broker_id` for staff/owners (validated against the caller's agency — never cross-tenant), filters members and the open-alert count to that broker, and shows "· <Name>'s Book" in the header.
