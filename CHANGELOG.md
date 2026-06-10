@@ -1,5 +1,13 @@
 # Aegis Sage — Changelog
 
+## [Performance: RLS InitPlan Rewrite + FK Index Sweep] — 2026-06-10
+
+### Migration `20260610030000_performance_rls_initplan_and_fk_indexes.sql` (applied to production)
+- **26 RLS policies rewrote `auth.uid()`/`auth.role()` per row** (advisor `auth_rls_initplan`) across 14 tables including the hot path (`brokers`, `agencies`, `book_of_business`, `switch_alerts`). All wrapped in `(select auth.*())` so Postgres evaluates once per query — mechanical, semantics-preserving rewrite generated from `pg_policy` and reviewed before apply. Verified post-apply: zero bare `auth.*()` calls remain in public policies.
+- **45 unindexed FK columns indexed** (advisor `unindexed_foreign_keys`): every `agency_id`/`broker_id` tenant-scope column plus attribution and join FKs. agency_id columns sit inside every RLS subquery; child-side FK indexes also keep cascade deletes (member/agency) off seq scans.
+- **2 duplicate indexes dropped** (`idx_carrier_baselines_lookup`, `idx_carrier_schema_maps_fingerprint`) — both shadowed identical UNIQUE-constraint indexes.
+- **Accepted residual**: multiple-permissive-policy pairs (broker_own vs agency_staff) on 7 tables — deliberate role-split, not merged; auth./storage. schema duplicates — Supabase-managed.
+
 ## [Critical Fix: MARx Verify 404 + Alert Pipeline, Account Deletion Unblocked] — 2026-06-10
 
 ### MARx verify route was 100% broken (`src/app/api/marx/verify/route.ts`)
