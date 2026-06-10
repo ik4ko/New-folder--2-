@@ -9,14 +9,29 @@ import { AlertCircle, CheckCircle2, Loader2, ShieldCheck } from 'lucide-react'
 
 type State = 'loading' | 'not-logged-in' | 'ready' | 'connecting' | 'connected' | 'no_extension' | 'error'
 
-// Must match the extension ID shown in chrome://extensions
-const EXT_ID = 'lficmpbigbkheakeippknapnceemfcbk'
-
 export default function ExtensionConnectPage() {
   const [state, setState] = useState<State>('loading')
   const [brokerName, setBrokerName] = useState('')
   const [agency, setAgency] = useState('')
   const [error, setError] = useState('')
+  // Set true as soon as the extension's content-script bridge announces itself.
+  const [extPresent, setExtPresent] = useState(false)
+
+  // ID-independent handshake: the content-script bridge posts
+  // AEGISSAGE_EXT_PRESENT on load and in reply to our PING, so we detect the
+  // extension regardless of its (unpacked, random) ID — no hardcoded EXT_ID.
+  useEffect(() => {
+    function onMessage(event: MessageEvent) {
+      if (event.source !== window) return
+      const data = event.data
+      if (!data || data.source !== 'aegissage-ext') return
+      if (data.type === 'AEGISSAGE_EXT_PRESENT') setExtPresent(true)
+    }
+    window.addEventListener('message', onMessage)
+    // Ask an already-loaded bridge to announce (covers page-loads-after-bridge).
+    window.postMessage({ source: 'aegissage-page', type: 'AEGISSAGE_PING' }, '*')
+    return () => window.removeEventListener('message', onMessage)
+  }, [])
 
   useEffect(() => {
     checkAuth()
@@ -45,18 +60,38 @@ export default function ExtensionConnectPage() {
     }
   }
 
-  function storeBridge(payload: { token: string; agency_name: string; broker_name: string }) {
-    // Store in localStorage AND dispatch a CustomEvent.
-    // content.js running on aegissage.com pages listens for the event and relays
-    // the token to the extension via chrome.runtime.sendMessage — no EXT_ID needed.
-    localStorage.setItem('aegissage_pending_token', JSON.stringify(payload))
-    window.dispatchEvent(new CustomEvent('aegissage_connect', { detail: payload }))
+  // Send the token to the content-script bridge via postMessage and wait for
+  // its ack. Resolves true on confirmed store, false on timeout (no bridge).
+  function sendTokenToExtension(token: string): Promise<boolean> {
+    return new Promise((resolve) => {
+      let settled = false
+      function onAck(event: MessageEvent) {
+        if (event.source !== window) return
+        const data = event.data
+        if (!data || data.source !== 'aegissage-ext') return
+        if (data.type === 'AEGISSAGE_TOKEN_STORED') {
+          if (settled) return
+          settled = true
+          window.removeEventListener('message', onAck)
+          resolve(data.success !== false)
+        }
+      }
+      window.addEventListener('message', onAck)
+      // localStorage fallback covers a bridge that injects after this post.
+      try { localStorage.setItem('aegissage_pending_token', JSON.stringify({ token })) } catch {}
+      window.postMessage({ source: 'aegissage-page', type: 'AEGISSAGE_TOKEN', token }, '*')
+      setTimeout(() => {
+        if (settled) return
+        settled = true
+        window.removeEventListener('message', onAck)
+        resolve(false)
+      }, 4000)
+    })
   }
 
   async function handleConnect() {
     setState('connecting')
     try {
-      // Get the session token from the server
       const res = await fetch('/api/extension/connect')
       if (res.status === 401) {
         window.location.href = '/login?redirect=' + encodeURIComponent('/extension/connect')
@@ -69,33 +104,14 @@ export default function ExtensionConnectPage() {
       const { token } = await res.json()
       if (!token) throw new Error('No active session — please log in again')
 
-      const chr = (window as any).chrome
-      const payload = { token, agency_name: agency, broker_name: brokerName }
-
-      if (!chr?.runtime?.sendMessage) {
-        // Not in Chrome or extension not installed
-        storeBridge(payload)
+      const stored = await sendTokenToExtension(token)
+      if (stored) {
+        setState('connected')
+        setTimeout(() => { window.location.href = '/dashboard' }, 1500)
+      } else {
+        // No bridge acked — extension isn't installed (or needs a reload).
         setState('no_extension')
-        return
       }
-
-      // Primary path: direct externally_connectable sendMessage (requires correct EXT_ID)
-      chr.runtime.sendMessage(
-        EXT_ID,
-        { action: 'STORE_TOKEN', ...payload },
-        (response: { success: boolean } | undefined) => {
-          if (chr.runtime.lastError) {
-            console.warn('[Connect] Direct sendMessage failed — using bridge fallback:', chr.runtime.lastError.message)
-            storeBridge(payload)
-          } else if (!response?.success) {
-            storeBridge(payload)
-          } else {
-            console.log('[Connect] Token stored directly in extension')
-          }
-          setState('connected')
-          setTimeout(() => { window.location.href = '/dashboard' }, 1500)
-        }
-      )
     } catch (err: any) {
       setError(err.message)
       setState('error')
@@ -155,12 +171,20 @@ export default function ExtensionConnectPage() {
                   </div>
                 ))}
               </div>
+              <div className={`flex items-center gap-2 justify-center rounded-xl px-3 py-2 text-[11px] font-bold ${
+                extPresent
+                  ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20'
+                  : 'bg-slate-800/60 text-slate-400 border border-slate-700'
+              }`}>
+                <span className={`w-1.5 h-1.5 rounded-full ${extPresent ? 'bg-emerald-400' : 'bg-slate-500'}`} />
+                {extPresent ? 'Extension detected' : 'Extension not detected yet'}
+              </div>
               <Button
                 onClick={handleConnect}
                 className="w-full h-12 rounded-2xl font-black uppercase tracking-widest text-xs shadow-lg shadow-primary/20"
               >
                 <ShieldCheck className="w-4 h-4 mr-2" />
-                Connect Extension
+                {extPresent ? 'Connect Extension' : 'Connect (or install below)'}
               </Button>
             </div>
           )}

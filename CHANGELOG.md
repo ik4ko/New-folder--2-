@@ -1,5 +1,16 @@
 # Aegis Sage — Changelog
 
+## [Extension Connect Rework: ID-Independent Pairing] — 2026-06-10 (later)
+
+The connect flow had two real failure modes, both fixed:
+- **Hardcoded extension ID**: the connect page messaged a fixed `EXT_ID` (`lficmpbig…`). Unpacked installs (the only option while the Web Store listing is pending) get a *random* ID, so the direct `chrome.runtime.sendMessage(EXT_ID, …)` path always failed and silently fell through.
+- **Timing bug in the fallback**: the old bridge only read the token from `localStorage` once, at injection. Clicking "Connect" after the page had loaded set `localStorage` but dispatched a `CustomEvent` nothing listened for — so the token was never relayed and the connect silently did nothing.
+
+New design — `postMessage` handshake, no ID dependency:
+- `extension/connect-bridge.js` rewritten: announces `AEGISSAGE_EXT_PRESENT` on load and in reply to the page's `AEGISSAGE_PING`; listens for `AEGISSAGE_TOKEN` and acks `AEGISSAGE_TOKEN_STORED` after the background stores it. A content script can always reach its own background regardless of extension ID.
+- `src/app/extension/connect/page.tsx`: detects the extension via the presence announcement (shows a live "Extension detected" / "not detected yet" indicator), sends the token via `postMessage`, and waits for the ack with a 4s timeout before falling back to the install instructions. `localStorage` retained as a secondary path. Hardcoded `EXT_ID` removed.
+- `extension/manifest.json` bumped to 1.1.0; `public/aegissage-extension.zip` + root zip rebuilt with the new bridge. **Users must reload the unpacked extension** (chrome://extensions → reload) to pick up the new bridge.
+
 ## [Critical Fix: Account Provisioning Restored] — 2026-06-10 (later)
 
 - **"Complete Account Setup" error on login/signup — ROOT CAUSE found and fixed.** `agencies.subscription_tier` had a column DEFAULT of `'solo'`, which is NOT in the `agencies_subscription_tier_check` allowed set (`trial, beta, broker, agency, enterprise`). `provisionAgency`'s core insert omits `subscription_tier`, so the invalid default applied and the INSERT failed with a CHECK violation every time — making the server action throw, surfaced to users as the masked "An error occurred in the Server Components render" on the setup page. ANY new or re-provisioned account hit this.
