@@ -80,7 +80,7 @@ export default async function AlertDetailPage({
     alert.bob_member_id
       ? supabaseAdmin
           .from('book_of_business')
-          .select('id, full_name, plan_name, carrier_display_name, date_of_birth, phone_primary')
+          .select('id, full_name, plan_name, carrier_display_name') // date_of_birth/phone_primary don't exist on book_of_business (DOB is never stored plaintext) — selecting them made PostgREST reject the whole query and the alert detail page lose its member info
           .eq('id', alert.bob_member_id)
           .single()
       : Promise.resolve({ data: null }),

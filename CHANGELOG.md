@@ -1,5 +1,12 @@
 # Aegis Sage — Changelog
 
+## [Schema Sweep: Last Missing-Column Landmines Cleared] — 2026-06-10 (night)
+
+Systematic sweep: extracted every column referenced in `.select()` against `book_of_business` and `switch_alerts` across the codebase and validated each against the live schema. Found and fixed the final three breakages of the missing-column class (PostgREST rejects an entire query when any selected column is unknown — pages render empty with no visible error):
+
+- **Alert detail page** selected `date_of_birth, phone_primary` from `book_of_business` — neither exists (DOB is deliberately never stored plaintext). Dropped from the select; the member-info panel on alert details would otherwise never load.
+- **Alerts list page + scripts page** selected `previous_carrier, new_carrier, estimated_revenue_at_risk` from `switch_alerts` — none existed, so THE ALERTS PAGE ITSELF would render empty even after alerts were inserted. Migration `20260610060000_add_switch_alerts_ui_columns` (applied to production) adds all three; the UI already null-coalesces them. Verified the full alerts-page select runs clean against live.
+
 ## [Critical Fix: MARx 404 Round 2 + Agency Dashboard Downgrade] — 2026-06-10 (night)
 
 - **MARx verify STILL 404'd after the deploy — second missing-column bug found.** `BOB_SELECT` includes `enrollment_confirmed`, and the update payload writes `detection_status`, `detection_status_updated_at`, `enrollment_confirmed_at` — none existed in `book_of_business`. PostgREST rejects the whole SELECT on any unknown column, so every member lookup failed exactly like the dropped-mbi bug. Migration `20260610050000_add_marx_verify_missing_columns` (applied to production) adds all four; verified the exact BOB_SELECT column list now returns rows against live data. Re-running the MARx search should now produce alerts + emails.
