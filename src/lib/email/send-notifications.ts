@@ -307,7 +307,7 @@ export async function sendSwitchAlertEmail(
   `.replace(/\n\s+/g, ' ').trim()
 
   if (data.switchType === 'future_plan_change') {
-    subject = `${data.memberName} has a plan change coming${data.futureEffectiveDate ? ` (eff. ${data.futureEffectiveDate})` : ''}`
+    subject = `\u23f3 Leaving soon: ${data.memberName} is scheduled to switch plans${data.futureEffectiveDate ? ` on ${data.futureEffectiveDate}` : ''} \u2014 you can still save this client`
     html = `<!DOCTYPE html><html><head><style>${styles}</style></head><body>
 <div class="wrapper"><div class="card">
   <div class="logo">AegisSage</div>
@@ -336,7 +336,7 @@ export async function sendSwitchAlertEmail(
 </div></div></body></html>`
 
   } else if (data.switchType === 'termed' || data.switchType === 'no_ma_plan') {
-    subject = `${data.memberName} may no longer have active Medicare coverage`
+    subject = `\ud83d\udea8 Left plan: ${data.memberName} has no active Medicare coverage \u2014 immediate outreach needed`
     html = `<!DOCTYPE html><html><head><style>${styles}</style></head><body>
 <div class="wrapper"><div class="card">
   <div class="logo">AegisSage</div>
@@ -364,7 +364,7 @@ export async function sendSwitchAlertEmail(
 </div></div></body></html>`
 
   } else if (data.switchType === 'carrier_switch') {
-    subject = `${data.memberName} appears to have switched carriers`
+    subject = `\u26a0\ufe0f Left plan: ${data.memberName} switched to a different carrier${data.previousCarrier ? ` (was ${data.previousCarrier})` : ''}`
     html = `<!DOCTYPE html><html><head><style>${styles}</style></head><body>
 <div class="wrapper"><div class="card">
   <div class="logo">AegisSage</div>
@@ -393,7 +393,7 @@ export async function sendSwitchAlertEmail(
 
   } else {
     // Generic plan switch (same carrier, different plan)
-    subject = `${data.memberName} may be switching plans`
+    subject = `\u26a0\ufe0f ${data.memberName} changed plans \u2014 review and confirm AOR status`
     html = `<!DOCTYPE html><html><head><style>${styles}</style></head><body>
 <div class="wrapper"><div class="card">
   <div class="logo">AegisSage</div>

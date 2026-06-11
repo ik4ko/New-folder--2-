@@ -61,20 +61,9 @@ export type AlertStatus = 'contacted' | 'resolved' | 'mitigating'
 //   secured      — Broker has confirmed the client is re-anchored.
 //                  Alert is resolved; retention confirmed.
 
-export type AlertTypology = 'flight_risk' | 'switched' | 'secured'
-
-const FLIGHT_RISK_TYPES  = new Set(['future_plan_change', 'plan_switch', 'pending_switch'])
-const SWITCHED_TYPES     = new Set(['plan_changed', 'carrier_switch', 'termed', 'fully_disenrolled'])
-
-export function getAlertTypology(alert: AlertRow): AlertTypology {
-  if (alert.status === 'resolved') return 'secured'
-  const st = alert.switch_type ?? ''
-  if (SWITCHED_TYPES.has(st))     return 'switched'
-  if (FLIGHT_RISK_TYPES.has(st))  return 'flight_risk'
-  // Open/contacted/mitigating alerts without a specific switch_type signal
-  // are treated as flight-risk until confirmed otherwise.
-  return 'flight_risk'
-}
+import { getAlertTypology, type AlertTypology } from '@/lib/alert-typology'
+export { getAlertTypology }
+export type { AlertTypology }
 
 export const TYPOLOGY_CFG: Record<AlertTypology, {
   label:   string
@@ -84,14 +73,14 @@ export const TYPOLOGY_CFG: Record<AlertTypology, {
   bar:     string       // confidence bar colour
 }> = {
   flight_risk: {
-    label:  'Flight Risk',
+    label:  'Leaving Soon',
     icon:   AlertTriangle,
     chip:   'bg-amber-500/10 text-amber-400 border-amber-500/20 border',
     border: 'border-l-amber-500',
     bar:    'bg-amber-500',
   },
   switched: {
-    label:  'Plan Switched',
+    label:  'Left Plan',
     icon:   XCircle,
     chip:   'bg-rose-500/10 text-rose-400 border-rose-500/20 border',
     border: 'border-l-rose-500',

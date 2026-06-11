@@ -1,5 +1,13 @@
 # Aegis Sage — Changelog
 
+## [Alerts UX: Crash Fix, Categories, Email Polish, Billing Permission] — 2026-06-11
+
+- **Alerts page crash fixed** (`SOMETHING WENT WRONG` on /dashboard/alerts). The server page imported `getAlertTypology` from `components/alert-card.tsx`, a `'use client'` module — calling a client-exported function from a server component throws "Attempted to call ... from the server". Moved the typology logic to a server-safe `src/lib/alert-typology.ts`; alert-card re-exports it for backward compat. Server page now imports from the lib.
+- **Sidebar alert badge corrected** (showed 1 while the dashboard tile said 5/6). The badge counted only `priority='critical'`; now counts ALL open/contacted alerts, matching the dashboard "require action" tile.
+- **Alert categories relabeled to match the broker mental model.** Two buckets: **"Left Plan"** (already gone — `plan_changed`, `carrier_switch`, `termed`, `fully_disenrolled`) and **"Leaving Soon"** (scheduled/future — `future_plan_change`, `pending_switch`, `plan_switch`). With the live data (5 carrier switches + 1 termed) this correctly shows 6 under "Left Plan". "Leaving Soon" is the high-value pre-emptive bucket (a member scheduled to leave the plan you placed them on next month).
+- **Email sender + subject lines.** From name is now `AegisSage <…>` (inboxes were showing the bare mailbox "alerts"). Subjects rewritten to lead with the category + action: "🚨 Left plan: NAME has no active Medicare coverage — immediate outreach needed", "⏳ Leaving soon: NAME is scheduled to switch plans on DATE — you can still save this client", etc.
+- **Plan & Billing hidden from agency-employed brokers.** Settings nav now shows billing only to principals (owner/admin) and solo brokers (who pay their own plan). The billing page already renders a read-only "Seat Access" view for sub-brokers who reach it by URL.
+
 ## [Schema Sweep: Last Missing-Column Landmines Cleared] — 2026-06-10 (night)
 
 Systematic sweep: extracted every column referenced in `.select()` against `book_of_business` and `switch_alerts` across the codebase and validated each against the live schema. Found and fixed the final three breakages of the missing-column class (PostgREST rejects an entire query when any selected column is unknown — pages render empty with no visible error):

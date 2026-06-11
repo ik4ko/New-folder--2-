@@ -13,6 +13,7 @@ import { usePathname } from "next/navigation"
 import { useEffect } from "react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
+import { useRole } from "@/hooks/useRole"
 
 // GHL CRM connection moved to the unified import page: /dashboard/churn/upload
 // Settings only exposes account-level controls — data sources live in the app.
@@ -25,8 +26,14 @@ const SETTINGS_ITEMS = [
 function SettingsSidebar() {
   const pathname = usePathname()
   const { isSidebarOpen, toggleSidebar } = useAppStore()
+  const { isPrincipal, isSolo, loading: roleLoading } = useRole()
 
-  const menuItems = SETTINGS_ITEMS
+  // Plan & Billing is owner/manager territory (solo brokers pay their own
+  // plan so they keep it). Agency-employed brokers and CS never see it —
+  // the agency pays; hidden while the role is still resolving to avoid a
+  // flash of the item for brokers.
+  const canSeeBilling = !roleLoading && (isPrincipal || isSolo)
+  const menuItems = SETTINGS_ITEMS.filter(i => i.id !== 'billing' || canSeeBilling)
 
   return (
     <aside className={cn(

@@ -1,6 +1,8 @@
 import { Resend } from 'resend'
 
-export const FROM_EMAIL = process.env.RESEND_FROM_EMAIL ?? 'alerts@aegissage.com'
+const rawFrom = process.env.RESEND_FROM_EMAIL ?? 'alerts@aegissage.com'
+// Friendly sender name — inboxes were showing the bare mailbox name ("alerts").
+export const FROM_EMAIL = rawFrom.includes('<') ? rawFrom : `AegisSage <${rawFrom}>`
 
 let _instance: Resend | null = null
 

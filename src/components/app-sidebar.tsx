@@ -102,7 +102,8 @@ export async function AppSidebar() {
       .from('switch_alerts')
       .select('id', { count: 'exact', head: true })
       .eq('agency_id', agencyId)
-      .eq('priority', 'critical')
+      // Badge mirrors the dashboard "require action" tile: ALL open alerts,
+      // not just critical — a 1-vs-5 mismatch confused users.
       .in('status', ['open', 'contacted'])
     // Broker-tier users see only their own alerts; agency staff see all
     if (isBrokerTier && brokerRow?.id) {

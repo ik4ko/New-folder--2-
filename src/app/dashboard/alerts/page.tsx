@@ -3,7 +3,7 @@ import { createClient } from '@/lib/supabase/server'
 import { createServiceClient } from '@/lib/supabase/service'
 import { Bell } from 'lucide-react'
 import { AlertsFeed } from '@/components/alerts-feed'
-import { getAlertTypology } from '@/components/alert-card'
+import { getAlertTypology } from '@/lib/alert-typology'
 
 export default async function AlertsPage() {
   const supabase = await createClient()
