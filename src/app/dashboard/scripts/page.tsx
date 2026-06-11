@@ -55,6 +55,7 @@ export default async function ScriptsPage() {
     .limit(100)
 
   // Non-staff: restrict to own BOB member alerts
+  let skipQuery = false
   if (!isStaff && brokerRow?.id) {
     const { data: myMemberIds } = await svc
       .from('book_of_business')
@@ -63,10 +64,12 @@ export default async function ScriptsPage() {
     const ids = (myMemberIds ?? []).map((m: { id: string }) => m.id).filter(Boolean)
     if (ids.length > 0) {
       q = q.in('bob_member_id', ids) as typeof q
+    } else {
+      skipQuery = true // zero members must mean zero alerts — never fall through unscoped
     }
   }
 
-  const { data: rawAlerts } = await q
+  const { data: rawAlerts } = skipQuery ? { data: [] as any[] } : await q
   const alertList = rawAlerts ?? []
 
   // ── Enrich with member names ────────────────────────────────────────────────

@@ -105,8 +105,10 @@ export async function AppSidebar() {
       // Badge mirrors the dashboard "require action" tile: ALL open alerts,
       // not just critical — a 1-vs-5 mismatch confused users.
       .in('status', ['open', 'contacted'])
-    // Broker-tier users see only their own alerts; agency staff see all
-    if (isBrokerTier && brokerRow?.id) {
+    // Scope by ROLE, not plan tier: agency-employed brokers must only see
+    // their own alerts even on an agency-tier plan. Owners/admins/CS see all.
+    const SEES_ALL_ALERTS = isOwner || STAFF_ROLES.includes(role)
+    if (!SEES_ALL_ALERTS && brokerRow?.id) {
       q = q.eq('broker_id', brokerRow.id) as typeof q
     }
     const { count } = await q

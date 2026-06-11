@@ -38,7 +38,10 @@ export default async function AlertsPage() {
     .order('detected_at', { ascending: false })
     .limit(200)
 
-  // Non-staff brokers see only alerts for their own members
+  // Non-staff brokers see only alerts for their own members.
+  // CRITICAL: a broker with zero members previously skipped the filter
+  // entirely and saw EVERY agency alert — cross-broker data exposure.
+  let skipQuery = false
   if (!isStaff && brokerRow?.id) {
     const { data: myMemberIds } = await supabaseAdmin
       .from('book_of_business')
@@ -47,10 +50,12 @@ export default async function AlertsPage() {
     const ids = (myMemberIds ?? []).map((m: any) => m.id).filter(Boolean)
     if (ids.length > 0) {
       alertsQuery = alertsQuery.in('bob_member_id', ids) as typeof alertsQuery
+    } else {
+      skipQuery = true // no members -> no alerts, never fall through unscoped
     }
   }
 
-  const { data: alerts } = await alertsQuery
+  const { data: alerts } = skipQuery ? { data: [] as any[] } : await alertsQuery
   const alertList = alerts ?? []
 
   // Batch-fetch member names from book_of_business

@@ -1,5 +1,15 @@
 # Aegis Sage — Changelog
 
+## [Security Fix: Broker Alert Scoping] — 2026-06-11
+
+Reported: an agency-employed broker saw the agency's alert badge/notifications even though the alerts belonged to the owner's book. Three scoping bugs:
+
+- **Sidebar badge scoped by plan tier, not role** — on an agency-tier plan, the `isBrokerTier` flag is false so a plain broker got the unfiltered agency-wide count. Now scoped by role: only owner/admin/CS see the agency count; brokers see only their own.
+- **Alerts page: zero-member brokers saw EVERY agency alert.** The own-members filter was wrapped in `if (ids.length > 0)` — a broker with no members fell through to the unscoped agency query. Now zero members → zero alerts, never unscoped. (Cross-broker PHI exposure — alerts contain member names/plans.)
+- **Scripts page: identical fall-through** — same fix.
+
+Verified the VCC page's similar-looking `ids.length > 0` is a benign broker-name map, not a scope filter. Alert emails were never sent to the wrong broker (the cron groups strictly by the alert's broker_id).
+
 ## [Alerts UX: Crash Fix, Categories, Email Polish, Billing Permission] — 2026-06-11
 
 - **Alerts page crash fixed** (`SOMETHING WENT WRONG` on /dashboard/alerts). The server page imported `getAlertTypology` from `components/alert-card.tsx`, a `'use client'` module — calling a client-exported function from a server component throws "Attempted to call ... from the server". Moved the typology logic to a server-safe `src/lib/alert-typology.ts`; alert-card re-exports it for backward compat. Server page now imports from the lib.
