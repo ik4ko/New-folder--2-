@@ -22,6 +22,19 @@ import { supabaseAdmin } from '@/lib/supabase'
  */
 export async function autoProvisionUser({ userId, email }: { userId: string; email: string }) {
 
+  // Resolve the plan from the signup account_type metadata so an agency signup
+  // is never silently downgraded to the broker tier (which hides the agency
+  // dashboard nav). Defaults to broker when metadata is absent.
+  let isAgencyPlan = false
+  try {
+    const { data: authInfo } = await supabaseAdmin.auth.admin.getUserById(userId)
+    isAgencyPlan = (authInfo?.user?.user_metadata?.account_type as string | undefined) === 'agency'
+  } catch (e) {
+    console.warn('[auto-provision] could not read account_type metadata — defaulting to broker:', e)
+  }
+  const planTier  = isAgencyPlan ? 'agency' : 'broker'
+  const planSeats = isAgencyPlan ? 5 : 1
+
   // ── Check if the user already owns an agency ──────────────────────────────
   const { data: existingAgency } = await supabaseAdmin
     .from('agencies')
@@ -100,7 +113,8 @@ export async function autoProvisionUser({ userId, email }: { userId: string; ema
       owner_id:          userId,
       name:              `${name}'s Agency`,
       status:            'trial',
-      subscription_tier: 'broker',
+      subscription_tier: planTier,
+      included_seats:    planSeats,
       // seat_limit = NULL ensures the broker INSERT below is never blocked
       // by the seat-limit trigger regardless of any default column value.
       seat_limit:        null,

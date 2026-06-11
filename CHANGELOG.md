@@ -1,5 +1,11 @@
 # Aegis Sage — Changelog
 
+## [Critical Fix: MARx 404 Round 2 + Agency Dashboard Downgrade] — 2026-06-10 (night)
+
+- **MARx verify STILL 404'd after the deploy — second missing-column bug found.** `BOB_SELECT` includes `enrollment_confirmed`, and the update payload writes `detection_status`, `detection_status_updated_at`, `enrollment_confirmed_at` — none existed in `book_of_business`. PostgREST rejects the whole SELECT on any unknown column, so every member lookup failed exactly like the dropped-mbi bug. Migration `20260610050000_add_marx_verify_missing_columns` (applied to production) adds all four; verified the exact BOB_SELECT column list now returns rows against live data. Re-running the MARx search should now produce alerts + emails.
+- **Agency owner saw a broker-style dashboard (no Team/agency pages).** The sidebar gates nav on `agencies.subscription_tier`; the owner's agency had `subscription_tier='broker'`, `included_seats=1` despite `role='agency_owner'` and `account_type='agency'` metadata. Root cause: `autoProvisionUser` (run by the dashboard whenever a profile looks incomplete) **hardcoded `subscription_tier: 'broker'`** for every from-scratch agency. Fixed: it now reads `user_metadata.account_type` and provisions `agency`/5 seats vs `broker`/1 seat accordingly. The live agency record was corrected directly (`subscription_tier='agency'`, `included_seats=5`, `seat_limit=999`).
+- Verified clean: roster import (82 members, all with mbi_hash, correctly broker-assigned), extension key auth, encryptMbi/decryptCredential are a compatible AES-256-GCM pair.
+
 ## [Extension Connect Rework: ID-Independent Pairing] — 2026-06-10 (later)
 
 The connect flow had two real failure modes, both fixed:
